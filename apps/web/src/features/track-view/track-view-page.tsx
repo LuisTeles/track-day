@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { CornerDetails, CornerList, cornerTitle } from "./corner-details";
 import { CornerMarkers } from "./corner-markers";
 import { cornerFraction } from "./geometry/anchors";
 import { SidePanel } from "./side-panel";
 import { TrackCanvas, type TrackCanvasHandle } from "./track-canvas";
 import { ToolButton, TrackViewShell } from "./track-view-shell";
-import { useTrackView } from "./use-track-view";
+import { useStoredToggle } from "@/shared/hooks/use-stored-toggle";
+import { CornerGuideSection } from "./corner-guide-section";
+import { chipsFor, guideLabel } from "./guides";
+import { useCornerGuides, useTrackView } from "./use-track-view";
 
 /** `?track=<id>&layout=<id>&corner=<id>`; `panel=corners` opens the list. */
 export function TrackViewPage() {
@@ -25,6 +28,12 @@ function TrackView({ trackId }: { trackId: string }) {
   const pathname = usePathname();
   const canvas = useRef<TrackCanvasHandle>(null);
   const { data, isPending, error } = useTrackView(trackId, params.get("layout"));
+  const [showChips, toggleChips] = useStoredToggle("track-view:chips", true);
+
+  // Until the global car picker exists (M4), the layout's guides are picked here.
+  const guide = data?.guides.find((g) => g.id === params.get("guide")) ?? data?.guides[0] ?? null;
+  const { data: cornerGuides } = useCornerGuides(guide?.id ?? null);
+  const chips = useMemo(() => (cornerGuides ? chipsFor(cornerGuides) : null), [cornerGuides]);
 
   const cornerId = params.get("corner");
   const listOpen = params.get("panel") === "corners";
@@ -70,7 +79,10 @@ function TrackView({ trackId }: { trackId: string }) {
   if (error) return <Message>Could not load the track: {error.message}</Message>;
   if (!data) return <Message>This track doesn’t exist (it may have been deleted).</Message>;
 
-  const { track, layouts, layout, corners, complexes } = data;
+  const { track, layouts, layout, corners, complexes, guides } = data;
+  const currentGuideLabel = guide
+    ? guideLabel(guide, data.carClasses ?? [], data.cars ?? [])
+    : null;
   const selected = corners.find((c) => c.id === cornerId) ?? null;
 
   const topBar = (
@@ -128,6 +140,7 @@ function TrackView({ trackId }: { trackId: string }) {
               corners={corners}
               selectedId={selected?.id ?? null}
               onSelect={selectCorner}
+              chips={showChips ? chips : null}
             />
           )}
         />
@@ -141,6 +154,23 @@ function TrackView({ trackId }: { trackId: string }) {
             −
           </ToolButton>
           <ToolButton onClick={() => canvas.current?.reset()}>Reset view</ToolButton>
+          <ToolButton pressed={showChips} disabled={!guide} onClick={toggleChips}>
+            Speed &amp; gear
+          </ToolButton>
+          {guides.length > 0 && (
+            <select
+              aria-label="Guide"
+              value={guide?.id}
+              onChange={(e) => setParams({ guide: e.target.value })}
+              className="max-w-44 rounded-lg border border-border bg-transparent px-1.5 py-1 text-sm"
+            >
+              {guides.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {guideLabel(g, data.carClasses ?? [], data.cars ?? [])}
+                </option>
+              ))}
+            </select>
+          )}
           <ToolButton
             pressed={listOpen}
             onClick={() => setParams({ panel: listOpen ? null : "corners", corner: null })}
@@ -161,6 +191,15 @@ function TrackView({ trackId }: { trackId: string }) {
               complexes={complexes}
               allCorners={corners}
               onSelect={selectCorner}
+              guide={
+                guide &&
+                currentGuideLabel && (
+                  <CornerGuideSection
+                    guide={cornerGuides?.find((g) => g.cornerId === selected.id)}
+                    label={currentGuideLabel}
+                  />
+                )
+              }
             />
           ) : (
             <CornerList corners={corners} onSelect={selectCorner} />

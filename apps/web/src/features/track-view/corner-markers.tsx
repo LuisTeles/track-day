@@ -91,7 +91,20 @@ export function CornerMarkers({
   const order = [...labels].sort(
     (a, b) => Number(b.corner.id === selectedId) - Number(a.corner.id === selectedId),
   );
-  const placed = new Map(placeLabels(order.map((l) => l.input)).map((p) => [p.id, p]));
+  const edge = 6;
+  const placed = new Map(
+    placeLabels(
+      order.map((l) => l.input),
+      {
+        bounds: {
+          minX: edge,
+          minY: edge,
+          maxX: ctx.viewport.width - edge,
+          maxY: ctx.viewport.height - edge,
+        },
+      },
+    ).map((p) => [p.id, p]),
+  );
 
   return (
     <div className="pointer-events-none absolute inset-0" data-testid="corner-markers">

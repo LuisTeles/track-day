@@ -31,3 +31,12 @@ export function useTrackView(trackId: string, layoutId: string | null) {
 }
 
 export type TrackViewData = NonNullable<ReturnType<typeof useTrackView>["data"]>;
+
+export function useCornerGuides(guideId: string | null) {
+  const repos = useRepositories();
+  return useQuery({
+    queryKey: queryKeys.cornerGuides(guideId ?? "none"),
+    queryFn: () => repos.cornerGuides.listByGuide(guideId!),
+    enabled: guideId !== null,
+  });
+}

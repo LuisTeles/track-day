@@ -173,6 +173,15 @@ describe("placeLabels", () => {
     expect(placed[1]!.center.y).toBeLessThan(0);
   });
 
+  it("keeps labels inside the given bounds", () => {
+    const wide = { width: 120, height: 24 };
+    const [placed] = placeLabels([label("a", 390, 100, { size: wide, outward: { x: 1, y: 0 } })], {
+      bounds: { minX: 0, minY: 0, maxX: 400, maxY: 400 },
+    });
+    expect(placed!.leader).toBe(true);
+    expect(placed!.center.x + wide.width / 2).toBeLessThanOrEqual(400);
+  });
+
   it("respects manual offsets", () => {
     const placed = placeLabels([label("a", 50, 50, { offset: { dx: 40, dy: 0 } })]);
     expect(placed[0]).toEqual({

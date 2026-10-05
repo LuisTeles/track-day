@@ -114,3 +114,41 @@ test("zooming moves the map and reset view restores it", async ({ page }) => {
     .poll(async () => Math.round((await t10.boundingBox())!.y))
     .toBe(Math.round(before.y));
 });
+
+test("speed & gear chips come from the guide and can be hidden", async ({ page }, testInfo) => {
+  await loadSamples(page);
+  await page.getByRole("link", { name: /Interlagos/ }).click();
+
+  const t10 = page.getByRole("button", { name: /^Turn 10,/ });
+  await expect(t10).toContainText("50 km/h · G2 est.");
+  await expect(page.getByRole("combobox", { name: "Guide" })).toHaveValue(/.+/);
+  await page.screenshot({ path: testInfo.outputPath("chips.png") });
+
+  await t10.click();
+  const panel = page.getByRole("complementary");
+  await expect(panel).toContainText("Road car · any sim");
+  await expect(panel).toContainText("AI estimate · low confidence");
+  await expect(panel).toContainText("50 km/h");
+  await page.keyboard.press("Escape");
+
+  const toggle = page.getByRole("button", { name: "Speed & gear" });
+  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  await expect(t10).not.toContainText("km/h");
+
+  // Remembered across reloads (per browser).
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Speed & gear" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+});
+
+test("tracks without a guide have no chips and the toggle is disabled", async ({ page }) => {
+  await loadSamples(page);
+  await page.getByRole("link", { name: /Suzuka/ }).click();
+  await expect(page.locator("[data-corner]")).toHaveCount(18);
+  await expect(page.getByRole("button", { name: "Speed & gear" })).toBeDisabled();
+  await expect(page.getByRole("combobox", { name: "Guide" })).toHaveCount(0);
+});

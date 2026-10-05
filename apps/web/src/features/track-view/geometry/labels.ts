@@ -28,6 +28,8 @@ export interface PlaceOptions {
   distances?: readonly number[];
   /** Angles (degrees) off the outward direction to try at each distance. */
   angles?: readonly number[];
+  /** Keep labels inside this area (e.g. the viewport); spill-over counts as overlap. */
+  bounds?: { minX: number; minY: number; maxX: number; maxY: number };
 }
 
 interface Box {
@@ -43,6 +45,16 @@ const boxAt = (center: Point, size: Size, gap: number): Box => ({
   maxX: center.x + size.width / 2 + gap / 2,
   maxY: center.y + size.height / 2 + gap / 2,
 });
+
+/** Area of `box` outside `bounds`, weighted so leaving the screen is worse than touching a neighbour. */
+const spillArea = (box: Box, bounds: Box | undefined) => {
+  if (!bounds) return 0;
+  const width = box.maxX - box.minX;
+  const height = box.maxY - box.minY;
+  const insideW = Math.max(0, Math.min(box.maxX, bounds.maxX) - Math.max(box.minX, bounds.minX));
+  const insideH = Math.max(0, Math.min(box.maxY, bounds.maxY) - Math.max(box.minY, bounds.minY));
+  return (width * height - insideW * insideH) * 4;
+};
 
 const overlapArea = (a: Box, b: Box) =>
   Math.max(0, Math.min(a.maxX, b.maxX) - Math.max(a.minX, b.minX)) *
@@ -104,7 +116,9 @@ export function placeLabels(
     let bestOverlap = Infinity;
     for (const candidate of candidates) {
       const box = boxAt(candidate.center, input.size, gap);
-      const overlap = placed.reduce((sum, other) => sum + overlapArea(box, other), 0);
+      const overlap =
+        placed.reduce((sum, other) => sum + overlapArea(box, other), 0) +
+        spillArea(box, options.bounds);
       if (overlap === 0) {
         best = candidate;
         bestOverlap = 0;
