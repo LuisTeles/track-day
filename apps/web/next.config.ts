@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
   basePath: process.env.NEXT_PUBLIC_BASE_PATH || undefined,
   trailingSlash: true,
   images: { unoptimized: true },
+  // Keep the dev-only indicator clear of the map toolbar (bottom-left).
+  devIndicators: { position: "bottom-right" },
   transpilePackages: ["@track-day/schema", "@track-day/prompts"],
 };
 
