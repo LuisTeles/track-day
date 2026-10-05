@@ -36,3 +36,51 @@ test("practice starts at the corner chosen in the track view", async ({ page }) 
   );
   await expect(page).toHaveURL(/corner=10/);
 });
+
+const card = (page: Page) => page.getByTestId("practice-card");
+
+test("keyboard steps through corners and wraps around the lap", async ({ page }) => {
+  await openPractice(page);
+  for (let i = 0; i < 5; i++) await page.keyboard.press("ArrowRight");
+  await expect(page).toHaveURL(/corner=6/);
+  await expect(card(page)).toHaveAttribute("aria-label", /^T6, Ferradura/);
+
+  await page.keyboard.press("Home");
+  await expect(card(page)).toHaveAttribute("aria-label", /^T1,/);
+  await page.keyboard.press("ArrowLeft");
+  await expect(card(page)).toHaveAttribute("aria-label", /^T15,/);
+
+  // Reload lands on the same corner.
+  await page.reload();
+  await expect(card(page)).toHaveAttribute("aria-label", /^T15,/);
+
+  // Escape goes back to the track view.
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(/\/tracks\/view\//);
+});
+
+test("tap zones and buttons navigate", async ({ page }) => {
+  await openPractice(page);
+  const box = (await page.locator("main").boundingBox())!;
+  await page.mouse.click(box.x + box.width * 0.85, box.y + box.height / 2);
+  await expect(card(page)).toHaveAttribute("aria-label", /^T2,/);
+  await page.mouse.click(box.x + box.width * 0.1, box.y + box.height / 2);
+  await expect(card(page)).toHaveAttribute("aria-label", /^T1,/);
+
+  await page.getByRole("button", { name: "Next corner" }).click();
+  await expect(card(page)).toHaveAttribute("aria-label", /^T2,/);
+  // Space on the focused button presses the button only, not "next" twice.
+  await page.keyboard.press(" ");
+  await expect(card(page)).toHaveAttribute("aria-label", /^T3,/);
+});
+
+test("complex mode drives the Senna S as one step", async ({ page }) => {
+  await openPractice(page);
+  await page.getByRole("button", { name: "By complex" }).click();
+  await expect(page).toHaveURL(/step=complex/);
+  await expect(card(page)).toHaveAttribute("aria-label", "T1–T2, S do Senna, Left → Right");
+  await page.keyboard.press("ArrowRight");
+  await expect(card(page)).toHaveAttribute("aria-label", /^T3, Curva do Sol/);
+  await page.keyboard.press("ArrowRight");
+  await expect(card(page)).toHaveAttribute("aria-label", /^T4–T5, Descida do Lago/);
+});
