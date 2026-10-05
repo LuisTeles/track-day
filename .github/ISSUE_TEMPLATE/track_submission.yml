@@ -1,0 +1,19 @@
+name: Track submission
+description: Share a track JSON for the example library
+labels: [track-library]
+body:
+  - type: input
+    id: track
+    attributes:
+      label: Track and layout
+      placeholder: Interlagos — GP
+    validations:
+      required: true
+  - type: textarea
+    id: json
+    attributes:
+      label: Track JSON
+      description: Paste the exported track JSON, or attach the file.
+      render: json
+    validations:
+      required: true
