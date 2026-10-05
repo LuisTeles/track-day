@@ -12,6 +12,8 @@ export interface TrackConfig {
   nameTag?: string;
   /** Fix spelling in OSM corner names. */
   nameOverrides?: Record<string, string>;
+  /** Add an illustrative racing line (smoothed outline) — sample data only. */
+  illustrativeRacingLine?: boolean;
   /** Corner details OSM doesn't have, keyed by corner number; only applied when the name matches. */
   details?: Record<number, Partial<TrackImportPayload["corners"][number]>>;
 }
@@ -32,6 +34,7 @@ export const TRACKS: TrackConfig[] = [
     },
     layout: { name: "GP", lengthMeters: 4309, direction: "anticlockwise" },
     nameOverrides: { Pinherinho: "Pinheirinho" },
+    illustrativeRacingLine: true,
     details: {
       1: { type: "chicane", elevation: "downhill" },
       2: { type: "chicane", elevation: "downhill" },

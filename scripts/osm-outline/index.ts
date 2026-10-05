@@ -13,6 +13,7 @@ import { TrackImportPayload } from "../../packages/schema/src/index";
 import {
   cumulativeLengths,
   findCycles,
+  illustrativeRacingLine,
   normalize,
   project,
   signedAreaScreen,
@@ -289,11 +290,30 @@ async function build(config: TrackConfig) {
 
   const outline = simplify(normalize([...meters, meters[0]!], SIZE), 0.5).slice(0, -1);
 
+  // Same normalization as the outline, so both share one coordinate space.
+  const normalized = normalize([...meters, meters[0]!], SIZE);
+  const unitsPerMeter = SIZE / Math.max(...extent(meters));
+  const racingLine = config.illustrativeRacingLine
+    ? simplify(
+        illustrativeRacingLine(
+          normalized.slice(0, -1),
+          2 * unitsPerMeter,
+          35 * unitsPerMeter,
+          5 * unitsPerMeter,
+        ),
+        0.3,
+      )
+    : null;
+
   const payload = TrackImportPayload.parse({
     schemaVersion: 1,
     kind: "track",
     track: config.track,
-    layout: { ...config.layout, outlinePath: toPathData(outline, true) },
+    layout: {
+      ...config.layout,
+      outlinePath: toPathData(outline, true),
+      ...(racingLine && { racingLinePath: toPathData(racingLine, true) }),
+    },
     corners,
     complexes,
     segments,
@@ -320,6 +340,12 @@ function onewayVotes(ring: number[], ways: OsmWay[]) {
   }
   return { agree, disagree };
 }
+
+const extent = (points: { x: number; y: number }[]) => {
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  return [Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)];
+};
 
 const round = (n: number, digits: number) => Math.round(n * 10 ** digits) / 10 ** digits;
 

@@ -264,3 +264,48 @@ export function toPathData(points: Point[], closed: boolean): string {
   const body = points.map((p, i) => `${i === 0 ? "M" : "L"}${f(p.x)} ${f(p.y)}`).join(" ");
   return closed ? `${body} Z` : body;
 }
+
+/**
+ * An illustrative racing line for sample data: the closed outline smoothed
+ * with a moving average (which cuts toward the apexes), with every point kept
+ * within `maxOffset` of the centerline so it stays on the asphalt. Not a real
+ * racing line.
+ */
+export function illustrativeRacingLine(
+  ring: Point[],
+  step: number,
+  window: number,
+  maxOffset: number,
+): Point[] {
+  // Resample the closed ring at a fixed spacing.
+  const closed = [...ring, ring[0]!];
+  const cumulative = cumulativeLengths(closed, false);
+  const total = cumulative[cumulative.length - 1]!;
+  const samples: Point[] = [];
+  let seg = 0;
+  for (let d = 0; d < total; d += step) {
+    while (cumulative[seg + 1]! < d) seg++;
+    const a = closed[seg]!;
+    const b = closed[seg + 1]!;
+    const t = (d - cumulative[seg]!) / (cumulative[seg + 1]! - cumulative[seg]! || 1);
+    samples.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+  }
+
+  const n = samples.length;
+  const half = Math.max(1, Math.round(window / step));
+  return samples.map((p, i) => {
+    let sx = 0;
+    let sy = 0;
+    for (let j = -half; j <= half; j++) {
+      const q = samples[(i + j + n) % n]!;
+      sx += q.x;
+      sy += q.y;
+    }
+    const avg = { x: sx / (2 * half + 1), y: sy / (2 * half + 1) };
+    const dx = avg.x - p.x;
+    const dy = avg.y - p.y;
+    const len = Math.hypot(dx, dy);
+    const k = len > maxOffset ? maxOffset / len : 1;
+    return { x: p.x + dx * k, y: p.y + dy * k };
+  });
+}
