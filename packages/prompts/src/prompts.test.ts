@@ -10,6 +10,7 @@ describe("buildTrackPrompt", () => {
     expect(prompt).toContain("Never invent corner names");
     expect(prompt).toContain("S do Senna");
     expect(prompt).not.toContain("Known facts");
+    expect(prompt).toContain("Omit layout.outlinePath");
   });
 
   it("includes known facts as ground truth", () => {
