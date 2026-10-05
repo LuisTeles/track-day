@@ -76,6 +76,7 @@ test("tap zones and buttons navigate", async ({ page }) => {
 
 test("complex mode drives the Senna S as one step", async ({ page }) => {
   await openPractice(page);
+  await page.getByText("Options").click();
   await page.getByRole("button", { name: "By complex" }).click();
   await expect(page).toHaveURL(/step=complex/);
   await expect(card(page)).toHaveAttribute("aria-label", "T1–T2, S do Senna, Left → Right");
@@ -83,4 +84,31 @@ test("complex mode drives the Senna S as one step", async ({ page }) => {
   await expect(card(page)).toHaveAttribute("aria-label", /^T3, Curva do Sol/);
   await page.keyboard.press("ArrowRight");
   await expect(card(page)).toHaveAttribute("aria-label", /^T4–T5, Descida do Lago/);
+});
+
+test("rig controls: text size, screen status, resume where you left off", async ({ page }) => {
+  await openPractice(page);
+
+  await page.getByText("Options").click();
+  // Screen wake lock reports a state (support varies by browser/headless mode).
+  await expect(page.getByTestId("wake-lock")).toHaveAttribute(
+    "data-status",
+    /active|released|error|unsupported/,
+  );
+
+  const title = page.getByRole("heading", { level: 1 });
+  const before = await title.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+  await page.getByRole("combobox", { name: "Text size" }).selectOption("L");
+  await expect
+    .poll(() => title.evaluate((el) => parseFloat(getComputedStyle(el).fontSize)))
+    .toBeGreaterThan(before);
+
+  // Leave at T5, come back through "Practice" (no corner in the link): resumes at T5.
+  for (let i = 0; i < 4; i++) await page.keyboard.press("ArrowRight");
+  await expect(card(page)).toHaveAttribute("aria-label", /^T5,/);
+  await page.getByRole("link", { name: "Exit" }).click();
+  await page.getByRole("link", { name: "Practice" }).click();
+  await expect(card(page)).toHaveAttribute("aria-label", /^T5,/);
+  await page.getByText("Options").click();
+  await expect(page.getByRole("combobox", { name: "Text size" })).toHaveValue("L");
 });

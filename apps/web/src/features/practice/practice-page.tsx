@@ -2,7 +2,19 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useMemo, useState, type HTMLAttributes, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type HTMLAttributes,
+  type ReactNode,
+} from "react";
+import { useStoredChoice } from "@/shared/hooks/use-stored-choice";
+import { readLastSession, writeLastSession } from "./last-session";
+import { useFullscreen } from "./rig/use-fullscreen";
+import { useWakeLock, type WakeLockStatus } from "./rig/use-wake-lock";
 import { useManualNavigator } from "./navigation/use-manual-navigator";
 import { buildSteps, stepGuide, stepIndexOf, type StepMode } from "./navigation/steps";
 import { brakeAtText, directionText, titleOf } from "./format";
@@ -21,7 +33,17 @@ function Practice({ trackId }: { trackId: string }) {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const session = usePracticeSession(trackId, params.get("layout"), params.get("guide"));
+  const layoutParam = params.get("layout");
+  // Last guide/corner on this layout, used when the link doesn't say.
+  const [remembered] = useState(() => readLastSession(layoutParam));
+  const session = usePracticeSession(
+    trackId,
+    layoutParam,
+    params.get("guide") ?? remembered?.guide ?? null,
+  );
+  const wakeLock = useWakeLock();
+  const fullscreen = useFullscreen();
+  const [fontSize, setFontSize] = useStoredChoice("practice:font-size", FONT_SIZES, "M");
   const mode: StepMode = params.get("step") === "complex" ? "complex" : "corner";
 
   const steps = useMemo(
@@ -30,7 +52,9 @@ function Practice({ trackId }: { trackId: string }) {
   );
   // The current corner lives in state; the URL follows it. Reading it back
   // from the URL would lose fast presses (URL updates land asynchronously).
-  const [cornerNumber, setCornerNumber] = useState(() => Number(params.get("corner")) || 0);
+  const [cornerNumber, setCornerNumber] = useState(
+    () => Number(params.get("corner")) || remembered?.corner || 0,
+  );
   const current = stepIndexOf(steps, cornerNumber);
 
   const setParams = useCallback(
@@ -63,6 +87,13 @@ function Practice({ trackId }: { trackId: string }) {
     : "/";
   const exit = useCallback(() => router.push(exitHref), [router, exitHref]);
 
+  const layoutId = session.data?.layout?.id;
+  const guideId = session.guide?.id ?? null;
+  const currentNumber = steps[current]?.corners[0]?.number ?? null;
+  useEffect(() => {
+    if (layoutId) writeLastSession(layoutId, { guide: guideId, corner: currentNumber });
+  }, [layoutId, guideId, currentNumber]);
+
   const { navigator, surfaceProps } = useManualNavigator({
     count: steps.length,
     current,
@@ -83,13 +114,14 @@ function Practice({ trackId }: { trackId: string }) {
   return (
     <PracticeShell
       surfaceProps={surfaceProps}
+      scale={FONT_SCALE[fontSize]}
       controls={
         <>
-          <span className="mr-auto truncate text-muted">
+          <span className="mr-auto truncate text-muted max-sm:hidden">
             {track.aliases[0] ?? track.name} · {layout.name}
             {session.guideLabel && ` · ${session.guideLabel}`}
           </span>
-          <span className="text-muted tabular-nums">
+          <span className="text-muted tabular-nums max-sm:mr-auto">
             {current + 1}/{steps.length}
           </span>
           <ControlButton onClick={navigator.prev} aria-label="Previous corner">
@@ -98,19 +130,50 @@ function Practice({ trackId }: { trackId: string }) {
           <ControlButton onClick={navigator.next} aria-label="Next corner">
             Next ›
           </ControlButton>
-          {hasComplexes && (
-            <ControlButton
-              aria-pressed={mode === "complex"}
-              onClick={() =>
-                setParams({
-                  step: mode === "complex" ? null : "complex",
-                  corner: String(step.corners[0]!.number),
-                })
-              }
-            >
-              By complex
-            </ControlButton>
-          )}
+          <details className="relative">
+            <summary className="cursor-pointer list-none rounded-lg px-3 py-1.5 font-medium hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent [&::-webkit-details-marker]:hidden">
+              Options
+            </summary>
+            <div className="absolute top-full right-0 z-10 mt-1 flex w-64 flex-col items-start gap-2 rounded-xl border border-border bg-surface p-3 shadow-xl">
+              {hasComplexes && (
+                <ControlButton
+                  aria-pressed={mode === "complex"}
+                  onClick={() =>
+                    setParams({
+                      step: mode === "complex" ? null : "complex",
+                      corner: String(step.corners[0]!.number),
+                    })
+                  }
+                >
+                  By complex
+                </ControlButton>
+              )}
+              <label className="flex items-center gap-2 px-3 text-muted">
+                Text size
+                <select
+                  aria-label="Text size"
+                  value={fontSize}
+                  onChange={(e) => setFontSize(e.target.value as FontSize)}
+                  className="rounded-md border border-border bg-background px-1 py-1 text-foreground"
+                >
+                  {FONT_SIZES.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {fullscreen.enabled && (
+                <ControlButton
+                  aria-pressed={fullscreen.active}
+                  onClick={() => void fullscreen.toggle()}
+                >
+                  Fullscreen
+                </ControlButton>
+              )}
+              <WakeLockIndicator status={wakeLock} />
+            </div>
+          </details>
           <Link href={exitHref} className="rounded-lg px-3 py-1.5 font-medium hover:bg-surface">
             Exit
           </Link>
@@ -134,6 +197,33 @@ function Practice({ trackId }: { trackId: string }) {
   );
 }
 
+const FONT_SIZES = ["S", "M", "L"] as const;
+type FontSize = (typeof FONT_SIZES)[number];
+const FONT_SCALE: Record<FontSize, number> = { S: 0.85, M: 1, L: 1.2 };
+
+function WakeLockIndicator({ status }: { status: WakeLockStatus }) {
+  const text = {
+    active: "Screen stays on",
+    released: "Screen may sleep",
+    error: "Screen may sleep",
+    unsupported: "Screen may sleep",
+  }[status];
+  const hint =
+    status === "unsupported"
+      ? "Keeping the screen on needs HTTPS and a supporting browser."
+      : status === "error"
+        ? "The browser refused to keep the screen on (e.g. battery saver)."
+        : undefined;
+  return (
+    <span className="px-3 text-muted" title={hint} data-testid="wake-lock" data-status={status}>
+      <span aria-hidden className={status === "active" ? "text-emerald-400" : "text-estimate"}>
+        ●
+      </span>{" "}
+      {text}
+    </span>
+  );
+}
+
 function ControlButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
@@ -148,9 +238,12 @@ export function PracticeShell({
   controls,
   children,
   surfaceProps,
+  scale = 1,
 }: {
   controls: ReactNode;
   children: ReactNode;
+  /** Text size multiplier (S/M/L), applied through --practice-scale. */
+  scale?: number;
   /** Tap zones and swipes (see useManualNavigator). */
   surfaceProps?: HTMLAttributes<HTMLElement>;
 }) {
@@ -158,6 +251,7 @@ export function PracticeShell({
     <div
       data-theme="practice"
       className="fixed inset-0 flex flex-col bg-background text-foreground"
+      style={{ "--practice-scale": scale } as CSSProperties}
     >
       <div data-no-nav className="flex flex-wrap items-center gap-1 px-4 pt-3 text-sm">
         {controls}
