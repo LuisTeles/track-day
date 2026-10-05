@@ -10,3 +10,4 @@ test-results/
 .env*
 .vercel
 tmp-local/
+scripts/osm-outline/.cache/
