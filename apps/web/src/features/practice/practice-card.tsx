@@ -171,16 +171,18 @@ function Tile({
   extra?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-0 min-w-0 flex-col justify-between overflow-hidden rounded-2xl bg-surface p-[calc(0.9rem*var(--practice-scale,1))]">
+    // Each tile is a size container: values scale with the tile's own width
+    // (cqi), so four narrow tiles beside the diagram still fit their values.
+    <div className="@container flex min-h-0 min-w-0 flex-col justify-between overflow-hidden rounded-2xl bg-surface p-[calc(0.9rem*var(--practice-scale,1))]">
       <dt className="text-[calc(clamp(0.8rem,2.2vmin,1.1rem)*var(--practice-scale,1))] font-medium tracking-wide text-muted uppercase">
         {term}
       </dt>
       <dd>
         <span
-          className={`block truncate leading-tight font-bold tabular-nums ${
+          className={`block leading-tight font-bold tabular-nums ${
             small
-              ? "text-[calc(clamp(1.2rem,4vmin,2.4rem)*var(--practice-scale,1))]"
-              : "text-[calc(clamp(2.4rem,10vmin,6rem)*var(--practice-scale,1))]"
+              ? "line-clamp-2 text-[calc(min(clamp(1.1rem,4vmin,2.4rem),15cqi)*var(--practice-scale,1))]"
+              : "truncate text-[calc(min(clamp(2.4rem,10vmin,6rem),30cqi)*var(--practice-scale,1))]"
           }`}
         >
           {value}

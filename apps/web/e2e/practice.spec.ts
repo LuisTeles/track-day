@@ -112,3 +112,26 @@ test("rig controls: text size, screen status, resume where you left off", async 
   await page.getByText("Options").click();
   await expect(page.getByRole("combobox", { name: "Text size" })).toHaveValue("L");
 });
+
+test("corner diagram shows the real corner with brake and apex markers", async ({
+  page,
+}, testInfo) => {
+  await openPractice(page);
+  const diagram = page.getByTestId("corner-diagram");
+  await expect(diagram).toHaveAttribute("data-schematic", "false");
+  await expect(diagram.locator('[data-marker="brake"]')).toContainText("100 m board");
+  await expect(diagram.locator('[data-marker="apex"]')).toContainText("T1");
+  await expect(page.getByTestId("diagram-racing-line")).toHaveCount(1);
+  await page.screenshot({ path: testInfo.outputPath("diagram-t1.png") });
+
+  await page.keyboard.press("End");
+  for (let i = 0; i < 9; i++) await page.keyboard.press("ArrowRight");
+  await expect(card(page)).toHaveAttribute("aria-label", /^T10,/);
+  await page.screenshot({ path: testInfo.outputPath("diagram-t10.png") });
+
+  await page.keyboard.press("Home");
+  await page.getByText("Options").click();
+  await page.getByRole("button", { name: "By complex" }).click();
+  await expect(diagram.locator('[data-marker="apex"]')).toHaveCount(2);
+  await page.screenshot({ path: testInfo.outputPath("diagram-senna.png") });
+});

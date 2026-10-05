@@ -16,7 +16,17 @@ import { readLastSession, writeLastSession } from "./last-session";
 import { useFullscreen } from "./rig/use-fullscreen";
 import { useWakeLock, type WakeLockStatus } from "./rig/use-wake-lock";
 import { useManualNavigator } from "./navigation/use-manual-navigator";
-import { buildSteps, stepGuide, stepIndexOf, type StepMode } from "./navigation/steps";
+import {
+  buildSteps,
+  stepGuide,
+  stepIndexOf,
+  type PracticeStep,
+  type StepMode,
+} from "./navigation/steps";
+import { createTrackPath } from "@/features/track-view/geometry/path";
+import { cornerFraction } from "@/features/track-view/geometry/anchors";
+import { CornerDiagram } from "./corner-diagram";
+import { cornerDiagram, schematicDiagram, type CornerPositions } from "./diagram-geometry";
 import { brakeAtText, directionText, titleOf } from "./format";
 import { PracticeCard } from "./practice-card";
 import { usePracticeSession } from "./use-practice-session";
@@ -87,6 +97,15 @@ function Practice({ trackId }: { trackId: string }) {
     : "/";
   const exit = useCallback(() => router.push(exitHref), [router, exitHref]);
 
+  // Path parsing is the costly part of the diagram; do it once per layout.
+  const outlinePath = session.data?.layout?.outlinePath ?? null;
+  const racingLinePath = session.data?.layout?.racingLine?.path ?? null;
+  const outline = useMemo(() => (outlinePath ? createTrackPath(outlinePath) : null), [outlinePath]);
+  const racingPath = useMemo(
+    () => (racingLinePath ? createTrackPath(racingLinePath) : null),
+    [racingLinePath],
+  );
+
   const layoutId = session.data?.layout?.id;
   const guideId = session.guide?.id ?? null;
   const currentNumber = steps[current]?.corners[0]?.number ?? null;
@@ -110,6 +129,38 @@ function Practice({ trackId }: { trackId: string }) {
   const step = steps[current]!;
   const nextStep = steps[(current + 1) % steps.length]!;
   const hasComplexes = session.data.complexes.length > 0;
+
+  function diagramFor(s: PracticeStep) {
+    const guides = s.corners.map((c) => (session.guide ? session.guideFor(c.id) : null));
+    const brakeLabel = brakeAtText(guides[0] ?? null);
+    const apexLabels = s.corners.map((c) => `T${c.number}`);
+    const positions = s.corners.flatMap((c, i): CornerPositions[] => {
+      const apex = cornerFraction(c, layout);
+      if (apex === null) return [];
+      const line = guides[i]?.line;
+      return [
+        { apex: line?.apexAt ?? apex, turnIn: line?.turnInAt ?? null, exit: line?.exitAt ?? null },
+      ];
+    });
+    if (outline && layout.lengthMeters && positions.length === s.corners.length) {
+      const diagram = cornerDiagram({
+        path: outline,
+        lengthMeters: layout.lengthMeters,
+        corners: positions,
+        brakeMeters: guides[0]?.brakeMarkerMeters ?? null,
+        racingLine: racingPath,
+      });
+      return <CornerDiagram diagram={diagram} apexLabels={apexLabels} brakeLabel={brakeLabel} />;
+    }
+    const first = s.corners[0]!;
+    return (
+      <CornerDiagram
+        diagram={schematicDiagram(first.type, first.direction)}
+        apexLabels={apexLabels.slice(0, 1)}
+        brakeLabel={null}
+      />
+    );
+  }
 
   return (
     <PracticeShell
@@ -181,6 +232,7 @@ function Practice({ trackId }: { trackId: string }) {
       }
     >
       <PracticeCard
+        diagram={diagramFor(step)}
         title={titleOf(step.corners)}
         name={step.complex?.name ?? step.corners[0]!.name}
         direction={directionText(step.corners)}
