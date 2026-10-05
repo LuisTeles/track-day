@@ -203,6 +203,18 @@ Full-screen map of a layout ([ADR-005](adr/005-track-geometry.md)), pulled ahead
 - [x] Speed/gear chips from the guide, with a toggle
 - [x] Racing line layer
 
+### M1.6 — Practice mode ([ADR-006](adr/006-practice-mode.md))
+
+One corner per screen for a phone/tablet/second monitor next to the rig.
+
+- [x] P0 — Guide fields (brake pressure, cue, downshift), prompt, sample data
+- [ ] P1 — Practice card
+- [ ] P2 — Navigation (keys, taps, swipes, corner/complex steps)
+- [ ] P3 — Rig ergonomics (wake lock, fullscreen, font scale)
+- [ ] P4 — Corner diagram from real geometry
+- [ ] P5 — Wheel button spike (desktop second monitor)
+- [ ] P6 — Offline (PWA), pulled forward from M5
+
 ### M2 — Tracks & corners
 
 - [ ] shadcn/ui setup
@@ -235,7 +247,7 @@ Full-screen map of a layout ([ADR-005](adr/005-track-geometry.md)), pulled ahead
 
 ### M5 — Polish & v1.0.0
 
-- [ ] PWA (offline + installable)
+- [ ] PWA (offline + installable) — moved to M1.6 P6
 - [ ] Responsive layout (second screen / tablet next to the rig)
 - [ ] Sample track library in `/examples`
 - [ ] First release via release-please
