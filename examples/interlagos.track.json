@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "kind": "track",
+  "track": {
+    "name": "Autódromo José Carlos Pace",
+    "aliases": ["Interlagos"],
+    "country": "BR",
+    "city": "São Paulo",
+    "sims": [
+      { "sim": "assetto-corsa", "trackId": null },
+      { "sim": "iracing", "trackId": null }
+    ]
+  },
+  "layout": { "name": "GP", "lengthMeters": 4309, "direction": "anticlockwise" },
+  "corners": [
+    {
+      "number": 1,
+      "name": "S do Senna",
+      "direction": "left",
+      "type": "chicane",
+      "elevation": "downhill"
+    },
+    {
+      "number": 2,
+      "name": "S do Senna",
+      "direction": "right",
+      "type": "chicane",
+      "elevation": "downhill"
+    },
+    {
+      "number": 3,
+      "name": "Curva do Sol",
+      "direction": "left",
+      "type": "sweeper",
+      "elevation": "flat"
+    },
+    {
+      "number": 4,
+      "name": "Descida do Lago",
+      "direction": "left",
+      "type": "corner",
+      "elevation": "downhill"
+    },
+    {
+      "number": 5,
+      "name": "Descida do Lago",
+      "direction": "left",
+      "type": "corner",
+      "elevation": "flat"
+    },
+    {
+      "number": 6,
+      "name": "Ferradura",
+      "direction": "right",
+      "type": "sweeper",
+      "elevation": "uphill"
+    },
+    {
+      "number": 7,
+      "name": "Ferradura",
+      "direction": "right",
+      "type": "sweeper",
+      "elevation": "flat"
+    },
+    {
+      "number": 8,
+      "name": "Laranjinha",
+      "direction": "right",
+      "type": "corner",
+      "elevation": "uphill"
+    },
+    {
+      "number": 9,
+      "name": "Pinheirinho",
+      "direction": "left",
+      "type": "corner",
+      "elevation": "flat"
+    },
+    {
+      "number": 10,
+      "name": "Bico de Pato",
+      "direction": "right",
+      "type": "hairpin",
+      "elevation": "flat"
+    },
+    {
+      "number": 11,
+      "name": "Mergulho",
+      "direction": "left",
+      "type": "sweeper",
+      "elevation": "downhill"
+    },
+    { "number": 12, "name": "Junção", "direction": "left", "type": "corner", "elevation": "flat" },
+    {
+      "number": 13,
+      "name": "Subida dos Boxes",
+      "direction": "left",
+      "type": "kink",
+      "elevation": "uphill"
+    },
+    {
+      "number": 14,
+      "name": "Arquibancadas",
+      "direction": "left",
+      "type": "kink",
+      "elevation": "uphill"
+    },
+    {
+      "number": 15,
+      "name": "Arquibancadas",
+      "direction": "left",
+      "type": "kink",
+      "elevation": "flat"
+    }
+  ],
+  "complexes": [
+    { "name": "S do Senna", "cornerNumbers": [1, 2], "notes": null },
+    { "name": "Descida do Lago", "cornerNumbers": [4, 5], "notes": null },
+    { "name": "Ferradura", "cornerNumbers": [6, 7], "notes": null }
+  ],
+  "segments": [
+    { "name": "Reta Oposta", "fromCorner": 3, "toCorner": 4 },
+    { "name": "Subida dos Boxes", "fromCorner": 12, "toCorner": 1 }
+  ]
+}

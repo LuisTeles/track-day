@@ -1,0 +1,290 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "kind": {
+      "type": "string",
+      "const": "track"
+    },
+    "track": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "aliases": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "country": {
+          "type": ["string", "null"]
+        },
+        "city": {
+          "type": ["string", "null"]
+        },
+        "sims": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "sim": {
+                    "type": "string",
+                    "enum": [
+                      "real-world",
+                      "assetto-corsa",
+                      "assetto-corsa-competizione",
+                      "assetto-corsa-evo",
+                      "iracing",
+                      "le-mans-ultimate",
+                      "rfactor-2",
+                      "automobilista-2",
+                      "gran-turismo-7",
+                      "f1-game",
+                      "other"
+                    ]
+                  },
+                  "trackId": {
+                    "type": ["string", "null"]
+                  }
+                },
+                "required": ["sim"]
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": ["name"]
+    },
+    "layout": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lengthMeters": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "direction": {
+          "type": "string",
+          "enum": ["clockwise", "anticlockwise"]
+        }
+      },
+      "required": ["name", "lengthMeters", "direction"]
+    },
+    "corners": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "number": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "direction": {
+            "type": "string",
+            "enum": ["left", "right"]
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["hairpin", "chicane", "sweeper", "kink", "esses", "corner"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "elevation": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["uphill", "downhill", "crest", "compression", "flat"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "camber": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["positive", "off-camber", "flat"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mapPosition": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "x": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "y": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  }
+                },
+                "required": ["x", "y"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "distanceFromStartMeters": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notes": {
+            "type": ["string", "null"]
+          },
+          "commonMistakes": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": ["number", "direction"]
+      }
+    },
+    "complexes": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "cornerNumbers": {
+                "minItems": 2,
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "notes": {
+                "type": ["string", "null"]
+              }
+            },
+            "required": ["name", "cornerNumbers"]
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "segments": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "fromCorner": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "toCorner": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "notes": {
+                "type": ["string", "null"]
+              }
+            },
+            "required": ["name"]
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": ["schemaVersion", "kind", "track", "layout", "corners"]
+}
