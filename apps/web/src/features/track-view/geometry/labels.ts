@@ -15,6 +15,8 @@ export interface PlacedLabel {
   id: string;
   /** Center of the label box. */
   center: Point;
+  /** Center of the label's leading square (the numbered badge). */
+  badge: Point;
   /** True when the label sits away from its anchor and needs a leader line. */
   leader: boolean;
 }
@@ -47,8 +49,17 @@ const overlapArea = (a: Box, b: Box) =>
   Math.max(0, Math.min(a.maxY, b.maxY) - Math.max(a.minY, b.minY));
 
 /**
+ * Labels are a square badge (height × height) followed by optional text to
+ * its right. Returns the box center that puts the badge's center at `point`.
+ */
+const centerForBadgeAt = (point: Point, size: Size): Point => ({
+  x: point.x + (size.width - size.height) / 2,
+  y: point.y,
+});
+
+/**
  * Greedy, deterministic label placement. In input order, each label goes on
- * its anchor if free; otherwise it is pushed outward from the track at
+ * its anchor (badge centered on it) if free; otherwise it is pushed outward from the track at
  * increasing distances, trying angles around the outward direction, and gets
  * a leader line back to the anchor. If nothing is free, the least-overlapping
  * candidate wins.
@@ -70,12 +81,13 @@ export function placeLabels(
       return {
         id: input.id,
         center,
+        badge: badgeOf(center, input.size),
         leader: moved > Math.max(input.size.width, input.size.height) / 2,
       };
     }
 
     const candidates: { center: Point; leader: boolean }[] = [
-      { center: input.anchor, leader: false },
+      { center: centerForBadgeAt(input.anchor, input.size), leader: false },
     ];
     const base = Math.atan2(input.outward.y, input.outward.x);
     for (const d of distances) {
@@ -105,9 +117,19 @@ export function placeLabels(
     }
 
     placed.push(boxAt(best.center, input.size, gap));
-    return { id: input.id, center: best.center, leader: best.leader };
+    return {
+      id: input.id,
+      center: best.center,
+      badge: badgeOf(best.center, input.size),
+      leader: best.leader,
+    };
   });
 }
+
+const badgeOf = (center: Point, size: Size): Point => ({
+  x: center.x - (size.width - size.height) / 2,
+  y: center.y,
+});
 
 /** Unit vector perpendicular to `tangent`, on the side facing away from `centroid`. */
 export function outwardNormal(point: Point, tangent: Point, centroid: Point): Point {

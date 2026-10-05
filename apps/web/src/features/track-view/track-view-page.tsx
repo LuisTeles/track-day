@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { CornerDetails, CornerList, cornerTitle } from "./corner-details";
+import { CornerMarkers } from "./corner-markers";
+import { cornerFraction } from "./geometry/anchors";
 import { SidePanel } from "./side-panel";
 import { TrackCanvas, type TrackCanvasHandle } from "./track-canvas";
 import { ToolButton, TrackViewShell } from "./track-view-shell";
@@ -43,6 +45,26 @@ function TrackView({ trackId }: { trackId: string }) {
     [setParams],
   );
   const closePanel = useCallback(() => setParams({ corner: null, panel: null }), [setParams]);
+
+  // Keep the selected corner out from under the side panel / bottom sheet.
+  const selectedCorner = data?.corners.find((c) => c.id === cornerId);
+  const selectedFraction =
+    selectedCorner && data?.layout ? cornerFraction(selectedCorner, data.layout) : null;
+  useEffect(() => {
+    if (selectedFraction === null) return;
+    const frame = requestAnimationFrame(() => {
+      const panel = document.querySelector("[data-testid=side-panel]")?.getBoundingClientRect();
+      if (!panel) return;
+      const sheet = panel.width >= window.innerWidth - 1; // bottom sheet spans the full width
+      canvas.current?.ensureVisible(
+        selectedFraction,
+        sheet
+          ? { top: 64, bottom: window.innerHeight - panel.top }
+          : { top: 64, right: window.innerWidth - panel.left },
+      );
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [selectedFraction]);
 
   if (isPending) return <Message>Loading track…</Message>;
   if (error) return <Message>Could not load the track: {error.message}</Message>;
@@ -99,6 +121,15 @@ function TrackView({ trackId }: { trackId: string }) {
           outlinePath={layout.outlinePath}
           rotation={layout.rotation}
           label={`Map of ${track.name}, ${layout.name} layout`}
+          overlay={(ctx) => (
+            <CornerMarkers
+              ctx={ctx}
+              layout={layout}
+              corners={corners}
+              selectedId={selected?.id ?? null}
+              onSelect={selectCorner}
+            />
+          )}
         />
       }
       controls={

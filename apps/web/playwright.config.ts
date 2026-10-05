@@ -12,7 +12,10 @@ export default defineConfig({
     baseURL: "http://localhost:3100",
     trace: "on-first-retry",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "mobile", use: { ...devices["Pixel 7"] } },
+  ],
   webServer: {
     command: "pnpm exec serve out -l 3100",
     url: "http://localhost:3100",

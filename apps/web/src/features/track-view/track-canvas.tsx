@@ -9,9 +9,19 @@ import { useZoom } from "./use-zoom";
 
 const PADDING = 48;
 
+/** Screen space covered by floating UI (e.g. the side panel), in px from each edge. */
+export interface Insets {
+  top?: number;
+  right?: number;
+  bottom?: number;
+  left?: number;
+}
+
 export interface TrackCanvasHandle {
   reset(): void;
   zoomBy(factor: number): void;
+  /** Pans so the point at `fraction` of the lap isn't hidden behind `insets`. */
+  ensureVisible(fraction: number, insets: Insets): void;
 }
 
 /** Passed to overlays so they can position screen-space elements. */
@@ -50,9 +60,7 @@ export function TrackCanvas({
   const svgRef = useRef<SVGSVGElement>(null);
   const viewport = useSize(containerRef);
   const geometry = useTrackGeometry(outlinePath, rotation ?? 0);
-  const { transform: zoom, reset, zoomBy } = useZoom(svgRef, viewport);
-
-  useImperativeHandle(ref, () => ({ reset, zoomBy }), [reset, zoomBy]);
+  const { transform: zoom, reset, zoomBy, panBy } = useZoom(svgRef, viewport);
 
   const fit = useMemo(
     () => fitToViewport(geometry.bounds, viewport, PADDING),
@@ -62,6 +70,27 @@ export function TrackCanvas({
     const screen = composeAffine(zoom, fit);
     return { geometry, toScreen: (p) => applyAffine(screen, p), zoom, viewport };
   }, [geometry, zoom, fit, viewport]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      reset,
+      zoomBy,
+      ensureVisible(fraction, insets) {
+        const p = ctx.toScreen(geometry.pointAt(fraction));
+        const margin = 32;
+        const area = {
+          minX: (insets.left ?? 0) + margin,
+          maxX: viewport.width - (insets.right ?? 0) - margin,
+          minY: (insets.top ?? 0) + margin,
+          maxY: viewport.height - (insets.bottom ?? 0) - margin,
+        };
+        if (p.x >= area.minX && p.x <= area.maxX && p.y >= area.minY && p.y <= area.maxY) return;
+        panBy((area.minX + area.maxX) / 2 - p.x, (area.minY + area.maxY) / 2 - p.y);
+      },
+    }),
+    [reset, zoomBy, panBy, ctx, geometry, viewport],
+  );
 
   const ready = viewport.width > 0 && viewport.height > 0;
   // Strokes don't scale with the transform; widen them gently as you zoom in.

@@ -152,9 +152,15 @@ describe("placeLabels", () => {
   it("keeps labels on their anchors when there is room", () => {
     const placed = placeLabels([label("a", 0, 0), label("b", 100, 0)]);
     expect(placed).toEqual([
-      { id: "a", center: { x: 0, y: 0 }, leader: false },
-      { id: "b", center: { x: 100, y: 0 }, leader: false },
+      { id: "a", center: { x: 0, y: 0 }, badge: { x: 0, y: 0 }, leader: false },
+      { id: "b", center: { x: 100, y: 0 }, badge: { x: 100, y: 0 }, leader: false },
     ]);
+  });
+
+  it("puts the badge (not the box center) on the anchor for wide labels", () => {
+    const [placed] = placeLabels([label("a", 50, 50, { size: { width: 104, height: 24 } })]);
+    expect(placed!.badge).toEqual({ x: 50, y: 50 });
+    expect(placed!.center).toEqual({ x: 90, y: 50 });
   });
 
   it("pushes colliding labels outward with a leader line, leaving no overlaps", () => {
@@ -169,7 +175,12 @@ describe("placeLabels", () => {
 
   it("respects manual offsets", () => {
     const placed = placeLabels([label("a", 50, 50, { offset: { dx: 40, dy: 0 } })]);
-    expect(placed[0]).toEqual({ id: "a", center: { x: 90, y: 50 }, leader: true });
+    expect(placed[0]).toEqual({
+      id: "a",
+      center: { x: 90, y: 50 },
+      badge: { x: 90, y: 50 },
+      leader: true,
+    });
   });
 
   it("is deterministic", () => {

@@ -1,6 +1,6 @@
 import { select } from "d3-selection";
 import "d3-transition";
-import { zoom, zoomIdentity, type ZoomBehavior } from "d3-zoom";
+import { zoom, zoomIdentity, zoomTransform, type ZoomBehavior } from "d3-zoom";
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { IDENTITY, type Affine, type Size } from "./geometry/types";
 
@@ -67,5 +67,18 @@ export function useZoom(svgRef: RefObject<SVGSVGElement | null>, viewport: Size)
     [animate],
   );
 
-  return { transform, reset, zoomBy };
+  /** Pans by a screen-space offset, keeping the zoom level. */
+  const panBy = useCallback(
+    (dx: number, dy: number) =>
+      animate((z, svg) => {
+        const k = zoomTransform(svg).k;
+        select(svg)
+          .transition()
+          .duration(duration())
+          .call(z.translateBy, dx / k, dy / k);
+      }),
+    [animate],
+  );
+
+  return { transform, reset, zoomBy, panBy };
 }
