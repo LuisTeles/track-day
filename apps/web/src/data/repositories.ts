@@ -8,9 +8,14 @@ import type {
   CornerGuide,
   EntityBase,
   Guide,
+  GuideImportPayload,
+  GuideTarget,
   Layout,
   Segment,
+  SimId,
+  Source,
   Track,
+  TrackImportPayload,
 } from "@track-day/schema";
 
 /**
@@ -90,6 +95,30 @@ export interface BackupService {
   importAll(payload: BackupPayload, mode: BackupImportMode): Promise<void>;
 }
 
+export interface TrackImportService {
+  /**
+   * Creates a track with its layout, corners, segments and complexes in one
+   * transaction: either everything is saved or nothing is.
+   */
+  importTrack(payload: TrackImportPayload): Promise<{ trackId: string; layoutId: string }>;
+}
+
+export interface GuideImportOptions {
+  layoutId: string;
+  target: GuideTarget;
+  sim: SimId | null;
+  /** Defaults to "ai": imported numbers are estimates until confirmed. */
+  source?: Source;
+}
+
+export interface GuideImportService {
+  /** Creates a guide and its corner guides, matching corners by number. */
+  importGuide(
+    payload: GuideImportPayload,
+    options: GuideImportOptions,
+  ): Promise<{ guideId: string }>;
+}
+
 export interface Repositories {
   tracks: TrackRepository;
   layouts: LayoutRepository;
@@ -102,4 +131,6 @@ export interface Repositories {
   cornerGuides: CornerGuideRepository;
   assets: AssetRepository;
   backup: BackupService;
+  trackImport: TrackImportService;
+  guideImport: GuideImportService;
 }

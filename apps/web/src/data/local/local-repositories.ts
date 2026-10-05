@@ -25,6 +25,7 @@ import type {
 } from "../repositories";
 import { base64ToBlob, blobToBase64 } from "./base64";
 import { TrackDayDb } from "./db";
+import { LocalGuideImportService, LocalTrackImportService } from "./import-services";
 
 interface Schema<T> {
   parse(input: unknown): T;
@@ -289,7 +290,7 @@ class LocalBackupService implements BackupService {
 }
 
 export function createLocalRepositories(db = new TrackDayDb()): Repositories {
-  return {
+  const repos = {
     tracks: new LocalTrackRepository(db.tracks, Track),
     layouts: new LocalLayoutRepository(db.layouts, Layout),
     corners: new LocalCornerRepository(db.corners, Corner),
@@ -301,5 +302,10 @@ export function createLocalRepositories(db = new TrackDayDb()): Repositories {
     cornerGuides: new LocalCornerGuideRepository(db.cornerGuides, CornerGuide),
     assets: new LocalAssetRepository(db),
     backup: new LocalBackupService(db),
+  };
+  return {
+    ...repos,
+    trackImport: new LocalTrackImportService(db, repos),
+    guideImport: new LocalGuideImportService(db, repos),
   };
 }
