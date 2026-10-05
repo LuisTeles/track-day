@@ -213,7 +213,7 @@ One corner per screen for a phone/tablet/second monitor next to the rig.
 - [x] P3 — Rig ergonomics (wake lock, fullscreen, font scale)
 - [x] P4 — Corner diagram from real geometry
 - [x] P5 — Wheel button binding (experimental); spike result pending a check on the sim PC (ADR-006)
-- [ ] P6 — Offline (PWA), pulled forward from M5
+- [x] P6 — Offline (PWA), pulled forward from M5
 
 ### M2 — Tracks & corners
 
@@ -247,7 +247,7 @@ One corner per screen for a phone/tablet/second monitor next to the rig.
 
 ### M5 — Polish & v1.0.0
 
-- [ ] PWA (offline + installable) — moved to M1.6 P6
+- [x] PWA (offline + installable) — done in M1.6 P6
 - [ ] Responsive layout (second screen / tablet next to the rig)
 - [ ] Sample track library in `/examples`
 - [ ] First release via release-please

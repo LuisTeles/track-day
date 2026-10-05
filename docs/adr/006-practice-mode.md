@@ -24,6 +24,14 @@ Practice mode shows one corner per screen on a phone, tablet or second monitor n
   - The Fullscreen API isn't available on iPhone; installing the app as a PWA is the iPhone path.
   - The Gamepad API only sees devices on the same machine, so a wheel button can only drive practice mode on a desktop second monitor, never on a phone or tablet.
 
+## Offline (P6)
+
+- After the build, `scripts/build-sw.mjs` writes `out/sw.js`. It precaches every exported file under a cache named by a content hash, so each deploy gets a new cache and the old one is deleted on activation.
+- Fetches are cache-first and ignore query strings, because pages are addressed as `/tracks/…/?track=…` and all data is in IndexedDB. Offline navigations fall back to the app shell.
+- Trade-off: a new deploy shows up on the visit _after_ the browser installs the new worker. That's acceptable for a rig tool that must work without a connection.
+- The worker is only registered in production builds. In `next dev` there's no offline caching, so the dev workflow isn't affected.
+- A web app manifest (`app/manifest.ts`) and icons make the app installable. On iPhone, installing it is how practice mode gets a full screen.
+
 ## Wheel button spike (P5)
 
 **Status: pending a manual check on the sim PC.** The binding is built (Options → _Wheel button · experimental_) and tested with a simulated gamepad, but whether it works _while Assetto Corsa is running_ can only be checked on real hardware.

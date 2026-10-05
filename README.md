@@ -4,7 +4,8 @@ Record and study track knowledge — corners, reference points, speeds, gears �
 
 - **AI-assisted, no API keys.** The app gives you a prompt; paste it into any AI chat with a track map, paste the JSON back. It's validated, previewed, then saved.
 - **Car-specific guides.** Brake references, entry/min/exit speeds (km/h), gear and line for every corner — per car or car class, per sim (Assetto Corsa, ACC, iRacing, LMU, real world…).
-- **Runs entirely in your browser.** No account, no server. Data lives in IndexedDB; export it as JSON for backups and sharing.
+- **Runs entirely in your browser.** No account, no server. Data lives in IndexedDB; export it as JSON for backups and sharing. Installable, and works offline after the first visit.
+- **Practice mode.** One corner per screen for a phone, tablet or second monitor next to the rig: brake point, pressure, gear, min speed, a one-line cue and the corner drawn from real geometry. Step with keys, taps, swipes or (experimental) a wheel button.
 
 > Status: early development (milestones M0–M1 done). See the [project plan](docs/PLAN.md).
 
