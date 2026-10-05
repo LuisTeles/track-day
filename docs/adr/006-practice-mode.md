@@ -24,6 +24,25 @@ Practice mode shows one corner per screen on a phone, tablet or second monitor n
   - The Fullscreen API isn't available on iPhone; installing the app as a PWA is the iPhone path.
   - The Gamepad API only sees devices on the same machine, so a wheel button can only drive practice mode on a desktop second monitor, never on a phone or tablet.
 
+## Wheel button spike (P5)
+
+**Status: pending a manual check on the sim PC.** The binding is built (Options → _Wheel button · experimental_) and tested with a simulated gamepad, but whether it works _while Assetto Corsa is running_ can only be checked on real hardware.
+
+Known going in:
+
+- Chrome on Windows exposes most wheels (Logitech, Fanatec, Thrustmaster) through the Gamepad API.
+- Chrome keeps delivering gamepad input to a _visible_ page in an unfocused window (that's how gamepad overlay tools work). Firefox needs focus.
+- Unknown: whether AC's exclusive DirectInput access (for force feedback) hides the device's buttons from Chrome.
+
+Checklist:
+
+1. Open practice mode in Chrome on a second monitor of the sim PC. In Options, set a wheel button for "next".
+2. Without AC running: the button advances the corner.
+3. Start AC, get on track, focus the game, and press the button. Does the card advance?
+4. Repeat with Chrome minimized (expected to stop: rAF and gamepad polling pause for hidden pages).
+
+Record the result here. If step 3 fails, the button route is closed, and auto-advance needs the companion app (future `PositionNavigator`).
+
 ## Consequences
 
 - Auto-advance later replaces only the navigator; the card and the session data stay as they are.

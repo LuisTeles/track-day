@@ -208,11 +208,11 @@ Full-screen map of a layout ([ADR-005](adr/005-track-geometry.md)), pulled ahead
 One corner per screen for a phone/tablet/second monitor next to the rig.
 
 - [x] P0 — Guide fields (brake pressure, cue, downshift), prompt, sample data
-- [ ] P1 — Practice card
-- [ ] P2 — Navigation (keys, taps, swipes, corner/complex steps)
-- [ ] P3 — Rig ergonomics (wake lock, fullscreen, font scale)
-- [ ] P4 — Corner diagram from real geometry
-- [ ] P5 — Wheel button spike (desktop second monitor)
+- [x] P1 — Practice card
+- [x] P2 — Navigation (keys, taps, swipes, corner/complex steps)
+- [x] P3 — Rig ergonomics (wake lock, fullscreen, font scale)
+- [x] P4 — Corner diagram from real geometry
+- [x] P5 — Wheel button binding (experimental); spike result pending a check on the sim PC (ADR-006)
 - [ ] P6 — Offline (PWA), pulled forward from M5
 
 ### M2 — Tracks & corners
