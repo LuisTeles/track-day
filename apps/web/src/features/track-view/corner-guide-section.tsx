@@ -1,3 +1,4 @@
+import { isEstimate } from "@/features/guides/estimate";
 import type { CornerGuide } from "@track-day/schema";
 
 /** Car-specific guidance for one corner, shown in the corner details. */
@@ -21,9 +22,10 @@ export function CornerGuideSection({
     <section className="space-y-3 rounded-lg border border-border p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-medium">{label}</h3>
-        {guide.source === "ai" && (
+        {isEstimate(guide) && (
           <span className="rounded-full border border-amber-500/50 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
-            AI estimate{guide.confidence ? ` · ${guide.confidence} confidence` : ""}
+            {guide.source === "ai" ? "AI estimate" : "Estimate"}
+            {guide.confidence ? ` · ${guide.confidence} confidence` : ""}
           </span>
         )}
       </div>

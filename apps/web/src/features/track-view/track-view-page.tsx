@@ -99,6 +99,19 @@ function TrackView({ trackId }: { trackId: string }) {
           <span className="font-normal text-muted"> · {layout.name}</span>
         )}
       </h1>
+      {layout && (
+        <Link
+          href={practiceHref(
+            track.id,
+            layout.id,
+            params.get("guide"),
+            selectedCorner?.number ?? null,
+          )}
+          className="rounded-md bg-foreground px-2 py-0.5 text-sm font-medium text-background hover:opacity-90"
+        >
+          Practice
+        </Link>
+      )}
       {layouts.length > 1 && (
         <select
           aria-label="Layout"
@@ -203,6 +216,14 @@ function TrackView({ trackId }: { trackId: string }) {
               complexes={complexes}
               allCorners={corners}
               onSelect={selectCorner}
+              actions={
+                <Link
+                  href={practiceHref(track.id, layout.id, params.get("guide"), selected.number)}
+                  className="inline-block rounded-lg bg-foreground px-3 py-1.5 text-sm font-medium text-background hover:opacity-90"
+                >
+                  Practice from T{selected.number}
+                </Link>
+              }
               guide={
                 guide &&
                 currentGuideLabel && (
@@ -220,6 +241,13 @@ function TrackView({ trackId }: { trackId: string }) {
       }
     />
   );
+}
+
+function practiceHref(track: string, layout: string, guide: string | null, corner: number | null) {
+  const q = new URLSearchParams({ track, layout });
+  if (guide) q.set("guide", guide);
+  if (corner !== null) q.set("corner", String(corner));
+  return `/tracks/practice/?${q}`;
 }
 
 function Message({ children }: { children: React.ReactNode }) {

@@ -14,6 +14,8 @@ interface CornerDetailsProps {
   onSelect(cornerId: string): void;
   /** Car-specific guidance for this corner (filled in by the guide layer). */
   guide?: ReactNode;
+  /** Buttons or links shown above the details, e.g. "Practice from here". */
+  actions?: ReactNode;
 }
 
 export function CornerDetails({
@@ -22,6 +24,7 @@ export function CornerDetails({
   allCorners,
   onSelect,
   guide,
+  actions,
 }: CornerDetailsProps) {
   const memberOf = complexes.filter((c) => c.cornerIds.includes(corner.id));
   const index = allCorners.findIndex((c) => c.id === corner.id);
@@ -30,6 +33,7 @@ export function CornerDetails({
 
   return (
     <div className="space-y-5 text-sm">
+      {actions}
       <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
         <Fact term="Direction" value={label(corner.direction)} capitalize />
         <Fact term="Type" value={label(corner.type)} capitalize />

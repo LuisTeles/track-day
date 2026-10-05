@@ -1,4 +1,5 @@
 import { simLabel, type Car, type CarClass, type CornerGuide, type Guide } from "@track-day/schema";
+import { isEstimate } from "@/features/guides/estimate";
 import type { CornerChip } from "./corner-markers";
 
 /** e.g. "Road car · any sim" or "Mazda MX-5 · Assetto Corsa". */
@@ -30,7 +31,7 @@ export function chipsFor(cornerGuides: CornerGuide[]): Map<string, CornerChip> {
     chips.set(g.cornerId, {
       text: parts.join(" · "),
       description: spoken.join(", "),
-      estimate: g.source === "ai",
+      estimate: isEstimate(g),
     });
   }
   return chips;
