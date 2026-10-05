@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { CornerDetails, CornerList, cornerTitle } from "./corner-details";
 import { CornerMarkers } from "./corner-markers";
+import { getRacingLine, RacingLineLayer } from "./racing-line";
 import { cornerFraction } from "./geometry/anchors";
 import { SidePanel } from "./side-panel";
 import { TrackCanvas, type TrackCanvasHandle } from "./track-canvas";
@@ -29,6 +30,7 @@ function TrackView({ trackId }: { trackId: string }) {
   const canvas = useRef<TrackCanvasHandle>(null);
   const { data, isPending, error } = useTrackView(trackId, params.get("layout"));
   const [showChips, toggleChips] = useStoredToggle("track-view:chips", true);
+  const [showRacingLine, toggleRacingLine] = useStoredToggle("track-view:racing-line", true);
 
   // Until the global car picker exists (M4), the layout's guides are picked here.
   const guide = data?.guides.find((g) => g.id === params.get("guide")) ?? data?.guides[0] ?? null;
@@ -80,6 +82,7 @@ function TrackView({ trackId }: { trackId: string }) {
   if (!data) return <Message>This track doesn’t exist (it may have been deleted).</Message>;
 
   const { track, layouts, layout, corners, complexes, guides } = data;
+  const racingLine = layout ? getRacingLine(layout) : null;
   const currentGuideLabel = guide
     ? guideLabel(guide, data.carClasses ?? [], data.cars ?? [])
     : null;
@@ -132,6 +135,8 @@ function TrackView({ trackId }: { trackId: string }) {
           ref={canvas}
           outlinePath={layout.outlinePath}
           rotation={layout.rotation}
+          lengthMeters={layout.lengthMeters}
+          trackLayers={() => racingLine && showRacingLine && <RacingLineLayer line={racingLine} />}
           label={`Map of ${track.name}, ${layout.name} layout`}
           overlay={(ctx) => (
             <CornerMarkers
@@ -156,6 +161,13 @@ function TrackView({ trackId }: { trackId: string }) {
           <ToolButton onClick={() => canvas.current?.reset()}>Reset view</ToolButton>
           <ToolButton pressed={showChips} disabled={!guide} onClick={toggleChips}>
             Speed &amp; gear
+          </ToolButton>
+          <ToolButton
+            pressed={showRacingLine && racingLine !== null}
+            disabled={!racingLine}
+            onClick={toggleRacingLine}
+          >
+            Racing line
           </ToolButton>
           {guides.length > 0 && (
             <select

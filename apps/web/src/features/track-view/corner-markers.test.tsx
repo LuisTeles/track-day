@@ -1,6 +1,5 @@
 import type { Corner } from "@track-day/schema";
-import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { mockLayout } from "@/test/dom";
 import { CornerMarkers, estimateLabelSize, type CornerChip } from "./corner-markers";
@@ -65,11 +64,13 @@ describe("CornerMarkers", () => {
     expect(screen.queryByRole("button", { name: /Turn 3/ })).not.toBeInTheDocument();
   });
 
-  it("selects a corner on click and marks it pressed", async () => {
+  it("selects a corner on click and marks it pressed", () => {
     const { onSelect } = renderMarkers([corner(1, { pathPosition: 0.2 })], { selectedId: "c1" });
     const marker = screen.getByRole("button", { name: "Turn 1" });
     expect(marker).toHaveAttribute("aria-pressed", "true");
-    await userEvent.click(marker);
+    // fireEvent: user-event's mousedown has no `view`, which d3-zoom's drag
+    // handling needs; real browsers always set it (covered by e2e).
+    fireEvent.click(marker);
     expect(onSelect).toHaveBeenCalledWith("c1");
   });
 

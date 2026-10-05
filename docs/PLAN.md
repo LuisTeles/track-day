@@ -190,18 +190,18 @@ The same format is the **backup and sharing** format.
 - [x] Lenient JSON parser + field-path errors
 - [x] Guide fallback rule (car/class × sim)
 
-### M1.5 — Track view (in progress)
+### M1.5 — Track view
 
 Full-screen map of a layout ([ADR-005](adr/005-track-geometry.md)), pulled ahead of M2 so tracks can be explored as soon as they exist.
 
 - [x] Outline, path positions and racing line in the schema
 - [x] Track and guide import services (transactional)
 - [x] Sample tracks from OpenStreetMap (Interlagos, Suzuka) + `scripts/osm-outline`
-- [ ] Layout shell: full-viewport canvas, side panel / bottom sheet
-- [ ] Track render with auto-fit, rotation, pan/zoom, reset
-- [ ] Corner markers with collision handling and leader lines
-- [ ] Speed/gear chips from the guide, with a toggle
-- [ ] Racing line layer
+- [x] Layout shell: full-viewport canvas, side panel / bottom sheet
+- [x] Track render with auto-fit, rotation, pan/zoom, reset
+- [x] Corner markers with collision handling and leader lines
+- [x] Speed/gear chips from the guide, with a toggle
+- [x] Racing line layer
 
 ### M2 — Tracks & corners
 

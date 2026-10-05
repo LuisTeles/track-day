@@ -152,3 +152,42 @@ test("tracks without a guide have no chips and the toggle is disabled", async ({
   await expect(page.getByRole("button", { name: "Speed & gear" })).toBeDisabled();
   await expect(page.getByRole("combobox", { name: "Guide" })).toHaveCount(0);
 });
+
+test("racing line layer can be toggled where one exists", async ({ page }, testInfo) => {
+  await loadSamples(page);
+  await page.getByRole("link", { name: /Interlagos/ }).click();
+  const line = page.getByTestId("racing-line");
+  await expect(line).toHaveCount(1);
+
+  // Zoom into the Senna S to see the line on the asphalt.
+  await page.getByRole("button", { name: "Speed & gear" }).click();
+  const t3 = page.getByRole("button", { name: /^Turn 3,/ });
+  const before = (await t3.boundingBox())!;
+  if (testInfo.project.name === "mobile") {
+    // Playwright can't emit wheel events under touch emulation; phones pinch.
+    for (let i = 0; i < 3; i++) await page.getByRole("button", { name: "Zoom in" }).click();
+  } else {
+    // Wheel over a marker must zoom the map (events bubble to the canvas).
+    const t1 = (await page.getByRole("button", { name: /^Turn 1,/ }).boundingBox())!;
+    await page.mouse.move(t1.x + t1.width / 2, t1.y + t1.height / 2);
+    for (let i = 0; i < 6; i++) await page.mouse.wheel(0, -300);
+  }
+  await expect
+    .poll(async () => {
+      const after = (await t3.boundingBox())!;
+      return Math.hypot(after.x - before.x, after.y - before.y);
+    })
+    .toBeGreaterThan(50);
+  await page.screenshot({ path: testInfo.outputPath("racing-line.png") });
+
+  const toggle = page.getByRole("button", { name: "Racing line" });
+  await toggle.click();
+  await expect(line).toHaveCount(0);
+  await toggle.click();
+  await expect(line).toHaveCount(1);
+
+  await page.goto("/");
+  await page.getByRole("link", { name: /Suzuka/ }).click();
+  await expect(page.getByRole("button", { name: "Racing line" })).toBeDisabled();
+  await expect(line).toHaveCount(0);
+});

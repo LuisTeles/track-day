@@ -8,6 +8,7 @@ import { useTrackGeometry, type TrackGeometry } from "./use-track-geometry";
 import { useZoom } from "./use-zoom";
 
 const PADDING = 48;
+const TRACK_WIDTH_M = 13;
 
 /** Screen space covered by floating UI (e.g. the side panel), in px from each edge. */
 export interface Insets {
@@ -36,6 +37,8 @@ export interface CanvasContext {
 interface TrackCanvasProps {
   outlinePath: string;
   rotation?: number | null;
+  /** Real lap length; lets the asphalt be drawn at its true width when zoomed in. */
+  lengthMeters?: number | null;
   /** Extra layers in the outline's own coordinate space (e.g. the racing line). */
   trackLayers?: (ctx: CanvasContext) => ReactNode;
   /** Screen-space overlays (markers, labels). */
@@ -51,16 +54,16 @@ interface TrackCanvasProps {
 export function TrackCanvas({
   outlinePath,
   rotation,
+  lengthMeters,
   trackLayers,
   overlay,
   label,
   ref,
 }: TrackCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
   const viewport = useSize(containerRef);
   const geometry = useTrackGeometry(outlinePath, rotation ?? 0);
-  const { transform: zoom, reset, zoomBy, panBy } = useZoom(svgRef, viewport);
+  const { transform: zoom, reset, zoomBy, panBy } = useZoom(containerRef, viewport);
 
   const fit = useMemo(
     () => fitToViewport(geometry.bounds, viewport, PADDING),
@@ -93,21 +96,28 @@ export function TrackCanvas({
   );
 
   const ready = viewport.width > 0 && viewport.height > 0;
-  // Strokes don't scale with the transform; widen them gently as you zoom in.
-  const width = Math.min(28, 9 * Math.sqrt(zoom.k * Math.max(fit.k, 0.4)));
+  // Strokes don't scale with the transform: keep a readable minimum, and once
+  // zoomed in far enough, draw the asphalt at its real width (~13 m).
+  const pxPerUnit = fit.k * zoom.k;
+  const realWidth = lengthMeters
+    ? TRACK_WIDTH_M * (geometry.path.length / lengthMeters) * pxPerUnit
+    : 0;
+  const width = Math.max(Math.min(14, 9 * Math.sqrt(zoom.k)), realWidth);
   const { pivot } = geometry;
   const start = ctx.toScreen(geometry.pointAt(0));
   const startTangent = geometry.tangentAt(0);
 
   return (
-    <div ref={containerRef} className="absolute inset-0 overflow-hidden">
+    <div
+      ref={containerRef}
+      className="absolute inset-0 cursor-grab touch-none overflow-hidden select-none active:cursor-grabbing"
+    >
       <svg
-        ref={svgRef}
         width={viewport.width}
         height={viewport.height}
         role="img"
         aria-label={label}
-        className="block cursor-grab touch-none select-none active:cursor-grabbing"
+        className="block"
       >
         {ready && (
           <>

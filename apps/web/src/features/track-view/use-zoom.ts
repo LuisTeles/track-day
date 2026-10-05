@@ -10,29 +10,33 @@ const reducedMotion = () =>
   typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 /**
- * Pan and zoom (wheel, drag, pinch) on an SVG via d3-zoom. The transform is
+ * Pan and zoom (wheel, drag, pinch) via d3-zoom. The transform is
  * applied on top of the fit-to-viewport transform, so identity = "fitted".
  */
-export function useZoom(svgRef: RefObject<SVGSVGElement | null>, viewport: Size) {
+/**
+ * Attach to the element that contains both the map and its overlays, so wheel,
+ * drag and pinch work over markers too (their events bubble up to it).
+ */
+export function useZoom(targetRef: RefObject<HTMLElement | null>, viewport: Size) {
   const [transform, setTransform] = useState<Affine>(IDENTITY);
-  const behavior = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const behavior = useRef<ZoomBehavior<HTMLElement, unknown> | null>(null);
 
   useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg) return;
-    const z = zoom<SVGSVGElement, unknown>()
+    const el = targetRef.current;
+    if (!el) return;
+    const z = zoom<HTMLElement, unknown>()
       .scaleExtent(SCALE_EXTENT)
       .on("zoom", (event: { transform: Affine }) => {
         const { k, x, y } = event.transform;
         setTransform({ k, x, y });
       });
-    select(svg).call(z).on("dblclick.zoom", null);
+    select(el).call(z).on("dblclick.zoom", null);
     behavior.current = z;
     return () => {
-      select(svg).on(".zoom", null);
+      select(el).on(".zoom", null);
       behavior.current = null;
     };
-  }, [svgRef]);
+  }, [targetRef]);
 
   // Keep panning within a margin around the viewport.
   useEffect(() => {
@@ -44,35 +48,35 @@ export function useZoom(svgRef: RefObject<SVGSVGElement | null>, viewport: Size)
   }, [viewport]);
 
   const animate = useCallback(
-    (apply: (z: ZoomBehavior<SVGSVGElement, unknown>, svg: SVGSVGElement) => void) => {
-      const svg = svgRef.current;
+    (apply: (z: ZoomBehavior<HTMLElement, unknown>, el: HTMLElement) => void) => {
+      const el = targetRef.current;
       const z = behavior.current;
-      if (svg && z) apply(z, svg);
+      if (el && z) apply(z, el);
     },
-    [svgRef],
+    [targetRef],
   );
 
   const duration = () => (reducedMotion() ? 0 : 300);
 
   const reset = useCallback(
     () =>
-      animate((z, svg) =>
-        select(svg).transition().duration(duration()).call(z.transform, zoomIdentity),
+      animate((z, el) =>
+        select(el).transition().duration(duration()).call(z.transform, zoomIdentity),
       ),
     [animate],
   );
   const zoomBy = useCallback(
     (factor: number) =>
-      animate((z, svg) => select(svg).transition().duration(duration()).call(z.scaleBy, factor)),
+      animate((z, el) => select(el).transition().duration(duration()).call(z.scaleBy, factor)),
     [animate],
   );
 
   /** Pans by a screen-space offset, keeping the zoom level. */
   const panBy = useCallback(
     (dx: number, dy: number) =>
-      animate((z, svg) => {
-        const k = zoomTransform(svg).k;
-        select(svg)
+      animate((z, el) => {
+        const k = zoomTransform(el).k;
+        select(el)
           .transition()
           .duration(duration())
           .call(z.translateBy, dx / k, dy / k);
