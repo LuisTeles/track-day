@@ -1,0 +1,60 @@
+name: Deploy
+
+# Production on push to main, a preview per pull request. Hosted on
+# Cloudflare Pages; needs the CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID
+# repository secrets. Skipped (not failed) until they are configured.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  deployments: write
+  pull-requests: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Forks don't get secrets, so they can't deploy previews.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    env:
+      HAS_CLOUDFLARE: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v5
+        if: env.HAS_CLOUDFLARE == 'true'
+      - uses: pnpm/action-setup@v4
+        if: env.HAS_CLOUDFLARE == 'true'
+      - uses: actions/setup-node@v5
+        if: env.HAS_CLOUDFLARE == 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: env.HAS_CLOUDFLARE == 'true'
+      - run: pnpm --filter web build
+        if: env.HAS_CLOUDFLARE == 'true'
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        if: env.HAS_CLOUDFLARE == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            pages deploy apps/web/out
+            --project-name=track-day
+            --branch=${{ github.head_ref || github.ref_name }}
+      - name: Comment preview URL
+        if: env.HAS_CLOUDFLARE == 'true' && github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          message: "Preview: ${{ steps.deploy.outputs.deployment-url }}"
+      - name: Cloudflare not configured
+        if: env.HAS_CLOUDFLARE != 'true'
+        run: echo "::notice::Skipping deploy — set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to enable it."
