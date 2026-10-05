@@ -13,7 +13,10 @@ import {
 } from "react";
 import { useStoredChoice } from "@/shared/hooks/use-stored-choice";
 import { readLastSession, writeLastSession } from "./last-session";
+import type { Bindings, NavAction } from "./rig/gamepad";
 import { useFullscreen } from "./rig/use-fullscreen";
+import { useGamepadButtons } from "./rig/use-gamepad-buttons";
+import { readBindings, WheelButtonSettings, writeBindings } from "./rig/wheel-buttons";
 import { useWakeLock, type WakeLockStatus } from "./rig/use-wake-lock";
 import { useManualNavigator } from "./navigation/use-manual-navigator";
 import {
@@ -120,6 +123,23 @@ function Practice({ trackId }: { trackId: string }) {
     onExit: exit,
   });
 
+  // Optional wheel/gamepad button (experimental, desktop second monitor).
+  const [bindings, setBindings] = useState<Bindings>(readBindings);
+  const [capturing, setCapturing] = useState<NavAction | null>(null);
+  const updateBindings = (next: Bindings) => {
+    setBindings(next);
+    writeBindings(next);
+  };
+  const { supported: gamepadSupported } = useGamepadButtons({
+    bindings,
+    capturing: capturing !== null,
+    onAction: (action) => (action === "next" ? navigator.next() : navigator.prev()),
+    onCapture: (binding) => {
+      if (capturing) updateBindings({ ...bindings, [capturing]: binding });
+      setCapturing(null);
+    },
+  });
+
   if (session.isPending) return <Screen>Loading…</Screen>;
   if (session.error) return <Screen>Could not load the track: {session.error.message}</Screen>;
   if (!session.data?.layout) return <Screen>This track has no layout to practice.</Screen>;
@@ -223,6 +243,15 @@ function Practice({ trackId }: { trackId: string }) {
                 </ControlButton>
               )}
               <WakeLockIndicator status={wakeLock} />
+              {gamepadSupported && (
+                <WheelButtonSettings
+                  bindings={bindings}
+                  capturing={capturing}
+                  onCapture={setCapturing}
+                  onCancel={() => setCapturing(null)}
+                  onClear={() => updateBindings({ next: null, prev: null })}
+                />
+              )}
             </div>
           </details>
           <Link href={exitHref} className="rounded-lg px-3 py-1.5 font-medium hover:bg-surface">

@@ -135,3 +135,48 @@ test("corner diagram shows the real corner with brake and apex markers", async (
   await expect(diagram.locator('[data-marker="apex"]')).toHaveCount(2);
   await page.screenshot({ path: testInfo.outputPath("diagram-senna.png") });
 });
+
+test("a bound wheel button advances the corner (simulated gamepad)", async ({ page }) => {
+  // Fake wheel: the test flips button states; the app polls getGamepads().
+  await page.addInitScript(() => {
+    const pad = {
+      id: "Test Wheel (Vendor: 0001 Product: 0002)",
+      index: 0,
+      buttons: Array.from({ length: 12 }, () => ({ pressed: false })),
+    };
+    (window as unknown as { __pad: typeof pad }).__pad = pad;
+    Object.defineProperty(navigator, "getGamepads", { value: () => [pad] });
+  });
+  const press = async (button: number) => {
+    // Let the poller take a baseline frame first (it fires on rising edges).
+    await page.waitForTimeout(150);
+    await page.evaluate((b) => {
+      (window as unknown as { __pad: { buttons: { pressed: boolean }[] } }).__pad.buttons[b] = {
+        pressed: true,
+      };
+    }, button);
+    await page.waitForTimeout(100);
+    await page.evaluate((b) => {
+      (window as unknown as { __pad: { buttons: { pressed: boolean }[] } }).__pad.buttons[b] = {
+        pressed: false,
+      };
+    }, button);
+    await page.waitForTimeout(100);
+  };
+
+  await openPractice(page);
+  await page.getByText("Options").click();
+  const settings = page.getByTestId("wheel-buttons");
+  await settings.getByRole("button", { name: "Set" }).first().click();
+  await expect(settings).toContainText("Press the button for next corner");
+  await press(4);
+  await expect(settings).toContainText("Next: Test Wheel · button 5");
+
+  await page.getByText("Options").click(); // close the menu
+  await press(4);
+  await expect(card(page)).toHaveAttribute("aria-label", /^T2,/);
+  await press(4);
+  await expect(card(page)).toHaveAttribute("aria-label", /^T3,/);
+  await press(7); // unbound
+  await expect(card(page)).toHaveAttribute("aria-label", /^T3,/);
+});
