@@ -89,6 +89,40 @@
         "direction": {
           "type": "string",
           "enum": ["clockwise", "anticlockwise"]
+        },
+        "outlinePath": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[Mm]"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "rotation": {
+          "anyOf": [
+            {
+              "type": "number",
+              "minimum": -360,
+              "maximum": 360
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "racingLinePath": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[Mm]"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": ["name", "lengthMeters", "direction"]
@@ -152,23 +186,31 @@
               }
             ]
           },
-          "mapPosition": {
+          "pathPosition": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMaximum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "labelOffset": {
             "anyOf": [
               {
                 "type": "object",
                 "properties": {
-                  "x": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
+                  "dx": {
+                    "type": "number"
                   },
-                  "y": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
+                  "dy": {
+                    "type": "number"
                   }
                 },
-                "required": ["x", "y"]
+                "required": ["dx", "dy"]
               },
               {
                 "type": "null"

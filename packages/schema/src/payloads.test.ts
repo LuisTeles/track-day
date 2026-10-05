@@ -87,6 +87,34 @@ describe("TrackImportPayload", () => {
     }
   });
 
+  it("accepts an outline, rotation, racing line and path positions", () => {
+    const payload = minimal() as Record<string, any>;
+    payload.layout.outlinePath = "M 0 0 L 100 0 L 100 50 Z";
+    payload.layout.rotation = -90;
+    payload.layout.racingLinePath = "m 1 1 l 98 0";
+    payload.corners[0].pathPosition = 0.2;
+    payload.corners[0].labelOffset = { dx: 12, dy: -8 };
+    payload.corners[1].pathPosition = 0.7;
+    expect(TrackImportPayload.safeParse(payload).success).toBe(true);
+  });
+
+  it("rejects bad path data and out-of-order or out-of-range path positions", () => {
+    const payload = minimal() as Record<string, any>;
+    payload.layout.outlinePath = "L 0 0";
+    payload.corners[0].pathPosition = 0.5;
+    payload.corners[1].pathPosition = 0.4;
+    payload.corners.push({ number: 3, direction: "left", pathPosition: 1 });
+    const result = parseImport(JSON.stringify(payload), TrackImportPayload);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues.map((i) => i.path).sort()).toEqual([
+        "corners[1].pathPosition",
+        "corners[2].pathPosition",
+        "layout.outlinePath",
+      ]);
+    }
+  });
+
   it("reports a future schemaVersion as a version error", () => {
     const result = parseImport('{"schemaVersion": 99, "kind": "track"}', TrackImportPayload);
     expect(result).toMatchObject({ ok: false, stage: "version" });

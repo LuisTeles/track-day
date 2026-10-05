@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Confidence, MapPoint, SpeedKmh } from "./common";
+import { Confidence, PathFraction, ScreenOffset, SpeedKmh, SvgPath } from "./common";
 import {
   Asset,
   Camber,
@@ -40,7 +40,8 @@ export const TrackImportCorner = z.object({
   type: opt(CornerType),
   elevation: opt(Elevation),
   camber: opt(Camber),
-  mapPosition: opt(MapPoint),
+  pathPosition: opt(PathFraction),
+  labelOffset: opt(ScreenOffset),
   distanceFromStartMeters: opt(z.number().nonnegative()),
   notes: opt(z.string()),
   commonMistakes: opt(z.array(z.string())),
@@ -63,6 +64,10 @@ export const TrackImportPayload = z
       /** Required: corner distances are positioned against it. */
       lengthMeters: z.number().positive(),
       direction: TrackDirection,
+      /** Optional; see ADR-005 for the coordinate conventions. */
+      outlinePath: opt(SvgPath),
+      rotation: opt(z.number().min(-360).max(360)),
+      racingLinePath: opt(SvgPath),
     }),
     /** In lap order. */
     corners: z.array(TrackImportCorner).min(1),
@@ -118,6 +123,21 @@ export const TrackImportPayload = z
         });
       }
       previous = Math.max(previous, d);
+    });
+
+    // Path positions follow lap order too.
+    let previousPosition = -1;
+    payload.corners.forEach((corner, i) => {
+      const p = corner.pathPosition;
+      if (p == null) return;
+      if (p <= previousPosition) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["corners", i, "pathPosition"],
+          message: "Must be greater than the previous corner's position (corners are in lap order)",
+        });
+      }
+      previousPosition = Math.max(previousPosition, p);
     });
 
     payload.complexes?.forEach((complex, i) => {

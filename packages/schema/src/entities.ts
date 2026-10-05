@@ -1,5 +1,14 @@
 import { z } from "zod";
-import { Confidence, EntityBase, Id, MapPoint, Source, SpeedKmh } from "./common";
+import {
+  Confidence,
+  EntityBase,
+  Id,
+  PathFraction,
+  ScreenOffset,
+  Source,
+  SpeedKmh,
+  SvgPath,
+} from "./common";
 import { SimId } from "./sim";
 
 // ---------------------------------------------------------------------------
@@ -34,13 +43,31 @@ export const Track = EntityBase.extend({
 });
 export type Track = z.infer<typeof Track>;
 
+/**
+ * Where a racing line came from. The extension point for future sources,
+ * e.g. "ac-fast-lane" (Assetto Corsa AI line) or "telemetry".
+ */
+export const RacingLineSource = z.enum(["manual"]);
+export type RacingLineSource = z.infer<typeof RacingLineSource>;
+
+export const RacingLine = z.object({
+  /** Same coordinate space as the layout outline. */
+  path: SvgPath,
+  source: RacingLineSource,
+});
+export type RacingLine = z.infer<typeof RacingLine>;
+
 export const Layout = EntityBase.extend({
   trackId: Id,
   name: z.string().min(1),
   lengthMeters: z.number().positive().nullable(),
   direction: TrackDirection.nullable(),
   mapAssetId: Id.nullable(),
-  startFinish: MapPoint.nullable(),
+  /** Track outline; starts at the start/finish line, runs in the driving direction. */
+  outlinePath: SvgPath.nullable(),
+  /** Display rotation in degrees, so the track shows in its natural orientation. */
+  rotation: z.number().min(-360).max(360).nullable(),
+  racingLine: RacingLine.nullable(),
 });
 export type Layout = z.infer<typeof Layout>;
 
@@ -52,7 +79,10 @@ export const Corner = EntityBase.extend({
   type: CornerType.nullable(),
   elevation: Elevation.nullable(),
   camber: Camber.nullable(),
-  mapPosition: MapPoint.nullable(),
+  /** Apex position along the outline. Falls back to distance / lap length. */
+  pathPosition: PathFraction.nullable(),
+  /** Manual label placement, overriding automatic collision handling. */
+  labelOffset: ScreenOffset.nullable(),
   /** Sequence on the lap; usually equal to `number`, but not always. */
   order: z.number().int().nonnegative(),
   distanceFromStartMeters: z.number().nonnegative().nullable(),
@@ -125,15 +155,16 @@ export const Guide = EntityBase.extend({
 });
 export type Guide = z.infer<typeof Guide>;
 
-export const RacingLine = z.object({
+/** How to drive one corner: references as text, optionally pinned on the outline. */
+export const CornerLine = z.object({
   turnIn: z.string().nullable(),
   apex: z.string().nullable(),
   exit: z.string().nullable(),
-  turnInPoint: MapPoint.nullable(),
-  apexPoint: MapPoint.nullable(),
-  exitPoint: MapPoint.nullable(),
+  turnInAt: PathFraction.nullable(),
+  apexAt: PathFraction.nullable(),
+  exitAt: PathFraction.nullable(),
 });
-export type RacingLine = z.infer<typeof RacingLine>;
+export type CornerLine = z.infer<typeof CornerLine>;
 
 export const CornerPriority = z.enum(["entry", "balanced", "exit"]);
 
@@ -146,7 +177,7 @@ export const CornerGuide = EntityBase.extend({
   minSpeedKmh: SpeedKmh.nullable(),
   exitSpeedKmh: SpeedKmh.nullable(),
   gear: z.number().int().min(1).max(10).nullable(),
-  line: RacingLine,
+  line: CornerLine,
   throttleNotes: z.string(),
   trailBrakeNotes: z.string(),
   priority: CornerPriority.nullable(),

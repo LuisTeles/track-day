@@ -28,9 +28,18 @@ export type Source = z.infer<typeof Source>;
 export const Confidence = z.enum(["low", "medium", "high"]);
 export type Confidence = z.infer<typeof Confidence>;
 
-/** Point normalized to 0–1 over the layout map image, so it scales with the image. */
-export const MapPoint = z.object({
-  x: z.number().min(0).max(1),
-  y: z.number().min(0).max(1),
-});
-export type MapPoint = z.infer<typeof MapPoint>;
+/**
+ * Position along a layout's outline path as a fraction of the lap: 0 is the
+ * start/finish line, values increase in the driving direction. See ADR-005.
+ */
+export const PathFraction = z.number().min(0).lt(1);
+
+/** SVG path data (`d`) in the layout's normalized coordinate space. See ADR-005. */
+export const SvgPath = z
+  .string()
+  .trim()
+  .regex(/^[Mm]/, "Must be SVG path data starting with a moveto command (M or m)");
+
+/** Screen-space offset in CSS pixels, e.g. to nudge a label away from its anchor. */
+export const ScreenOffset = z.object({ dx: z.number(), dy: z.number() });
+export type ScreenOffset = z.infer<typeof ScreenOffset>;
