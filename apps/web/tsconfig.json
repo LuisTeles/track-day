@@ -6,8 +6,15 @@
     "allowJs": true,
     "jsx": "react-jsx",
     "incremental": true,
-    "plugins": [{ "name": "next" }],
-    "paths": { "@/*": ["./src/*"] },
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@examples/*": ["../../examples/*"]
+    },
     "types": ["vitest/globals", "@testing-library/jest-dom"]
   },
   "include": [
