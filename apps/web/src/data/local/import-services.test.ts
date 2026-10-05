@@ -84,7 +84,15 @@ describe("importGuide", () => {
     kind: "guide",
     guide: { referenceLapTime: "2:01.000" },
     corners: [
-      { cornerNumber: 1, minSpeedKmh: 95, gear: 2, confidence: "low" },
+      {
+        cornerNumber: 1,
+        minSpeedKmh: 95,
+        gear: 2,
+        confidence: "low",
+        brakePressure: "heavy",
+        cue: "Brake at 100",
+        downshiftTo: 1,
+      },
       { cornerNumber: 10, minSpeedKmh: 70, gear: 2 },
     ],
   });
@@ -109,6 +117,13 @@ describe("importGuide", () => {
     expect(await repos.guides.get(guideId)).toMatchObject({ layoutId, source: "ai" });
     const cornerGuides = await repos.cornerGuides.listByGuide(guideId);
     const corners = await repos.corners.listByLayout(layoutId);
+    const t1 = corners.find((c) => c.number === 1)!;
+    expect(cornerGuides.find((g) => g.cornerId === t1.id)).toMatchObject({
+      brakePressure: "heavy",
+      cue: "Brake at 100",
+      downshiftTo: 1,
+      brakePressurePct: null,
+    });
     const t10 = corners.find((c) => c.number === 10)!;
     expect(cornerGuides.find((g) => g.cornerId === t10.id)).toMatchObject({
       minSpeedKmh: 70,

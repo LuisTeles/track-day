@@ -2,7 +2,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parseImport } from "./issues";
-import { TrackImportPayload } from "./payloads";
+import { CornerGuide } from "./entities";
+import { GuideImportPayload, TrackImportPayload } from "./payloads";
 import { trackImportJsonSchema } from "./json-schema";
 
 const interlagos = readFileSync(
@@ -125,5 +126,85 @@ describe("TrackImportPayload", () => {
     expect(Object.keys(schema.properties)).toEqual(
       expect.arrayContaining(["schemaVersion", "kind", "track", "layout", "corners"]),
     );
+  });
+});
+
+describe("GuideImportPayload practice fields", () => {
+  const base = { schemaVersion: 1, kind: "guide", guide: {} };
+
+  it("accepts brake pressure, cue and downshift", () => {
+    const result = GuideImportPayload.safeParse({
+      ...base,
+      corners: [
+        {
+          cornerNumber: 1,
+          brakePressure: "heavy",
+          brakePressurePct: 90,
+          cue: "Brake at 100, late apex",
+          downshiftTo: 2,
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects bad values with field paths", () => {
+    const result = parseImport(
+      JSON.stringify({
+        ...base,
+        corners: [
+          { cornerNumber: 1, brakePressure: "max", brakePressurePct: 120, cue: "x".repeat(161) },
+        ],
+      }),
+      GuideImportPayload,
+    );
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues.map((i) => i.path).sort()).toEqual([
+        "corners[0].brakePressure",
+        "corners[0].brakePressurePct",
+        "corners[0].cue",
+      ]);
+    }
+  });
+
+  it("validates the sample guide", () => {
+    const sample = readFileSync(
+      new URL("../../../examples/interlagos.road-car.guide.json", import.meta.url),
+      "utf8",
+    );
+    expect(parseImport(sample, GuideImportPayload).ok).toBe(true);
+  });
+});
+
+describe("CornerGuide defaults", () => {
+  it("fills practice fields with null for records saved before they existed", () => {
+    const now = "2026-01-01T00:00:00.000Z";
+    const old = {
+      id: crypto.randomUUID(),
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      guideId: crypto.randomUUID(),
+      cornerId: crypto.randomUUID(),
+      brakeReference: null,
+      brakeMarkerMeters: null,
+      entrySpeedKmh: null,
+      minSpeedKmh: 70,
+      exitSpeedKmh: null,
+      gear: 2,
+      line: { turnIn: null, apex: null, exit: null, turnInAt: null, apexAt: null, exitAt: null },
+      throttleNotes: "",
+      trailBrakeNotes: "",
+      priority: null,
+      source: "ai",
+      confidence: "low",
+    };
+    expect(CornerGuide.parse(old)).toMatchObject({
+      brakePressure: null,
+      brakePressurePct: null,
+      cue: null,
+      downshiftTo: null,
+    });
   });
 });

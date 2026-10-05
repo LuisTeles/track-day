@@ -3,7 +3,7 @@
   "kind": "guide",
   "guide": {
     "referenceLapTime": null,
-    "setupNotes": "SAMPLE DATA for testing the app — illustrative estimates for a light road car (Mazda MX-5 class), not measured or verified."
+    "setupNotes": "SAMPLE DATA for testing the app: illustrative estimates for a light road car (Mazda MX-5 class). Not measured or verified."
   },
   "corners": [
     {
@@ -11,105 +11,179 @@
       "minSpeedKmh": 70,
       "gear": 2,
       "priority": "exit",
-      "confidence": "low"
+      "confidence": "low",
+      "entrySpeedKmh": 185,
+      "exitSpeedKmh": 85,
+      "brakeReference": "100 m board",
+      "brakeMarkerMeters": 100,
+      "brakePressure": "heavy",
+      "cue": "Brake hard downhill at 100, turn in late, clip the left kerb"
     },
     {
       "cornerNumber": 2,
       "minSpeedKmh": 80,
       "gear": 3,
       "priority": "exit",
-      "confidence": "low"
+      "confidence": "low",
+      "entrySpeedKmh": 85,
+      "exitSpeedKmh": 110,
+      "brakeReference": "Lift after T1 exit",
+      "brakePressure": "light",
+      "cue": "Short lift, let it run wide on exit to set up Curva do Sol"
     },
     {
       "cornerNumber": 3,
       "minSpeedKmh": 115,
       "gear": 3,
       "priority": "exit",
-      "confidence": "low"
+      "confidence": "low",
+      "entrySpeedKmh": 120,
+      "exitSpeedKmh": 150,
+      "brakePressure": "none",
+      "cue": "Flat if T2 exit was clean; hug the inside, long run to T4"
     },
     {
       "cornerNumber": 4,
       "minSpeedKmh": 105,
       "gear": 3,
       "priority": "balanced",
-      "confidence": "low"
+      "confidence": "low",
+      "entrySpeedKmh": 190,
+      "exitSpeedKmh": 110,
+      "brakeReference": "100 m board",
+      "brakeMarkerMeters": 100,
+      "brakePressure": "heavy",
+      "downshiftTo": 2,
+      "cue": "Heavy brake at 100, down to 2nd, rotate, 3rd for the apex"
     },
     {
       "cornerNumber": 5,
       "minSpeedKmh": 95,
       "gear": 3,
       "priority": "exit",
-      "confidence": "low"
+      "confidence": "low",
+      "entrySpeedKmh": 105,
+      "exitSpeedKmh": 120,
+      "brakeReference": "Turn-in, light trail",
+      "brakePressure": "light",
+      "cue": "Keep the car tight left, early power to Ferradura"
     },
     {
       "cornerNumber": 6,
       "minSpeedKmh": 100,
       "gear": 3,
       "priority": "balanced",
-      "confidence": "low"
+      "confidence": "low",
+      "entrySpeedKmh": 125,
+      "exitSpeedKmh": 105,
+      "brakeReference": "Crest before the right-hander",
+      "brakePressure": "light",
+      "cue": "Brush the brakes over the crest, commit to the long right"
     },
     {
       "cornerNumber": 7,
       "minSpeedKmh": 85,
       "gear": 3,
       "priority": "balanced",
-      "confidence": "low"
+      "confidence": "low",
+      "entrySpeedKmh": 105,
+      "exitSpeedKmh": 100,
+      "brakePressure": "light",
+      "cue": "Second apex of the right: patient throttle, stay off the exit kerb"
     },
     {
       "cornerNumber": 8,
       "minSpeedKmh": 75,
       "gear": 2,
       "priority": "balanced",
-      "confidence": "low"
+      "confidence": "low",
+      "entrySpeedKmh": 105,
+      "exitSpeedKmh": 90,
+      "brakeReference": "Bottom of the dip",
+      "brakePressure": "firm",
+      "cue": "Firm stop, turn in uphill, car goes light on exit"
     },
     {
       "cornerNumber": 9,
       "minSpeedKmh": 70,
       "gear": 2,
       "priority": "balanced",
-      "confidence": "low"
+      "confidence": "low",
+      "entrySpeedKmh": 95,
+      "exitSpeedKmh": 85,
+      "brakeReference": "Short brake on entry",
+      "brakePressure": "light",
+      "cue": "Tight left: brief brake, apex late, straight to Bico de Pato"
     },
     {
       "cornerNumber": 10,
       "minSpeedKmh": 50,
       "gear": 2,
       "priority": "exit",
-      "confidence": "low"
+      "confidence": "low",
+      "entrySpeedKmh": 120,
+      "exitSpeedKmh": 80,
+      "brakeReference": "50 m board",
+      "brakeMarkerMeters": 50,
+      "brakePressure": "heavy",
+      "cue": "Slowest corner: brake straight, late apex, exit matters"
     },
     {
       "cornerNumber": 11,
       "minSpeedKmh": 90,
       "gear": 3,
       "priority": "balanced",
-      "confidence": "low"
+      "confidence": "low",
+      "entrySpeedKmh": 125,
+      "exitSpeedKmh": 110,
+      "brakeReference": "Lift at the top of the hill",
+      "brakePressure": "light",
+      "cue": "Lift and trail downhill through Mergulho, stay left"
     },
     {
       "cornerNumber": 12,
       "minSpeedKmh": 75,
       "gear": 2,
       "priority": "exit",
-      "confidence": "low"
+      "confidence": "low",
+      "entrySpeedKmh": 120,
+      "exitSpeedKmh": 95,
+      "brakeReference": "Before the dip into Junção",
+      "brakePressure": "firm",
+      "cue": "Most important exit: brake early, apex late, full throttle up the hill"
     },
     {
       "cornerNumber": 13,
       "minSpeedKmh": 130,
       "gear": 4,
       "priority": "exit",
-      "confidence": "low"
+      "confidence": "low",
+      "entrySpeedKmh": 125,
+      "exitSpeedKmh": 140,
+      "brakePressure": "none",
+      "cue": "Flat uphill, smooth hands, keep momentum"
     },
     {
       "cornerNumber": 14,
       "minSpeedKmh": 145,
       "gear": 4,
       "priority": "exit",
-      "confidence": "low"
+      "confidence": "low",
+      "entrySpeedKmh": 145,
+      "exitSpeedKmh": 155,
+      "brakePressure": "none",
+      "cue": "Flat, hold a tight line toward the pit wall"
     },
     {
       "cornerNumber": 15,
       "minSpeedKmh": 165,
       "gear": 5,
       "priority": "exit",
-      "confidence": "low"
+      "confidence": "low",
+      "entrySpeedKmh": 165,
+      "exitSpeedKmh": 175,
+      "brakePressure": "none",
+      "cue": "Flat across the line, use all the track"
     }
   ]
 }

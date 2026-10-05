@@ -2,6 +2,8 @@ import { z } from "zod";
 import { Confidence, PathFraction, ScreenOffset, SpeedKmh, SvgPath } from "./common";
 import {
   Asset,
+  BrakePressure,
+  CUE_MAX_LENGTH,
   Camber,
   Car,
   CarClass,
@@ -201,6 +203,10 @@ export const GuideImportPayload = z.object({
       throttleNotes: opt(z.string()),
       trailBrakeNotes: opt(z.string()),
       priority: opt(CornerPriority),
+      brakePressure: opt(BrakePressure),
+      brakePressurePct: opt(z.number().min(0).max(100)),
+      cue: opt(z.string().trim().min(1).max(CUE_MAX_LENGTH)),
+      downshiftTo: opt(z.number().int().min(1).max(10)),
       confidence: opt(Confidence),
     }),
   ),

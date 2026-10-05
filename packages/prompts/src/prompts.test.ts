@@ -53,5 +53,8 @@ describe("buildGuidePrompt", () => {
     expect(prompt).toContain("Bico de Pato");
     expect(prompt).toContain("as driven in Assetto Corsa");
     expect(prompt).toContain("km/h");
+    expect(prompt).toContain("brakePressure");
+    expect(prompt).toContain("at most 90 characters");
+    expect(prompt).toContain("meters before the turn-in point");
   });
 });

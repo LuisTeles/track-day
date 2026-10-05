@@ -138,6 +138,10 @@ export class LocalGuideImportService implements GuideImportService {
           throttleNotes: c.throttleNotes ?? "",
           trailBrakeNotes: c.trailBrakeNotes ?? "",
           priority: c.priority ?? null,
+          brakePressure: c.brakePressure ?? null,
+          brakePressurePct: c.brakePressurePct ?? null,
+          cue: c.cue ?? null,
+          downshiftTo: c.downshiftTo ?? null,
           source,
           confidence: c.confidence ?? null,
         });

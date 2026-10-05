@@ -168,10 +168,21 @@ export type CornerLine = z.infer<typeof CornerLine>;
 
 export const CornerPriority = z.enum(["entry", "balanced", "exit"]);
 
+/** How hard to brake; "none" means lift or flat out. */
+export const BrakePressure = z.enum(["none", "light", "firm", "heavy"]);
+export type BrakePressure = z.infer<typeof BrakePressure>;
+
+/** Max length of a practice cue; the import preview warns above ~90 characters. */
+export const CUE_MAX_LENGTH = 160;
+
 export const CornerGuide = EntityBase.extend({
   guideId: Id,
   cornerId: Id,
   brakeReference: z.string().nullable(),
+  /**
+   * Distance-board value: meters before the turn-in point (`line.turnInAt`).
+   * When turn-in is unknown it is measured back from the apex (approximate).
+   */
   brakeMarkerMeters: z.number().nonnegative().nullable(),
   entrySpeedKmh: SpeedKmh.nullable(),
   minSpeedKmh: SpeedKmh.nullable(),
@@ -181,6 +192,18 @@ export const CornerGuide = EntityBase.extend({
   throttleNotes: z.string(),
   trailBrakeNotes: z.string(),
   priority: CornerPriority.nullable(),
+  // Practice-mode fields (ADR-006). Defaulted so records saved before they
+  // existed still validate.
+  brakePressure: BrakePressure.nullable().default(null),
+  /** Optional precision for the pressure bar, 0–100. */
+  brakePressurePct: z.number().min(0).max(100).nullable().default(null),
+  /** One glanceable sentence for practice mode. */
+  cue: z.string().trim().min(1).max(CUE_MAX_LENGTH).nullable().default(null),
+  /**
+   * Lowest gear used under braking, only when it differs from the apex `gear`
+   * (e.g. down to 2nd to rotate the car, apex in 3rd). See ADR-006.
+   */
+  downshiftTo: z.number().int().min(1).max(10).nullable().default(null),
   source: Source,
   confidence: Confidence.nullable(),
 });
