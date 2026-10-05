@@ -45,4 +45,4 @@ docs/               Plan, data model, ADRs
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) for the code. Example track data in `examples/` is derived from OpenStreetMap (ODbL) — see [examples/ATTRIBUTION.md](examples/ATTRIBUTION.md).
