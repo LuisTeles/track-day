@@ -9,6 +9,14 @@
   --accent: #dc2626;
   --accent-foreground: #ffffff;
   --danger: #b91c1c;
+  --canvas: #eef0f3;
+  --track: #3f444d;
+  --track-edge: #c9ced6;
+  --track-line: #f5f5f5;
+  --racing-line: #2563eb;
+  --marker: #111827;
+  --marker-foreground: #ffffff;
+  --chip: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,6 +29,14 @@
     --accent: #ef4444;
     --accent-foreground: #0a0a0a;
     --danger: #f87171;
+    --canvas: #0d0f12;
+    --track: #4a505a;
+    --track-edge: #22262c;
+    --track-line: #9aa1ab;
+    --racing-line: #60a5fa;
+    --marker: #f3f4f6;
+    --marker-foreground: #0a0a0a;
+    --chip: #1c1f24;
   }
 }
 
@@ -33,6 +49,14 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-danger: var(--danger);
+  --color-canvas: var(--canvas);
+  --color-track: var(--track);
+  --color-track-edge: var(--track-edge);
+  --color-track-line: var(--track-line);
+  --color-racing-line: var(--racing-line);
+  --color-marker: var(--marker);
+  --color-marker-foreground: var(--marker-foreground);
+  --color-chip: var(--chip);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
