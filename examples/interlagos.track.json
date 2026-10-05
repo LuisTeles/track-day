@@ -7,119 +7,151 @@
     "country": "BR",
     "city": "São Paulo",
     "sims": [
-      { "sim": "assetto-corsa", "trackId": null },
-      { "sim": "iracing", "trackId": null }
+      {
+        "sim": "assetto-corsa",
+        "trackId": null
+      },
+      {
+        "sim": "iracing",
+        "trackId": null
+      }
     ]
   },
-  "layout": { "name": "GP", "lengthMeters": 4309, "direction": "anticlockwise" },
+  "layout": {
+    "name": "GP",
+    "lengthMeters": 4309,
+    "direction": "anticlockwise",
+    "outlinePath": "M46.5 659.5 L119.6 943.4 L126.9 961.8 L135.8 977.2 L141.2 984.4 L145.7 988.8 L157 997.1 L164.3 999.9 L171.9 1000 L178.7 998.7 L185.2 995.5 L195.6 986.4 L226 954.2 L230.1 950.9 L234.2 949.1 L244.8 947.3 L250.6 947.8 L256 949.6 L262.3 952.7 L279.6 964 L292.9 970.7 L304.3 976.2 L317.2 980.5 L330.2 982.8 L343.8 983.6 L367.2 982.6 L379.9 980.7 L392.9 977 L407.5 970.6 L421 962.9 L432.4 954.9 L443.1 946.1 L453.7 934.4 L470 910 L479.7 889.7 L486.8 868 L521.5 747.2 L540 679.9 L547.1 646.7 L551.9 619.6 L607.3 412.8 L630.9 329 L633.8 317.1 L634.7 303 L632.1 290.9 L630 285.6 L626.7 279.9 L619.6 273.1 L613.9 269.2 L602.9 265 L586.7 261.4 L515.1 249.4 L496.9 249.1 L487.9 249.8 L477.9 251.8 L467 255.1 L456.5 259.4 L443.9 266.5 L436.7 271.4 L426.1 280.5 L416.3 290.5 L404.3 304.9 L229.9 544.9 L225 550.7 L214.2 560.6 L207.6 565.1 L199.4 568.9 L191.2 571.4 L184.8 572.8 L166.4 573.5 L146.5 571.6 L138 569.5 L128 566.5 L111.2 559.3 L103.4 554.4 L88.9 542.5 L80.5 529.5 L74.8 511.1 L70 488.5 L60.3 428.9 L59.1 415.5 L59.5 395.6 L61.4 388 L65.9 381.6 L73.9 376.1 L77.8 374.4 L86.5 373.2 L94.1 374.4 L109.6 382.4 L126.7 395.3 L134.7 399.7 L146.3 403.3 L155.2 403.8 L166.9 401.3 L173.5 398.4 L178.9 394.6 L183.6 390.2 L189.5 382 L193.9 370.9 L194.8 362.3 L193.7 352.3 L191.8 346.3 L189 341.1 L179.1 329 L142.4 292.7 L128.6 277.9 L119 265.6 L109.8 249.5 L105.2 236.1 L98.7 211.3 L93.6 187 L93.1 178.2 L94 170.1 L98.4 162.4 L107.4 155.7 L113.6 153.4 L121.5 153.3 L129.1 156.8 L147.3 173.8 L196 227.2 L212.6 239.8 L226.9 247.1 L235.5 250.1 L244.8 252.1 L253.2 253.3 L267.9 253.9 L286.1 251.9 L300.9 247 L311.2 242.1 L322.4 234.5 L332.4 225.5 L339.7 217.2 L378.9 156.2 L415.7 96.8 L428.8 74.1 L431.4 68.9 L432.6 64.1 L432.5 55.5 L431.4 51.1 L429.2 47 L423.5 40.8 L416.1 35.8 L396.8 26.9 L368.5 16.1 L330.2 2.6 L319.7 0.2 L302.7 1 L238.5 12.2 L217.2 18.4 L198.5 25.9 L164.6 41.7 L135.8 56.5 L122.8 64.8 L105.8 78.2 L86.9 97.5 L80.1 107.1 L68 129.9 L60.3 152.6 L48.4 198.8 L6 376.3 L1.9 403.2 L0.7 416.4 L0 441.6 L0.7 458.1 L7 501.2 L18.2 550.2 Z"
+  },
   "corners": [
     {
       "number": 1,
       "name": "S do Senna",
       "direction": "left",
       "type": "chicane",
-      "elevation": "downhill"
+      "elevation": "downhill",
+      "pathPosition": 0.0984,
+      "distanceFromStartMeters": 424
     },
     {
       "number": 2,
       "name": "S do Senna",
       "direction": "right",
       "type": "chicane",
-      "elevation": "downhill"
+      "elevation": "downhill",
+      "pathPosition": 0.1304,
+      "distanceFromStartMeters": 562
     },
     {
       "number": 3,
       "name": "Curva do Sol",
       "direction": "left",
       "type": "sweeper",
-      "elevation": "flat"
+      "pathPosition": 0.1669,
+      "distanceFromStartMeters": 719
     },
     {
       "number": 4,
       "name": "Descida do Lago",
       "direction": "left",
-      "type": "corner",
-      "elevation": "downhill"
+      "pathPosition": 0.3416,
+      "distanceFromStartMeters": 1472
     },
     {
       "number": 5,
       "name": "Descida do Lago",
       "direction": "left",
-      "type": "corner",
-      "elevation": "flat"
+      "pathPosition": 0.3706,
+      "distanceFromStartMeters": 1597
     },
     {
       "number": 6,
       "name": "Ferradura",
       "direction": "right",
-      "type": "sweeper",
-      "elevation": "uphill"
+      "pathPosition": 0.4798,
+      "distanceFromStartMeters": 2067
     },
     {
       "number": 7,
-      "name": "Ferradura",
+      "name": "Curva do Laranjinha",
       "direction": "right",
-      "type": "sweeper",
-      "elevation": "flat"
+      "pathPosition": 0.5088,
+      "distanceFromStartMeters": 2192
     },
     {
       "number": 8,
-      "name": "Laranjinha",
+      "name": "Esse",
       "direction": "right",
-      "type": "corner",
-      "elevation": "uphill"
+      "pathPosition": 0.552,
+      "distanceFromStartMeters": 2379
     },
     {
       "number": 9,
       "name": "Pinheirinho",
       "direction": "left",
-      "type": "corner",
-      "elevation": "flat"
+      "pathPosition": 0.5863,
+      "distanceFromStartMeters": 2526
     },
     {
       "number": 10,
       "name": "Bico de Pato",
       "direction": "right",
       "type": "hairpin",
-      "elevation": "flat"
+      "pathPosition": 0.6401,
+      "distanceFromStartMeters": 2758
     },
     {
       "number": 11,
       "name": "Mergulho",
       "direction": "left",
-      "type": "sweeper",
-      "elevation": "downhill"
+      "elevation": "downhill",
+      "pathPosition": 0.701,
+      "distanceFromStartMeters": 3021
     },
-    { "number": 12, "name": "Junção", "direction": "left", "type": "corner", "elevation": "flat" },
+    {
+      "number": 12,
+      "name": "Junção",
+      "direction": "left",
+      "pathPosition": 0.7661,
+      "distanceFromStartMeters": 3301
+    },
     {
       "number": 13,
-      "name": "Subida dos Boxes",
+      "name": "Café",
       "direction": "left",
-      "type": "kink",
-      "elevation": "uphill"
+      "pathPosition": 0.7954,
+      "distanceFromStartMeters": 3427
     },
     {
       "number": 14,
-      "name": "Arquibancadas",
+      "name": "Subida dos Boxes",
       "direction": "left",
-      "type": "kink",
-      "elevation": "uphill"
+      "pathPosition": 0.8643,
+      "distanceFromStartMeters": 3724
     },
     {
       "number": 15,
       "name": "Arquibancadas",
       "direction": "left",
-      "type": "kink",
-      "elevation": "flat"
+      "pathPosition": 0.9424,
+      "distanceFromStartMeters": 4061
     }
   ],
   "complexes": [
-    { "name": "S do Senna", "cornerNumbers": [1, 2], "notes": null },
-    { "name": "Descida do Lago", "cornerNumbers": [4, 5], "notes": null },
-    { "name": "Ferradura", "cornerNumbers": [6, 7], "notes": null }
+    {
+      "name": "S do Senna",
+      "cornerNumbers": [1, 2]
+    },
+    {
+      "name": "Descida do Lago",
+      "cornerNumbers": [4, 5]
+    }
   ],
   "segments": [
-    { "name": "Reta Oposta", "fromCorner": 3, "toCorner": 4 },
-    { "name": "Subida dos Boxes", "fromCorner": 12, "toCorner": 1 }
+    {
+      "name": "Reta Oposta",
+      "fromCorner": 3,
+      "toCorner": 4
+    }
   ]
 }

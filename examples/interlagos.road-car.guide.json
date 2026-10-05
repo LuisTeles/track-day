@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "kind": "guide",
+  "guide": {
+    "referenceLapTime": null,
+    "setupNotes": "SAMPLE DATA for testing the app — illustrative estimates for a light road car (Mazda MX-5 class), not measured or verified."
+  },
+  "corners": [
+    {
+      "cornerNumber": 1,
+      "minSpeedKmh": 70,
+      "gear": 2,
+      "priority": "exit",
+      "confidence": "low"
+    },
+    {
+      "cornerNumber": 2,
+      "minSpeedKmh": 80,
+      "gear": 3,
+      "priority": "exit",
+      "confidence": "low"
+    },
+    {
+      "cornerNumber": 3,
+      "minSpeedKmh": 115,
+      "gear": 3,
+      "priority": "exit",
+      "confidence": "low"
+    },
+    {
+      "cornerNumber": 4,
+      "minSpeedKmh": 105,
+      "gear": 3,
+      "priority": "balanced",
+      "confidence": "low"
+    },
+    {
+      "cornerNumber": 5,
+      "minSpeedKmh": 95,
+      "gear": 3,
+      "priority": "exit",
+      "confidence": "low"
+    },
+    {
+      "cornerNumber": 6,
+      "minSpeedKmh": 100,
+      "gear": 3,
+      "priority": "balanced",
+      "confidence": "low"
+    },
+    {
+      "cornerNumber": 7,
+      "minSpeedKmh": 85,
+      "gear": 3,
+      "priority": "balanced",
+      "confidence": "low"
+    },
+    {
+      "cornerNumber": 8,
+      "minSpeedKmh": 75,
+      "gear": 2,
+      "priority": "balanced",
+      "confidence": "low"
+    },
+    {
+      "cornerNumber": 9,
+      "minSpeedKmh": 70,
+      "gear": 2,
+      "priority": "balanced",
+      "confidence": "low"
+    },
+    {
+      "cornerNumber": 10,
+      "minSpeedKmh": 50,
+      "gear": 2,
+      "priority": "exit",
+      "confidence": "low"
+    },
+    {
+      "cornerNumber": 11,
+      "minSpeedKmh": 90,
+      "gear": 3,
+      "priority": "balanced",
+      "confidence": "low"
+    },
+    {
+      "cornerNumber": 12,
+      "minSpeedKmh": 75,
+      "gear": 2,
+      "priority": "exit",
+      "confidence": "low"
+    },
+    {
+      "cornerNumber": 13,
+      "minSpeedKmh": 130,
+      "gear": 4,
+      "priority": "exit",
+      "confidence": "low"
+    },
+    {
+      "cornerNumber": 14,
+      "minSpeedKmh": 145,
+      "gear": 4,
+      "priority": "exit",
+      "confidence": "low"
+    },
+    {
+      "cornerNumber": 15,
+      "minSpeedKmh": 165,
+      "gear": 5,
+      "priority": "exit",
+      "confidence": "low"
+    }
+  ]
+}

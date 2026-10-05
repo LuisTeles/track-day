@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "kind": "track",
+  "track": {
+    "name": "Suzuka International Racing Course",
+    "aliases": ["Suzuka"],
+    "country": "JP",
+    "city": "Suzuka",
+    "sims": []
+  },
+  "layout": {
+    "name": "GP",
+    "lengthMeters": 5807,
+    "direction": "clockwise",
+    "outlinePath": "M892.4 331.4 L986.6 446.9 L991.4 453 L995.3 460 L998.7 469.3 L999.9 476.7 L999.6 484.9 L997.6 494.3 L990.2 517 L984.9 525.5 L976.4 531.5 L971.5 533.3 L961.2 534.4 L951.1 532 L942.4 526.3 L938.2 521.8 L898.2 458.8 L891.8 449.8 L883.6 442.1 L878.8 439.2 L868.1 435.9 L848.9 435.1 L838.9 433.5 L829.6 429.2 L825.5 426.1 L821.9 422.5 L816.2 414 L812.7 404.2 L803.8 371.5 L801.5 366.5 L795.1 357.6 L791.1 353.9 L781.7 348.3 L771.2 345.3 L739 343.8 L732.4 341.9 L720.7 335.8 L715.7 331.7 L710.7 326.1 L707 320.7 L704.2 314.7 L702.6 308.3 L702.1 301.7 L702.8 295.2 L704.6 288.8 L717.5 253.8 L718.4 247.7 L717.6 235.5 L715.9 229.6 L709.9 218.8 L701.1 210.3 L693.1 205.5 L668.6 194.4 L653.7 190.2 L641.7 188.7 L630 188.5 L616.8 189.3 L609.2 190.6 L584.5 200.7 L569 209.5 L562.7 214.3 L546.4 230.2 L499.3 287.3 L496.1 290.2 L493.2 291.5 L421.5 297.4 L416.6 295.1 L413.2 291 L412.3 288.5 L385.2 150.6 L384.2 142.7 L385.4 129.7 L388.6 119.7 L405.6 81.9 L406.6 78 L406.2 74 L404.7 70.8 L402.4 68.2 L399.3 66.6 L395.8 66 L392.5 66.5 L389.2 68.1 L386.5 70.6 L349.2 130.5 L338.8 143.1 L327.6 154 L323.4 157 L310.9 164.4 L298.8 168.1 L265.7 171.1 L250.2 170.2 L237.6 168.5 L220 164.2 L188.5 153.1 L177.5 148 L166.7 141.8 L157.4 135.5 L147.1 127 L131.9 110 L121.7 94.4 L116.6 84.3 L87.5 17.4 L83.9 11.9 L75.9 5 L69.3 2 L57.6 0 L47.2 0.4 L33.2 2.5 L24.1 4.8 L11.4 10.7 L6.2 16 L1.9 24.2 L0.3 29.6 L0 35.4 L1.9 46.3 L7.3 57.7 L18.8 71.4 L35.3 85.5 L61.6 105.8 L93.1 126.6 L113.2 138.5 L151.4 158.1 L180.8 170.8 L413.6 253.2 L422.1 255.6 L428.5 256.2 L435.2 255.8 L457.9 249.3 L478.9 240.6 L494.8 230.8 L505.7 223.1 L515.2 215.1 L577.1 157.7 L588.7 148.4 L599 141.6 L602.8 140.5 L606.3 140.9 L622 153.7 L627.4 154.8 L632.7 153.1 L645.4 141.9 L652.5 137.1 L665.3 131.4 L673.9 130.1 L687.1 130.2 L699.5 132 L710.8 135.3 L716.5 137.5 L729.1 144.6 L739.5 152 L755.1 166.2 L779.6 194.6 Z"
+  },
+  "corners": [
+    {
+      "number": 1,
+      "name": "First Turn",
+      "direction": "right",
+      "pathPosition": 0.0577,
+      "distanceFromStartMeters": 335
+    },
+    {
+      "number": 2,
+      "name": "Second Turn",
+      "direction": "right",
+      "pathPosition": 0.0861,
+      "distanceFromStartMeters": 500
+    },
+    {
+      "number": 3,
+      "name": "'S' Curves",
+      "direction": "left",
+      "pathPosition": 0.1297,
+      "distanceFromStartMeters": 753
+    },
+    {
+      "number": 4,
+      "name": "'S' Curves",
+      "direction": "right",
+      "pathPosition": 0.1505,
+      "distanceFromStartMeters": 874
+    },
+    {
+      "number": 5,
+      "name": "'S' Curves",
+      "direction": "left",
+      "pathPosition": 0.1781,
+      "distanceFromStartMeters": 1034
+    },
+    {
+      "number": 6,
+      "name": "Gyaku Curve",
+      "direction": "right",
+      "pathPosition": 0.2079,
+      "distanceFromStartMeters": 1207
+    },
+    {
+      "number": 7,
+      "name": "NIPPO Corner",
+      "direction": "left",
+      "pathPosition": 0.2422,
+      "distanceFromStartMeters": 1406
+    },
+    {
+      "number": 8,
+      "name": "Degner Curve 1",
+      "direction": "right",
+      "pathPosition": 0.3336,
+      "distanceFromStartMeters": 1937
+    },
+    {
+      "number": 9,
+      "name": "Degner Curve 2",
+      "direction": "right",
+      "pathPosition": 0.3622,
+      "distanceFromStartMeters": 2103
+    },
+    {
+      "number": 10,
+      "name": null,
+      "direction": "right",
+      "pathPosition": 0.4173,
+      "distanceFromStartMeters": 2423
+    },
+    {
+      "number": 11,
+      "name": "NISSIN Brake Hairpin",
+      "direction": "left",
+      "pathPosition": 0.4434,
+      "distanceFromStartMeters": 2575
+    },
+    {
+      "number": 12,
+      "name": null,
+      "direction": "right",
+      "pathPosition": 0.4959,
+      "distanceFromStartMeters": 2880,
+      "notes": "Position inferred from the track geometry (not tagged in OpenStreetMap)."
+    },
+    {
+      "number": 13,
+      "name": "Spoon Curve",
+      "direction": "left",
+      "pathPosition": 0.5993,
+      "distanceFromStartMeters": 3480
+    },
+    {
+      "number": 14,
+      "name": "Spoon Curve",
+      "direction": "left",
+      "pathPosition": 0.6271,
+      "distanceFromStartMeters": 3642
+    },
+    {
+      "number": 15,
+      "name": "130R",
+      "direction": "left",
+      "pathPosition": 0.8093,
+      "distanceFromStartMeters": 4700
+    },
+    {
+      "number": 16,
+      "name": "Hitachi Astemo Chicane",
+      "direction": "right",
+      "pathPosition": 0.8682,
+      "distanceFromStartMeters": 5042
+    },
+    {
+      "number": 17,
+      "name": "Hitachi Astemo Chicane",
+      "direction": "left",
+      "pathPosition": 0.8782,
+      "distanceFromStartMeters": 5100
+    },
+    {
+      "number": 18,
+      "name": null,
+      "direction": "right",
+      "pathPosition": 0.8986,
+      "distanceFromStartMeters": 5218
+    }
+  ],
+  "complexes": [
+    {
+      "name": "'S' Curves",
+      "cornerNumbers": [3, 4, 5]
+    },
+    {
+      "name": "Spoon Curve",
+      "cornerNumbers": [13, 14]
+    },
+    {
+      "name": "Hitachi Astemo Chicane",
+      "cornerNumbers": [16, 17]
+    }
+  ],
+  "segments": [
+    {
+      "name": "Main straight",
+      "fromCorner": 18,
+      "toCorner": 1
+    },
+    {
+      "name": "West straight",
+      "fromCorner": 14,
+      "toCorner": 15
+    }
+  ]
+}
