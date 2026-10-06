@@ -7,7 +7,10 @@ import type {
 } from "../repositories";
 import type { TrackDayDb } from "./db";
 
-type EntityRepositories = Omit<Repositories, "trackImport" | "guideImport" | "trackDeletion">;
+type EntityRepositories = Omit<
+  Repositories,
+  "trackImport" | "guideImport" | "trackDeletion" | "layoutGeometry"
+>;
 
 export class LocalTrackImportService implements TrackImportService {
   constructor(

@@ -127,6 +127,21 @@ export interface GuideImportService {
   ): Promise<{ guideId: string }>;
 }
 
+export interface SaveOutlineInput {
+  layoutId: string;
+  outlinePath: string;
+  outlineSource: "osm";
+  /** Corners that get an exact position; others keep theirs (usually null). */
+  cornerPositions: { cornerId: string; pathPosition: number }[];
+  /** Only when the user chose the outline source's lap length. */
+  lengthMeters?: number;
+}
+
+export interface LayoutGeometryService {
+  /** Adds an outline to a layout without one, with corner positions, in one transaction. */
+  saveOutline(input: SaveOutlineInput): Promise<void>;
+}
+
 export interface Repositories {
   tracks: TrackRepository;
   layouts: LayoutRepository;
@@ -142,4 +157,5 @@ export interface Repositories {
   trackImport: TrackImportService;
   guideImport: GuideImportService;
   trackDeletion: TrackDeletionService;
+  layoutGeometry: LayoutGeometryService;
 }
