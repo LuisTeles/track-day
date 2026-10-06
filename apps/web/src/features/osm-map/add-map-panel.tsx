@@ -49,13 +49,14 @@ export function AddMapPanel({
   const [places, setPlaces] = useState<Place[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [loadingPick, setLoadingPick] = useState(false);
-  const busy = searching || loadingPick;
   const [problem, setProblem] = useState<Problem | null>(null);
   const [picked, setPicked] = useState<{ place: Place; elements: OsmElement[] } | null>(null);
   const [loopIndex, setLoopIndex] = useState(0);
   const [useOsmLength, setUseOsmLength] = useState(false);
   // Only the latest pick may show its result.
   const pickToken = useRef(0);
+  /** Aborts the raceway lookup in flight (Cancel lookup, or a newer search or pick). */
+  const lookup = useRef<AbortController | null>(null);
   const save = useSaveMap(onClose);
 
   const lengthMeters = layout.lengthMeters;
@@ -89,6 +90,7 @@ export function AddMapPanel({
   async function handleSearch() {
     // A new search supersedes any pick still loading.
     pickToken.current++;
+    lookup.current?.abort();
     setLoadingPick(false);
     setSearching(true);
     setProblem(null);
@@ -105,13 +107,16 @@ export function AddMapPanel({
 
   async function handlePick(place: Place) {
     const token = ++pickToken.current;
+    lookup.current?.abort();
+    const controller = new AbortController();
+    lookup.current = controller;
     setLoadingPick(true);
     setProblem(null);
     setPicked(null);
     setLoopIndex(0);
     setUseOsmLength(false);
     try {
-      const elements = await client.fetchRaceways(place.bbox);
+      const elements = await client.fetchRaceways(place.bbox, { signal: controller.signal });
       if (token !== pickToken.current) return;
       setPicked({ place, elements });
     } catch (e) {
@@ -120,6 +125,12 @@ export function AddMapPanel({
     } finally {
       if (token === pickToken.current) setLoadingPick(false);
     }
+  }
+
+  function cancelLookup() {
+    pickToken.current++;
+    lookup.current?.abort();
+    setLoadingPick(false);
   }
 
   const failure =
@@ -188,9 +199,17 @@ export function AddMapPanel({
         </ul>
       )}
 
-      <p aria-live="polite" className="text-sm text-muted">
-        {busy && "Looking up the circuit…"}
-      </p>
+      <div aria-live="polite" className="text-sm text-muted">
+        {searching && <p>Searching…</p>}
+        {loadingPick && (
+          <div className="flex flex-wrap items-center gap-3">
+            <p>Fetching the circuit from OpenStreetMap — this can take a minute or two.</p>
+            <Button variant="outline" onClick={cancelLookup}>
+              Cancel lookup
+            </Button>
+          </div>
+        )}
+      </div>
 
       {shown && (
         <div role="alert" className="rounded-lg border border-danger/40 p-3 text-sm">

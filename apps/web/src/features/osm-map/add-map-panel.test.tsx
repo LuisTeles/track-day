@@ -77,7 +77,7 @@ describe("AddMapPanel", () => {
     const { user, client } = setup();
     await searchAndPick(user);
 
-    expect(client.fetchRaceways).toHaveBeenCalledWith(place.bbox);
+    expect(client.fetchRaceways).toHaveBeenCalledWith(place.bbox, expect.anything());
     const list = screen.getByRole("list", { name: "Corner positions" });
     expect(within(list).getAllByText("Position from OpenStreetMap")).toHaveLength(15);
     expect(within(list).getByText("Placed from distance")).toBeInTheDocument();
@@ -224,5 +224,27 @@ describe("AddMapPanel", () => {
     const { user } = setup();
     await searchAndPick(user);
     expect(screen.getByRole("link", { name: "OpenStreetMap contributors" })).toBeInTheDocument();
+  });
+
+  it("warns that the lookup can be slow, and can cancel it", async () => {
+    let seen: AbortSignal | undefined;
+    const fetchRaceways = vi.fn(
+      (_bbox: Place["bbox"], options?: { signal?: AbortSignal }) =>
+        new Promise<OsmElement[]>(() => {
+          seen = options?.signal;
+        }),
+    );
+    const { user } = setup({
+      client: { searchPlaces: vi.fn().mockResolvedValue([place]), fetchRaceways },
+    });
+    await user.click(screen.getByRole("button", { name: "Search" }));
+    await user.click(await screen.findByRole("button", { name: /Autódromo/ }));
+
+    expect(screen.getByText(/can take a minute or two/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cancel lookup" }));
+
+    expect(seen?.aborted).toBe(true);
+    expect(screen.queryByText(/can take a minute or two/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

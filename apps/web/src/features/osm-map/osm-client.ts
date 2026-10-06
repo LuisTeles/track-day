@@ -10,7 +10,7 @@ export interface Place {
   bbox: BBox;
 }
 
-export type OsmErrorKind = "offline" | "busy" | "not-found" | "too-large" | "network";
+export type OsmErrorKind = "offline" | "busy" | "not-found" | "too-large" | "network" | "cancelled";
 
 export class OsmError extends Error {
   override name = "OsmError";
@@ -25,17 +25,54 @@ export class OsmError extends Error {
 export interface ClientOptions {
   fetch?: typeof fetch;
   retryDelayMs?: number;
+  /** Aborts the request (the user pressed Cancel). */
+  signal?: AbortSignal;
 }
 
 const NOMINATIM = "https://nominatim.openstreetmap.org/search";
-const OVERPASS = "https://overpass-api.de/api/interpreter";
+/**
+ * Public Overpass instances, tried in order: any one of them can refuse,
+ * time out or answer without CORS headers (which a browser can't read).
+ */
+export const OVERPASS_SERVERS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+];
+/** Per server: a busy instance can take well over a minute. */
+const OVERPASS_TIMEOUT_MS = 120_000;
 /** A circuit fits well inside this; anything bigger is a city or region. */
 const MAX_DIAGONAL_M = 10_000;
 
 const BUSY = "OpenStreetMap is busy — try again in a minute.";
 const UNREACHABLE = "Couldn’t reach OpenStreetMap.";
 
+const ALL_DOWN =
+  "OpenStreetMap’s map-data servers aren’t answering right now. Try again in a few minutes.";
+
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * A signal that aborts after `ms` or when `outer` aborts. Built by hand:
+ * AbortSignal.timeout and AbortSignal.any are missing in older Safari.
+ */
+function deadline(ms: number, outer?: AbortSignal): AbortSignal {
+  const controller = new AbortController();
+  const timer = setTimeout(
+    () => controller.abort(new DOMException("Timed out", "TimeoutError")),
+    ms,
+  );
+  const stop = () => {
+    clearTimeout(timer);
+    controller.abort(outer?.reason);
+  };
+  if (outer?.aborted) stop();
+  else outer?.addEventListener("abort", stop, { once: true });
+  return controller.signal;
+}
+
+const cancelled = () => new OsmError("cancelled", "Cancelled.");
 
 async function request(
   url: string,
@@ -50,8 +87,9 @@ async function request(
   for (let attempt = 0; ; attempt++) {
     let res: Response;
     try {
-      res = await doFetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+      res = await doFetch(url, { ...init, signal: deadline(timeoutMs, options.signal) });
     } catch {
+      if (options.signal?.aborted) throw cancelled();
       throw new OsmError("network", UNREACHABLE);
     }
     if (res.status === 429 || res.status === 504) {
@@ -114,22 +152,33 @@ export async function fetchRaceways(
     );
   }
   const query = `[out:json][timeout:60];way["highway"="raceway"](${s},${w},${n},${e});out body;>;out body qt;`;
-  const res = await request(
-    OVERPASS,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ data: query }).toString(),
-    },
-    60_000,
-    options,
-  );
-  const body = (await res.json()) as { elements?: OsmElement[]; remark?: string };
-  // Overpass reports server-side timeouts as a 200 with a remark and no data.
-  if (body.remark && /runtime error|timed out|out of memory/i.test(body.remark)) {
-    throw new OsmError("busy", BUSY);
+  const init: RequestInit = {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ data: query }).toString(),
+  };
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    throw new OsmError("offline", "Adding a map needs an internet connection.");
   }
-  return body.elements ?? [];
+  const doFetch = options.fetch ?? fetch;
+  for (const server of OVERPASS_SERVERS) {
+    if (options.signal?.aborted) throw cancelled();
+    try {
+      const res = await doFetch(server, {
+        ...init,
+        signal: deadline(OVERPASS_TIMEOUT_MS, options.signal),
+      });
+      if (!res.ok) continue;
+      const body = (await res.json()) as { elements?: OsmElement[]; remark?: string };
+      // Overpass reports server-side timeouts as a 200 with a remark and no data.
+      if (body.remark && /runtime error|timed out|out of memory/i.test(body.remark)) continue;
+      return body.elements ?? [];
+    } catch {
+      // Refused, timed out, or an error page without CORS headers: try the next one.
+      if (options.signal?.aborted) throw cancelled();
+    }
+  }
+  throw new OsmError("busy", ALL_DOWN);
 }
 
 export interface OsmClient {

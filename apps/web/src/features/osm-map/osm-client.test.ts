@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchRaceways, OsmError, searchPlaces } from "./osm-client";
+import { fetchRaceways, OVERPASS_SERVERS, searchPlaces } from "./osm-client";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -59,7 +59,7 @@ describe("fetchRaceways", () => {
     const elements = await fetchRaceways(INTERLAGOS, { fetch });
 
     const [url, init] = fetch.mock.calls[0]! as [string, RequestInit];
-    expect(url).toBe("https://overpass-api.de/api/interpreter");
+    expect(url).toBe(OVERPASS_SERVERS[0]);
     expect(init.method).toBe("POST");
     expect(new URLSearchParams(init.body as string).get("data")).toBe(
       '[out:json][timeout:60];way["highway"="raceway"](-23.712,-46.706,-23.695,-46.69);out body;>;out body qt;',
@@ -76,23 +76,6 @@ describe("fetchRaceways", () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
-  it("reports busy after a second 504", async () => {
-    const fetch = vi.fn().mockResolvedValue(json({}, 504));
-    await expect(fetchRaceways(INTERLAGOS, { fetch, retryDelayMs: 0 })).rejects.toMatchObject({
-      kind: "busy",
-    });
-    expect(fetch).toHaveBeenCalledTimes(2);
-  });
-
-  it("treats a 200 with a timeout remark as busy, not as an empty area", async () => {
-    const fetch = vi
-      .fn()
-      .mockResolvedValue(
-        json({ elements: [], remark: 'runtime error: Query timed out in "query"' }),
-      );
-    await expect(fetchRaceways(INTERLAGOS, { fetch })).rejects.toMatchObject({ kind: "busy" });
-  });
-
   it("rejects an area larger than a circuit without querying", async () => {
     const fetch = vi.fn();
     await expect(fetchRaceways([-23.8, -46.8, -23.4, -46.4], { fetch })).rejects.toMatchObject({
@@ -101,10 +84,51 @@ describe("fetchRaceways", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("turns a network failure into a readable error", async () => {
+  it("falls back to the next server when one refuses or can't be read", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(json({}, 406))
+      .mockRejectedValueOnce(new TypeError("Failed to fetch")) // CORS-less error page
+      .mockResolvedValueOnce(json({ elements: [{ type: "node", id: 7, lat: 0, lon: 0 }] }));
+    const elements = await fetchRaceways(INTERLAGOS, { fetch });
+
+    expect(elements).toHaveLength(1);
+    expect(fetch.mock.calls.map((c) => c[0])).toEqual(OVERPASS_SERVERS.slice(0, 3));
+  });
+
+  it("explains when every map-data server fails", async () => {
     const fetch = vi.fn().mockRejectedValue(new TypeError("Failed to fetch"));
-    const error = await fetchRaceways(INTERLAGOS, { fetch }).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(OsmError);
-    expect(error).toMatchObject({ kind: "network", message: "Couldn’t reach OpenStreetMap." });
+    await expect(fetchRaceways(INTERLAGOS, { fetch })).rejects.toMatchObject({
+      kind: "busy",
+      message: expect.stringContaining("map-data servers aren’t answering"),
+    });
+    expect(fetch).toHaveBeenCalledTimes(OVERPASS_SERVERS.length);
+  });
+
+  it("stops when the user cancels, without trying other servers", async () => {
+    const controller = new AbortController();
+    const fetch = vi.fn((_url: RequestInfo | URL, init?: RequestInit) => {
+      controller.abort();
+      return Promise.reject(init?.signal?.reason ?? new DOMException("aborted", "AbortError"));
+    });
+    await expect(
+      fetchRaceways(INTERLAGOS, { fetch, signal: controller.signal }),
+    ).rejects.toMatchObject({ kind: "cancelled" });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("works in browsers without AbortSignal.timeout (older Safari)", async () => {
+    const original = AbortSignal.timeout;
+    // @ts-expect-error simulating an older browser
+    delete AbortSignal.timeout;
+    try {
+      const fetch = vi.fn().mockResolvedValue(json({ elements: [] }));
+      await expect(fetchRaceways(INTERLAGOS, { fetch })).resolves.toEqual([]);
+      await expect(
+        searchPlaces("Interlagos", { fetch: vi.fn().mockResolvedValue(json([nominatimRow])) }),
+      ).resolves.toHaveLength(1);
+    } finally {
+      AbortSignal.timeout = original;
+    }
   });
 });
