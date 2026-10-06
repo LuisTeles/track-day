@@ -1,5 +1,5 @@
 // Pure helpers for turning OpenStreetMap raceway ways into a normalized track
-// outline. No I/O here; see index.ts for fetching and writing.
+// outline. No I/O; used by scripts/osm-outline and the web app.
 
 export interface OsmNode {
   type: "node";
@@ -308,4 +308,103 @@ export function illustrativeRacingLine(
     const k = len > maxOffset ? maxOffset / len : 1;
     return { x: p.x + dx * k, y: p.y + dy * k };
   });
+}
+
+// ---------------------------------------------------------------------------
+// Loop helpers (moved from scripts/osm-outline/index.ts)
+// ---------------------------------------------------------------------------
+
+/** Counts oneway way edges that run with (agree) or against (disagree) the ring order. */
+export function onewayVotes(ring: number[], ways: OsmWay[]) {
+  const order = new Map(ring.map((id, i) => [id, i]));
+  let agree = 0;
+  let disagree = 0;
+  for (const way of ways.filter((w) => w.tags.oneway === "yes")) {
+    for (let i = 1; i < way.nodes.length; i++) {
+      const a = order.get(way.nodes[i - 1]!);
+      const b = order.get(way.nodes[i]!);
+      if (a === undefined || b === undefined) continue;
+      if (b === a + 1 || (a === ring.length - 1 && b === 0)) agree++;
+      else if (a === b + 1 || (b === ring.length - 1 && a === 0)) disagree++;
+    }
+  }
+  return { agree, disagree };
+}
+
+export const extent = (points: { x: number; y: number }[]) => {
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  return [Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)];
+};
+
+export const round = (n: number, digits: number) => Math.round(n * 10 ** digits) / 10 ** digits;
+
+export const rotate = <T>(items: T[], start: number) => [
+  ...items.slice(start),
+  ...items.slice(0, start),
+];
+
+export function geometryOf(ring: number[], nodes: Map<number, OsmNode>) {
+  const meters = project(ring.map((id) => nodes.get(id)!));
+  const cumulative = cumulativeLengths(meters, true);
+  return {
+    meters,
+    cumulative,
+    total: cumulative[cumulative.length - 1]!,
+    indexOf: new Map(ring.map((id, i) => [id, i])),
+  };
+}
+export type LoopGeometry = ReturnType<typeof geometryOf>;
+
+/** Index in [from, to] whose cumulative distance is closest to `target`. */
+export function nearestByDistance(cumulative: number[], from: number, to: number, target: number) {
+  let best = from;
+  for (let i = from; i <= to; i++) {
+    if (Math.abs(cumulative[i]! - target) < Math.abs(cumulative[best]! - target)) best = i;
+  }
+  return best;
+}
+
+/** Indices of the longest strictly increasing subsequence (O(n²), n is small). */
+export function longestIncreasing(values: number[]): number[] {
+  const len = values.map(() => 1);
+  const prev = values.map(() => -1);
+  for (let i = 0; i < values.length; i++) {
+    for (let j = 0; j < i; j++) {
+      if (values[j]! < values[i]! && len[j]! + 1 > len[i]!) {
+        len[i] = len[j]! + 1;
+        prev[i] = j;
+      }
+    }
+  }
+  let i = len.indexOf(Math.max(...len));
+  const out: number[] = [];
+  while (i !== -1) {
+    out.unshift(i);
+    i = prev[i]!;
+  }
+  return out;
+}
+
+/**
+ * The point of sharpest curvature strictly between two lap fractions, keeping
+ * 40 m clear of each neighbour. Curvature is measured over a ±25 m window.
+ */
+export function sharpestBetween(geo: LoopGeometry, from: number, to: number) {
+  const { meters, cumulative, total } = geo;
+  const at = (d: number) => {
+    const target = ((d % total) + total) % total;
+    return meters[nearestByDistance(cumulative, 0, meters.length - 1, target)]!;
+  };
+  let best: { position: number; turn: number } | undefined;
+  for (let d = from * total + 40; d < to * total - 40; d += 5) {
+    const turn = turning([at(d - 25), at(d), at(d + 25)]);
+    if (!best || Math.abs(turn) > Math.abs(best.turn)) best = { position: d / total, turn };
+  }
+  return (
+    best && {
+      position: best.position,
+      direction: best.turn < 0 ? ("left" as const) : ("right" as const),
+    }
+  );
 }
