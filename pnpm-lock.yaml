@@ -214,6 +214,9 @@ importers:
       '@tanstack/react-query':
         specifier: ^5.104.1
         version: 5.104.1(react@19.2.8)
+      '@track-day/osm-track':
+        specifier: workspace:*
+        version: link:../../packages/osm-track
       '@track-day/prompts':
         specifier: workspace:*
         version: link:../../packages/prompts

@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   images: { unoptimized: true },
   // Keep the dev-only indicator clear of the map toolbar (bottom-left).
   devIndicators: { position: "bottom-right" },
-  transpilePackages: ["@track-day/schema", "@track-day/prompts"],
+  transpilePackages: ["@track-day/schema", "@track-day/prompts", "@track-day/osm-track"],
 };
 
 export default nextConfig;
