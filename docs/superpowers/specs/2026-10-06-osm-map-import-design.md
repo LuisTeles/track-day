@@ -29,7 +29,7 @@ An AI-imported track has corners but no outline, so the track view shows only a 
 packages/osm-track/          new: pure geometry, no I/O, no console
   src/lib.ts                 moved from scripts/osm-outline/lib.ts
   src/build.ts               buildTrackGeometry() + helpers moved from scripts/osm-outline/index.ts
-  test/fixtures/             cached Overpass responses (Interlagos, Monaco), ODbL attribution
+  test/fixtures/             cached Overpass responses (Interlagos, Suzuka, Monaco), ODbL attribution
 scripts/osm-outline/         thin CLI: fetch + cache, call the package, add names/segments/complexes, write examples/
 apps/web/src/features/osm-map/
   osm-client.ts              Nominatim search + Overpass fetch (timeouts, one retry, readable errors)
@@ -139,10 +139,11 @@ The panel uses the existing `SidePanel` / bottom-sheet component, so it works on
 **`packages/osm-track` (Vitest, Node), on committed fixtures:**
 
 - Interlagos: the loop is within 2% of 4309 m, `start` is `"tagged"`, corner positions increase in lap order, and the direction comes from one-way tags.
-- Monaco (street circuit): a loop is found within tolerance.
+- Suzuka: `start` is `"approximate"` (no start/finish node in OSM).
+- Monaco (street circuit): **no complete raceway loop exists in OSM** (it's mapped as ordinary roads), so the result is `no-loop` with `loopsFound`. Checked against the cached data while writing the plan. This is a real limit: street circuits often can't be added this way.
 - `loops` lists alternatives and `loopIndex` selects them.
 - No raceways gives `no-raceway`. A length far from any loop gives `no-loop` with `loopsFound`.
-- **Script parity:** the CLI run on the cached Interlagos data produces the same `outlinePath` and corner `pathPosition`s as today's `examples/interlagos.track.json` (apart from the new `outlineSource`).
+- **Script parity:** on the cached Interlagos and Suzuka data, the package produces the same `outlinePath` and tagged-corner `pathPosition`s as today's `examples/*.track.json`. Regenerating both examples through the refactored CLI changes only the new `outlineSource` line.
 
 **Web (Vitest + Testing Library), network faked:**
 
