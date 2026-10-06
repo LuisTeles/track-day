@@ -135,10 +135,16 @@ export interface SaveOutlineInput {
   cornerPositions: { cornerId: string; pathPosition: number }[];
   /** Only when the user chose the outline source's lap length. */
   lengthMeters?: number;
+  /**
+   * Replace an existing OpenStreetMap outline ("Redo map"). Corners not in
+   * `cornerPositions` lose their position, which belonged to the old outline.
+   * Outlines from anywhere else are never replaced.
+   */
+  replace?: boolean;
 }
 
 export interface LayoutGeometryService {
-  /** Adds an outline to a layout without one, with corner positions, in one transaction. */
+  /** Adds (or, for OSM outlines, replaces) a layout's outline with corner positions, in one transaction. */
   saveOutline(input: SaveOutlineInput): Promise<void>;
 }
 

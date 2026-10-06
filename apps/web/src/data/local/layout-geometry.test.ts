@@ -91,4 +91,52 @@ describe("saveOutline", () => {
     ).rejects.toThrow(/not on this layout/);
     expect((await repos.layouts.get(layoutId))?.outlinePath).toBeNull();
   });
+
+  describe("replacing an OpenStreetMap map", () => {
+    async function withOsmMap() {
+      const { layoutId } = await repos.trackImport.importTrack(imported);
+      const [t1, t2] = await repos.corners.listByLayout(layoutId);
+      await repos.layoutGeometry.saveOutline({
+        layoutId,
+        outlinePath: "M0 0 L10 0 L10 10 Z",
+        outlineSource: "osm",
+        cornerPositions: [
+          { cornerId: t1!.id, pathPosition: 0.1 },
+          { cornerId: t2!.id, pathPosition: 0.2 },
+        ],
+      });
+      return { layoutId, t1: t1!, t2: t2! };
+    }
+
+    it("replaces the outline and clears positions that no longer apply", async () => {
+      const { layoutId, t1, t2 } = await withOsmMap();
+      await repos.layoutGeometry.saveOutline({
+        layoutId,
+        outlinePath: "M0 0 L20 0 L20 20 Z",
+        outlineSource: "osm",
+        cornerPositions: [{ cornerId: t2.id, pathPosition: 0.3 }],
+        replace: true,
+      });
+
+      expect((await repos.layouts.get(layoutId))?.outlinePath).toBe("M0 0 L20 0 L20 20 Z");
+      expect((await repos.corners.get(t1.id))?.pathPosition).toBeNull();
+      expect((await repos.corners.get(t2.id))?.pathPosition).toBe(0.3);
+    });
+
+    it("never replaces an outline that didn't come from OpenStreetMap", async () => {
+      const { layoutId } = await repos.trackImport.importTrack({
+        ...imported,
+        layout: { ...imported.layout, outlinePath: "M0 0 L1 0 Z" },
+      });
+      await expect(
+        repos.layoutGeometry.saveOutline({
+          layoutId,
+          outlinePath: "M0 0 L2 0 Z",
+          outlineSource: "osm",
+          cornerPositions: [],
+          replace: true,
+        }),
+      ).rejects.toThrow("This layout already has a map.");
+    });
+  });
 });
