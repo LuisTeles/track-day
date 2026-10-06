@@ -168,3 +168,35 @@ describe("choosing the start line", () => {
     expect(same.outlinePath).toBe(base.outlinePath);
   });
 });
+
+describe("named sections", () => {
+  const monza = () =>
+    ok(buildTrackGeometry(fixture("monza"), { lengthMeters: 5793, direction: "clockwise" }));
+
+  it("lists the loop's named sections with where they start and end", () => {
+    const names = monza().sections.map((s) => s.name);
+    for (const name of ["Variante del Rettifilo", "Lesmo 1", "Lesmo 2", "Variante Ascari"]) {
+      expect(names).toContain(name);
+    }
+    for (const s of monza().sections) {
+      expect(s.from).toBeGreaterThanOrEqual(0);
+      expect(s.from).toBeLessThan(1);
+      expect(s.to).toBeGreaterThanOrEqual(0);
+      expect(s.to).toBeLessThan(1);
+    }
+  });
+
+  it("keeps old names as aliases (Curva Alboreto was Curva Parabolica)", () => {
+    const alboreto = monza().sections.find((s) => s.name === "Curva Alboreto");
+    expect(alboreto?.aliases).toContain("Curva Parabolica");
+  });
+
+  it("measures sections on the loop as restarted at the chosen start", () => {
+    const options = { lengthMeters: 5793, direction: "clockwise" as const };
+    const base = ok(buildTrackGeometry(fixture("monza"), options));
+    const moved = ok(buildTrackGeometry(fixture("monza"), { ...options, startAt: 0.4 }));
+    const lesmo = (r: TrackGeometryResult) => r.sections.find((s) => s.name === "Lesmo 1")!.from;
+    const expected = (((lesmo(base) - 0.4) % 1) + 1) % 1;
+    expect(Math.abs(lesmo(moved) - expected)).toBeLessThan(0.01);
+  });
+});

@@ -41,6 +41,16 @@ export interface BuildOptions {
   nameOf?: (tags: Record<string, string>) => string | undefined;
 }
 
+/** A named stretch of the loop (e.g. "Variante del Rettifilo"), as lap fractions. */
+export interface NamedSection {
+  name: string;
+  /** Other names the section is tagged with (old_name, alt_name, name:en). */
+  aliases: string[];
+  from: number;
+  /** May be less than `from` when the section crosses the start line. */
+  to: number;
+}
+
 export interface OsmCorner {
   number: number;
   name: string | null;
@@ -66,6 +76,8 @@ export interface TrackGeometryResult {
   /** OSM-tagged corners on the loop, by number. */
   corners: OsmCorner[];
   warnings: string[];
+  /** Named ways on the loop, merged by name, measured from the start line. */
+  sections: NamedSection[];
   /** Raw loop data for the CLI (segments, inferred corners, racing line). */
   loop: { ring: number[]; wayIds: Set<number>; nodes: Map<number, OsmNode>; ways: OsmWay[] };
 }
@@ -114,6 +126,50 @@ function restartAt(
   }
   next = rotate(next, at);
   return { ring: next, geo: geometryOf(next, nodes) };
+}
+
+const ALIAS_TAGS = ["old_name", "alt_name", "name:en", "name"];
+
+function namedSections(
+  loopWays: OsmWay[],
+  geo: LoopGeometry,
+  nameOf: (tags: Record<string, string>) => string | undefined,
+): NamedSection[] {
+  const byName = new Map<string, { aliases: Set<string>; indices: Set<number> }>();
+  for (const way of loopWays) {
+    const name = nameOf(way.tags);
+    if (!name) continue;
+    const entry = byName.get(name) ?? { aliases: new Set<string>(), indices: new Set<number>() };
+    for (const key of ALIAS_TAGS) {
+      const value = way.tags[key];
+      if (value && value !== name) entry.aliases.add(value);
+    }
+    for (const id of way.nodes) {
+      const i = geo.indexOf.get(id);
+      if (i !== undefined) entry.indices.add(i);
+    }
+    byName.set(name, entry);
+  }
+
+  const n = geo.meters.length;
+  const at = (i: number) => round(geo.cumulative[i]! / geo.total, 4) % 1;
+  return [...byName].flatMap(([name, { aliases, indices }]) => {
+    const sorted = [...indices].sort((a, b) => a - b);
+    if (sorted.length < 2) return [];
+    // The section is the loop minus its largest gap, so it may cross the start.
+    let gapAfter = sorted.length - 1;
+    let gap = sorted[0]! + n - sorted[sorted.length - 1]!;
+    for (let k = 0; k < sorted.length - 1; k++) {
+      const g = sorted[k + 1]! - sorted[k]!;
+      if (g > gap) {
+        gap = g;
+        gapAfter = k;
+      }
+    }
+    const first = sorted[(gapAfter + 1) % sorted.length]!;
+    const last = sorted[gapAfter]!;
+    return [{ name, aliases: [...aliases], from: at(first), to: at(last) }];
+  });
 }
 
 function isExcluded(way: OsmWay): boolean {
@@ -294,6 +350,11 @@ export function buildTrackGeometry(
 
   const { meters } = geo;
   const outline = simplify(normalize([...meters, meters[0]!], SIZE), 0.5).slice(0, -1);
+  const sections = namedSections(
+    ways.filter((w) => best.cycle.wayIds.has(w.id)),
+    geo,
+    nameOf,
+  );
 
   return {
     ok: true,
@@ -308,6 +369,7 @@ export function buildTrackGeometry(
     direction,
     corners,
     warnings,
+    sections,
     loop: { ring, wayIds: best.cycle.wayIds, nodes, ways },
   };
 }
