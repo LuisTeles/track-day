@@ -134,3 +134,37 @@ describe("buildTrackGeometry on a dense network", () => {
     expect(r.ok ? notes : "no-loop").toMatch(/too complex|no-loop/);
   });
 });
+
+describe("choosing the start line", () => {
+  const wrap = (f: number) => ((f % 1) + 1) % 1;
+
+  it("reports an unknown start when OSM has no start line or corner tags (Monza)", () => {
+    const r = ok(
+      buildTrackGeometry(fixture("monza"), { lengthMeters: 5793, direction: "clockwise" }),
+    );
+    expect(Math.abs(r.loopLengthMeters - 5793) / 5793).toBeLessThan(0.02);
+    expect(r.start).toBe("arbitrary");
+  });
+
+  it("restarts the loop at the chosen fraction, shifting corner positions with it", () => {
+    const options = { lengthMeters: 4309, direction: "anticlockwise" as const };
+    const base = ok(buildTrackGeometry(fixture("interlagos"), options));
+    const moved = ok(buildTrackGeometry(fixture("interlagos"), { ...options, startAt: 0.3 }));
+
+    expect(moved.start).toBe("chosen");
+    expect(moved.outlinePath).not.toBe(base.outlinePath);
+    for (const c of base.corners) {
+      const after = moved.corners.find((m) => m.number === c.number)!.position;
+      const expected = wrap(c.position - 0.3);
+      const diff = Math.min(Math.abs(after - expected), 1 - Math.abs(after - expected));
+      expect(diff).toBeLessThan(0.01);
+    }
+  });
+
+  it("treats startAt 0 as keeping the current start", () => {
+    const options = { lengthMeters: 5793, direction: "clockwise" as const };
+    const base = ok(buildTrackGeometry(fixture("monza"), options));
+    const same = ok(buildTrackGeometry(fixture("monza"), { ...options, startAt: 0 }));
+    expect(same.outlinePath).toBe(base.outlinePath);
+  });
+});

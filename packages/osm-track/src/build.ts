@@ -12,6 +12,7 @@ import {
   simplify,
   toPathData,
   turning,
+  type LoopGeometry,
   type OsmElement,
   type OsmNode,
   type OsmWay,
@@ -31,6 +32,11 @@ export interface BuildOptions {
   direction: "clockwise" | "anticlockwise";
   /** Which of `loops` to build (default 0, the best match). */
   loopIndex?: number;
+  /**
+   * Restart the lap at this fraction (0–1) of the outline as it would be built
+   * without it: for circuits whose start line isn't tagged, picked by the user.
+   */
+  startAt?: number;
   /** Corner names from way tags; defaults to `name`. */
   nameOf?: (tags: Record<string, string>) => string | undefined;
 }
@@ -55,7 +61,7 @@ export interface TrackGeometryResult {
   loopLengthMeters: number;
   loops: LoopOption[];
   loopIndex: number;
-  start: "tagged" | "approximate" | "arbitrary";
+  start: "tagged" | "approximate" | "arbitrary" | "chosen";
   direction: "oneway-tags" | "layout";
   /** OSM-tagged corners on the loop, by number. */
   corners: OsmCorner[];
@@ -69,6 +75,45 @@ export interface TrackGeometryFailure {
   reason: "no-raceway" | "no-loop";
   /** Lengths (m) of the loops that were found, sorted. */
   loopsFound: number[];
+}
+
+const wrapFraction = (f: number) => ((f % 1) + 1) % 1;
+
+/**
+ * Rotates the ring to start `distance` meters along it. Start lines sit on
+ * straights, where OSM nodes can be far apart, so an interpolated node is
+ * inserted rather than snapping to the nearest real one.
+ */
+function restartAt(
+  ring: number[],
+  nodes: Map<number, OsmNode>,
+  geo: LoopGeometry,
+  distance: number,
+) {
+  let i = 0;
+  while (i < ring.length - 1 && geo.cumulative[i + 1]! <= distance) i++;
+  const from = geo.cumulative[i]!;
+  const to = geo.cumulative[i + 1]!;
+  let next = ring;
+  let at = i;
+  if (distance - from > 1 && to - distance > 1) {
+    const a = nodes.get(ring[i]!)!;
+    const b = nodes.get(ring[(i + 1) % ring.length]!)!;
+    const t = (distance - from) / (to - from);
+    const id = -1 - nodes.size; // synthetic ids never collide with OSM's positive ones
+    nodes.set(id, {
+      type: "node",
+      id,
+      lat: a.lat + (b.lat - a.lat) * t,
+      lon: a.lon + (b.lon - a.lon) * t,
+    });
+    next = [...ring.slice(0, i + 1), id, ...ring.slice(i + 1)];
+    at = i + 1;
+  } else if (to - distance <= 1) {
+    at = (i + 1) % ring.length;
+  }
+  next = rotate(next, at);
+  return { ring: next, geo: geometryOf(next, nodes) };
 }
 
 function isExcluded(way: OsmWay): boolean {
@@ -232,13 +277,19 @@ export function buildTrackGeometry(
     if (!keep.has(c.number))
       warnings.push(`T${c.number} is tagged out of lap order and was ignored`);
   }
+  // A chosen start comes after the lap-order check, which needs the loop's own
+  // start: from a start part-way round, T1… legitimately wraps past 0.
+  if (options.startAt !== undefined && wrapFraction(options.startAt) > 0) {
+    ({ ring, geo } = restartAt(ring, nodes, geo, wrapFraction(options.startAt) * geo.total));
+    start = "chosen";
+  }
   const corners: OsmCorner[] = ordered
     .filter((c) => keep.has(c.number))
     .map((c) => ({
       number: c.number,
       name: c.name,
       direction: directionOf(c.from, c.to),
-      position: round(c.position, 4),
+      position: round(start === "chosen" ? positionOf(c.apex) : c.position, 4),
     }));
 
   const { meters } = geo;
