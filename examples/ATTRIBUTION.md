@@ -11,3 +11,5 @@ The **code** in this repository is MIT-licensed. The **track data** in this fold
 Map data © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), available under the Open Database License. If you redistribute the OSM-derived files or data built from them, keep this attribution and the ODbL terms.
 
 To regenerate: `pnpm osm-outline [trackId…]` (config in `scripts/osm-outline/tracks.ts`).
+
+The raw OpenStreetMap responses in `packages/osm-track/test/fixtures/` (Interlagos, Suzuka, Monaco) are test fixtures under the same ODbL terms. Map data © OpenStreetMap contributors.

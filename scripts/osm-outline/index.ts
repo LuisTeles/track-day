@@ -9,21 +9,19 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { TrackImportPayload } from "../../packages/schema/src/index";
 import {
-  cumulativeLengths,
-  findCycles,
+  buildTrackGeometry,
+  extent,
+  geometryOf,
   illustrativeRacingLine,
   normalize,
-  project,
-  signedAreaScreen,
+  round,
+  sharpestBetween,
   simplify,
   toPathData,
-  turning,
   type OsmElement,
-  type OsmNode,
-  type OsmWay,
-} from "./lib";
+} from "../../packages/osm-track/src/index";
+import { TrackImportPayload } from "../../packages/schema/src/index";
 import { TRACKS, type TrackConfig } from "./tracks";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -57,165 +55,40 @@ async function fetchOsm(config: TrackConfig): Promise<OsmElement[]> {
   throw new Error("Overpass unavailable");
 }
 
-function isExcluded(way: OsmWay): boolean {
-  const t = way.tags;
-  return (
-    /pit/i.test(t.name ?? "") ||
-    t.raceway === "pit_lane" ||
-    t.service === "pit_lane" ||
-    t.sport === "karting"
-  );
-}
-
 async function build(config: TrackConfig) {
   console.log(`\n${config.id}`);
   const elements = await fetchOsm(config);
-  const nodes = new Map<number, OsmNode>();
-  for (const el of elements) if (el.type === "node") nodes.set(el.id, el);
-  const ways = elements.filter(
-    (el): el is OsmWay => el.type === "way" && el.tags.highway === "raceway" && !isExcluded(el),
-  );
 
   const nameOf = (tags: Record<string, string>) => {
     const raw = (config.nameTag && tags[config.nameTag]) || tags.name;
     return raw ? (config.nameOverrides?.[raw] ?? raw) : undefined;
   };
 
-  const startNode = ["Finish Line", "Start Line"]
-    .map((name) => [...nodes.values()].find((n) => n.tags?.name === name))
-    .find((n) => n && ways.some((w) => w.nodes.includes(n.id)));
-  console.log(
-    `  start: ${startNode ? `"${startNode.tags!.name}" node` : "none tagged (arbitrary)"}`,
-  );
-
-  const target = config.layout.lengthMeters;
-  const cycles = findCycles(ways, nodes, { maxLength: target * 1.1, mustInclude: startNode?.id });
-  const cornerWays = ways.filter((w) => w.tags["raceway:corner_number"]);
-  const candidates = cycles
-    .filter((c) => Math.abs(c.length - target) / target < 0.05)
-    .map((c) => ({
-      cycle: c,
-      covered: cornerWays.filter((w) => c.wayIds.has(w.id)).length,
-      error: Math.abs(c.length - target) / target,
-    }))
-    .sort((a, b) => b.covered - a.covered || a.error - b.error);
-  const best = candidates[0];
-  if (!best) {
-    const lengths = cycles.map((c) => Math.round(c.length)).sort((a, b) => a - b);
+  const result = buildTrackGeometry(elements, {
+    lengthMeters: config.layout.lengthMeters,
+    direction: config.layout.direction,
+    nameOf,
+  });
+  if (!result.ok) {
     throw new Error(
-      `No loop within 5% of ${target} m. Loops found: ${lengths.join(", ") || "none"}`,
+      result.reason === "no-raceway"
+        ? "No raceway ways in the bounding box"
+        : `No loop within 15% of ${config.layout.lengthMeters} m. Loops found: ${result.loopsFound.join(", ") || "none"}`,
     );
   }
   console.log(
-    `  loop: ${Math.round(best.cycle.length)} m vs ${target} m official (${(best.error * 100).toFixed(1)}%), ` +
-      `${best.covered}/${cornerWays.length} tagged corner ways, ${cycles.length} loops considered`,
+    `  loop: ${result.loopLengthMeters} m vs ${config.layout.lengthMeters} m official; ` +
+      `start ${result.start}; direction from ${result.direction}; ${result.corners.length} tagged corners`,
   );
-  if (best.error > 0.02) console.warn("  ⚠ more than 2% off the official length");
+  for (const w of result.warnings) console.warn(`  ⚠ ${w}`);
 
-  // Orient: start at the line, run in the driving direction.
-  let ring = best.cycle.nodes;
-  if (startNode) ring = rotate(ring, ring.indexOf(startNode.id));
-  // Orient by OSM oneway tags when present: they encode the driving direction
-  // directly, and work for figure-eights where the enclosed area doesn't.
-  const votes = onewayVotes(ring, ways);
-  if (votes.agree + votes.disagree > 0) {
-    if (votes.disagree > votes.agree) ring = [ring[0]!, ...ring.slice(1).reverse()];
-    const n = votes.agree + votes.disagree;
-    console.log(
-      `  direction: from OSM oneway tags (${Math.max(votes.agree, votes.disagree)} of ${n} edges)`,
-    );
-  } else {
-    const clockwise = signedAreaScreen(project(ring.map((id) => nodes.get(id)!))) > 0;
-    if (clockwise !== (config.layout.direction === "clockwise")) {
-      ring = [ring[0]!, ...ring.slice(1).reverse()];
-    }
-    console.log("  direction: from the configured layout direction (no oneway tags)");
-  }
-
-  // Corner apexes (as node ids, so they survive re-rotating the ring):
-  // the middle of each corner's tagged way(s) along the loop.
-  const byNumber = new Map<number, OsmWay[]>();
-  for (const w of cornerWays) {
-    const n = Number(w.tags["raceway:corner_number"]);
-    if (Number.isInteger(n) && n > 0) byNumber.set(n, [...(byNumber.get(n) ?? []), w]);
-  }
-  let geo = geometryOf(ring, nodes);
-  const tagged: { number: number; apex: number; name: string | null; from: number; to: number }[] =
-    [];
-  for (const [number, cornerWaysForNumber] of byNumber) {
-    const idx = cornerWaysForNumber
-      .flatMap((w) => w.nodes)
-      .map((id) => geo.indexOf.get(id))
-      .filter((i): i is number => i !== undefined)
-      .sort((x, y) => x - y);
-    if (idx.length < 2) {
-      console.warn(`  ⚠ T${number} is not on the loop, skipped`);
-      continue;
-    }
-    const from = idx[0]!;
-    const to = idx[idx.length - 1]!;
-    const rawName = cornerWaysForNumber.map((w) => nameOf(w.tags)).find(Boolean) ?? null;
-    tagged.push({
-      number,
-      apex: ring[
-        nearestByDistance(
-          geo.cumulative,
-          from,
-          to,
-          (geo.cumulative[from]! + geo.cumulative[to]!) / 2,
-        )
-      ]!,
-      name: rawName,
-      from: ring[from]!,
-      to: ring[to]!,
-    });
-  }
-
-  // Without a tagged line, start halfway between the last corner and T1.
-  if (!startNode) {
-    const first = tagged.find((c) => c.number === 1);
-    const last = tagged.reduce<(typeof tagged)[number] | undefined>(
-      (m, c) => (!m || c.number > m.number ? c : m),
-      undefined,
-    );
-    if (first && last && first !== last) {
-      const a = geo.cumulative[geo.indexOf.get(last.to)!]!;
-      let b = geo.cumulative[geo.indexOf.get(first.from)!]!;
-      if (b < a) b += geo.total;
-      const target = ((a + b) / 2) % geo.total;
-      ring = rotate(ring, nearestByDistance(geo.cumulative, 0, ring.length - 1, target));
-      geo = geometryOf(ring, nodes);
-      console.log(`  start: placed halfway between T${last.number} and T1 (approximate)`);
-    }
-  }
-
-  const positionOf = (nodeId: number) => geo.cumulative[geo.indexOf.get(nodeId)!]! / geo.total;
-  const directionOf = (fromNode: number, toNode: number) => {
-    const from = geo.indexOf.get(fromNode)!;
-    const to = geo.indexOf.get(toNode)!;
-    const seg = geo.meters.slice(Math.max(0, from - 1), Math.min(geo.meters.length, to + 2));
-    return turning(seg) < 0 ? ("left" as const) : ("right" as const);
-  };
-
-  // Drop tags that break lap order (mis-tagged ways), keeping the longest consistent run.
-  const ordered = tagged
-    .map((c) => ({ ...c, position: positionOf(c.apex) }))
-    .sort((x, y) => x.number - y.number);
-  const keep = new Set(
-    longestIncreasing(ordered.map((c) => c.position)).map((i) => ordered[i]!.number),
-  );
-  for (const c of ordered) {
-    if (!keep.has(c.number)) console.warn(`  ⚠ T${c.number}: OSM tag is out of lap order, ignored`);
-  }
-
-  const corners: TrackImportPayload["corners"] = ordered
-    .filter((c) => keep.has(c.number))
-    .map((c) => ({
-      number: c.number,
-      name: c.name,
-      direction: directionOf(c.from, c.to),
-      pathPosition: round(c.position, 4),
-    }));
+  const geo = geometryOf(result.loop.ring, result.loop.nodes);
+  const corners: TrackImportPayload["corners"] = result.corners.map((c) => ({
+    number: c.number,
+    name: c.name,
+    direction: c.direction,
+    pathPosition: c.position,
+  }));
 
   // Fill gaps in the numbering: the sharpest point between the neighbours.
   const maxNumber = Math.max(...corners.map((c) => c.number));
@@ -244,7 +117,6 @@ async function build(config: TrackConfig) {
   console.log(
     `  corners: ${corners.map((c) => `T${c.number}${c.direction === "left" ? "L" : "R"}`).join(" ")}`,
   );
-  const { meters, total } = geo;
 
   // Complexes: consecutive corners sharing a name (e.g. both halves of an S).
   const complexes: NonNullable<TrackImportPayload["complexes"]> = [];
@@ -268,29 +140,28 @@ async function build(config: TrackConfig) {
   // Segments: named ways on the loop that aren't corners (straights).
   const cornerNames = new Set(corners.map((c) => c.name));
   const segments: NonNullable<TrackImportPayload["segments"]> = [];
-  for (const way of ways) {
+  for (const way of result.loop.ways) {
     const name = nameOf(way.tags);
     if (
       !name ||
       way.tags["raceway:corner_number"] ||
       cornerNames.has(name) ||
-      !best.cycle.wayIds.has(way.id)
+      !result.loop.wayIds.has(way.id)
     )
       continue;
     if (segments.some((s) => s.name === name)) continue;
     const idx = way.nodes
       .map((id) => geo.indexOf.get(id))
       .filter((i): i is number => i !== undefined);
-    const position = geo.cumulative[idx[Math.floor(idx.length / 2)]!]! / total;
+    const position = geo.cumulative[idx[Math.floor(idx.length / 2)]!]! / geo.total;
     const before =
       [...corners].reverse().find((c) => c.pathPosition! < position) ?? corners[corners.length - 1];
     const after = corners.find((c) => c.pathPosition! > position) ?? corners[0];
     segments.push({ name, fromCorner: before?.number, toCorner: after?.number });
   }
 
-  const outline = simplify(normalize([...meters, meters[0]!], SIZE), 0.5).slice(0, -1);
-
   // Same normalization as the outline, so both share one coordinate space.
+  const { meters } = geo;
   const normalized = normalize([...meters, meters[0]!], SIZE);
   const unitsPerMeter = SIZE / Math.max(...extent(meters));
   const racingLine = config.illustrativeRacingLine
@@ -311,7 +182,8 @@ async function build(config: TrackConfig) {
     track: config.track,
     layout: {
       ...config.layout,
-      outlinePath: toPathData(outline, true),
+      outlinePath: result.outlinePath,
+      outlineSource: "osm",
       ...(racingLine && { racingLinePath: toPathData(racingLine, true) }),
     },
     corners,
@@ -321,98 +193,7 @@ async function build(config: TrackConfig) {
 
   const out = join(root, "examples", `${config.id}.track.json`);
   writeFileSync(out, JSON.stringify(payload, null, 2) + "\n");
-  console.log(`  wrote ${out} (${outline.length} outline points)`);
-}
-
-/** Counts oneway way edges that run with (agree) or against (disagree) the ring order. */
-function onewayVotes(ring: number[], ways: OsmWay[]) {
-  const order = new Map(ring.map((id, i) => [id, i]));
-  let agree = 0;
-  let disagree = 0;
-  for (const way of ways.filter((w) => w.tags.oneway === "yes")) {
-    for (let i = 1; i < way.nodes.length; i++) {
-      const a = order.get(way.nodes[i - 1]!);
-      const b = order.get(way.nodes[i]!);
-      if (a === undefined || b === undefined) continue;
-      if (b === a + 1 || (a === ring.length - 1 && b === 0)) agree++;
-      else if (a === b + 1 || (b === ring.length - 1 && a === 0)) disagree++;
-    }
-  }
-  return { agree, disagree };
-}
-
-const extent = (points: { x: number; y: number }[]) => {
-  const xs = points.map((p) => p.x);
-  const ys = points.map((p) => p.y);
-  return [Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)];
-};
-
-const round = (n: number, digits: number) => Math.round(n * 10 ** digits) / 10 ** digits;
-
-const rotate = <T>(items: T[], start: number) => [...items.slice(start), ...items.slice(0, start)];
-
-function geometryOf(ring: number[], nodes: Map<number, OsmNode>) {
-  const meters = project(ring.map((id) => nodes.get(id)!));
-  const cumulative = cumulativeLengths(meters, true);
-  return {
-    meters,
-    cumulative,
-    total: cumulative[cumulative.length - 1]!,
-    indexOf: new Map(ring.map((id, i) => [id, i])),
-  };
-}
-
-/** Index in [from, to] whose cumulative distance is closest to `target`. */
-function nearestByDistance(cumulative: number[], from: number, to: number, target: number) {
-  let best = from;
-  for (let i = from; i <= to; i++) {
-    if (Math.abs(cumulative[i]! - target) < Math.abs(cumulative[best]! - target)) best = i;
-  }
-  return best;
-}
-
-/** Indices of the longest strictly increasing subsequence (O(n²), n is small). */
-function longestIncreasing(values: number[]): number[] {
-  const len = values.map(() => 1);
-  const prev = values.map(() => -1);
-  for (let i = 0; i < values.length; i++) {
-    for (let j = 0; j < i; j++) {
-      if (values[j]! < values[i]! && len[j]! + 1 > len[i]!) {
-        len[i] = len[j]! + 1;
-        prev[i] = j;
-      }
-    }
-  }
-  let i = len.indexOf(Math.max(...len));
-  const out: number[] = [];
-  while (i !== -1) {
-    out.unshift(i);
-    i = prev[i]!;
-  }
-  return out;
-}
-
-/**
- * The point of sharpest curvature strictly between two lap fractions, keeping
- * 40 m clear of each neighbour. Curvature is measured over a ±25 m window.
- */
-function sharpestBetween(geo: ReturnType<typeof geometryOf>, from: number, to: number) {
-  const { meters, cumulative, total } = geo;
-  const at = (d: number) => {
-    const target = ((d % total) + total) % total;
-    return meters[nearestByDistance(cumulative, 0, meters.length - 1, target)]!;
-  };
-  let best: { position: number; turn: number } | undefined;
-  for (let d = from * total + 40; d < to * total - 40; d += 5) {
-    const turn = turning([at(d - 25), at(d), at(d + 25)]);
-    if (!best || Math.abs(turn) > Math.abs(best.turn)) best = { position: d / total, turn };
-  }
-  return (
-    best && {
-      position: best.position,
-      direction: best.turn < 0 ? ("left" as const) : ("right" as const),
-    }
-  );
+  console.log(`  wrote ${out}`);
 }
 
 const only = process.argv.slice(2);
