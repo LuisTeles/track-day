@@ -6,6 +6,7 @@ import { useId, useMemo, useRef, useState } from "react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
+import { OsmAttribution } from "@/shared/ui/osm-attribution";
 import { MapPreview } from "./map-preview";
 import { cornerPositionsToSave, matchCorners, type PositionSource } from "./match-corners";
 import { OsmError, osmClient, type OsmClient, type Place } from "./osm-client";
@@ -46,7 +47,9 @@ export function AddMapPanel({
   const id = useId();
   const [query, setQuery] = useState([track.name, track.city].filter(Boolean).join(" "));
   const [places, setPlaces] = useState<Place[] | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [loadingPick, setLoadingPick] = useState(false);
+  const busy = searching || loadingPick;
   const [problem, setProblem] = useState<Problem | null>(null);
   const [picked, setPicked] = useState<{ place: Place; elements: OsmElement[] } | null>(null);
   const [loopIndex, setLoopIndex] = useState(0);
@@ -70,14 +73,24 @@ export function AddMapPanel({
 
   if (!lengthMeters) {
     return (
-      <p className="text-sm text-muted">
-        This layout has no lap length, so its circuit can’t be matched in OpenStreetMap.
-      </p>
+      <div className="space-y-3">
+        <p className="text-sm text-muted">
+          This layout has no lap length, so its circuit can’t be matched in OpenStreetMap.
+        </p>
+        <div className="flex justify-end">
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+        </div>
+      </div>
     );
   }
 
   async function handleSearch() {
-    setBusy(true);
+    // A new search supersedes any pick still loading.
+    pickToken.current++;
+    setLoadingPick(false);
+    setSearching(true);
     setProblem(null);
     setPicked(null);
     try {
@@ -86,13 +99,13 @@ export function AddMapPanel({
       setPlaces(null);
       setProblem({ message: messageOf(e), retry: () => void handleSearch() });
     } finally {
-      setBusy(false);
+      setSearching(false);
     }
   }
 
   async function handlePick(place: Place) {
     const token = ++pickToken.current;
-    setBusy(true);
+    setLoadingPick(true);
     setProblem(null);
     setPicked(null);
     setLoopIndex(0);
@@ -105,7 +118,7 @@ export function AddMapPanel({
       if (token !== pickToken.current) return;
       setProblem({ message: messageOf(e), retry: () => void handlePick(place) });
     } finally {
-      if (token === pickToken.current) setBusy(false);
+      if (token === pickToken.current) setLoadingPick(false);
     }
   }
 
@@ -151,7 +164,7 @@ export function AddMapPanel({
         <Label htmlFor={`${id}-q`}>Circuit</Label>
         <div className="flex gap-2">
           <Input id={`${id}-q`} value={query} onChange={(e) => setQuery(e.target.value)} />
-          <Button type="submit" disabled={busy || query.trim() === ""}>
+          <Button type="submit" disabled={searching || query.trim() === ""}>
             Search
           </Button>
         </div>
@@ -208,6 +221,7 @@ export function AddMapPanel({
             matched={matched}
             label={`Preview of ${track.name} from OpenStreetMap`}
           />
+          <OsmAttribution />
           <p className="text-sm">
             Loop {meters(preview.loopLengthMeters)} · layout {meters(lengthMeters)} ·{" "}
             {preview.start === "tagged"

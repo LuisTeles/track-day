@@ -55,11 +55,17 @@ export function NoOutline({
                 This layout has no outline yet, so there’s no map. Add one from OpenStreetMap, or
                 the map appears once an outline is added another way.
               </p>
-              <Button onClick={() => setAdding(true)} disabled={!online}>
+              <Button onClick={() => setAdding(true)} disabled={!online || !layout.lengthMeters}>
                 Add map from OpenStreetMap
               </Button>
-              {!online && (
-                <p className="text-xs text-muted">Adding a map needs an internet connection.</p>
+              {!layout.lengthMeters ? (
+                <p className="text-xs text-muted">
+                  Adding a map needs the layout&apos;s lap length, to find the right loop.
+                </p>
+              ) : (
+                !online && (
+                  <p className="text-xs text-muted">Adding a map needs an internet connection.</p>
+                )
               )}
             </div>
             <CornerList corners={corners} onSelect={onSelect} />

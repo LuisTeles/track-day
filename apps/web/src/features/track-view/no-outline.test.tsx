@@ -47,4 +47,21 @@ describe("NoOutline", () => {
     await userEvent.click(screen.getByRole("button", { name: "Add map from OpenStreetMap" }));
     expect(screen.getByLabelText("Circuit")).toHaveValue("Test");
   });
+
+  it("disables Add map when the layout has no lap length, and says why", () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <RepositoriesProvider repositories={{} as Repositories}>
+          <NoOutline
+            track={track}
+            layout={{ ...layout, lengthMeters: null }}
+            corners={[corner(1, "S do Senna")]}
+            onSelect={vi.fn()}
+          />
+        </RepositoriesProvider>
+      </QueryClientProvider>,
+    );
+    expect(screen.getByRole("button", { name: "Add map from OpenStreetMap" })).toBeDisabled();
+    expect(screen.getByText(/needs the layout's lap length/)).toBeInTheDocument();
+  });
 });

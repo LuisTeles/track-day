@@ -195,9 +195,34 @@ describe("AddMapPanel", () => {
     expect(screen.queryByRole("img", { name: /Preview/ })).not.toBeInTheDocument();
   });
 
-  it("explains a layout without a lap length instead of searching", () => {
-    setup({ layoutOverride: { lengthMeters: null } });
+  it("explains a layout without a lap length instead of searching, and can be closed", async () => {
+    const { user, onClose } = setup({ layoutOverride: { lengthMeters: null } });
     expect(screen.getByText(/has no lap length/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Search" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("drops a pick that is still loading when a new search starts", async () => {
+    let resolvePick!: (e: OsmElement[]) => void;
+    const searchPlaces = vi.fn().mockResolvedValue([place]);
+    const fetchRaceways = vi.fn(() => new Promise<OsmElement[]>((r) => (resolvePick = r)));
+    const { user } = setup({ client: { searchPlaces, fetchRaceways } });
+    await user.click(screen.getByRole("button", { name: "Search" }));
+    await user.click(await screen.findByRole("button", { name: /Autódromo/ }));
+
+    await user.click(screen.getByRole("button", { name: "Search" }));
+    await vi.waitFor(() => expect(searchPlaces).toHaveBeenCalledTimes(2));
+    resolvePick(elements);
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(screen.queryByRole("img", { name: /Preview/ })).not.toBeInTheDocument();
+  });
+
+  it("credits OpenStreetMap under the preview", async () => {
+    const { user } = setup();
+    await searchAndPick(user);
+    expect(screen.getByRole("link", { name: "OpenStreetMap contributors" })).toBeInTheDocument();
   });
 });
