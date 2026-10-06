@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import interlagos from "../../../examples/interlagos.track.json";
 import interlagosOsm from "../../../packages/osm-track/test/fixtures/interlagos.json";
+import monzaOsm from "../../../packages/osm-track/test/fixtures/monza.json";
 
 /** Interlagos as an AI import produces it: no geometry, no source. */
 function aiAnswer(): string {
@@ -70,4 +71,59 @@ test("shows the OpenStreetMap credit unclipped in practice mode", async ({ page 
     return el.contains(hit) && inside;
   });
   expect(onTop).toBe(true);
+});
+
+test("adds Monza, whose start line isn't tagged, after the user taps it", async ({ page }) => {
+  await page.route("https://nominatim.openstreetmap.org/**", (route) =>
+    route.fulfill({
+      // Nominatim really returns Monza as a single venue node with an 8 x 11 m box.
+      json: [
+        {
+          osm_type: "node",
+          osm_id: 2396618135,
+          name: "Autodromo Nazionale di Monza",
+          display_name: "Autodromo Nazionale di Monza, 5, Viale Vedano, Monza, Italy",
+          boundingbox: ["45.61995", "45.62005", "9.28795", "9.28805"],
+        },
+      ],
+    }),
+  );
+  await page.route("https://overpass-api.de/**", (route) => route.fulfill({ json: monzaOsm }));
+
+  const monza = {
+    schemaVersion: 1,
+    kind: "track",
+    track: { name: "Autodromo Nazionale di Monza", city: "Monza", country: "IT" },
+    layout: { name: "GP", lengthMeters: 5793, direction: "clockwise" },
+    corners: [
+      {
+        number: 1,
+        name: "Variante del Rettifilo",
+        direction: "right",
+        distanceFromStartMeters: 750,
+      },
+      { number: 3, name: "Curva Biassono", direction: "right", distanceFromStartMeters: 1500 },
+      { number: 7, name: "Lesmo 2", direction: "right", distanceFromStartMeters: 2500 },
+      { number: 11, name: "Curva Alboreto", direction: "right", distanceFromStartMeters: 5300 },
+    ],
+  };
+  await page.goto("/tracks/import/");
+  await page.getByLabel("AI answer").fill(JSON.stringify(monza));
+  await page.getByRole("button", { name: "Check JSON" }).click();
+  await page.getByRole("button", { name: "Save track" }).click();
+
+  await page.getByRole("button", { name: "Add map from OpenStreetMap" }).click();
+  await page.getByRole("button", { name: "Search" }).click();
+  await page.getByRole("button", { name: /Autodromo Nazionale di Monza/ }).click();
+  await expect(page.getByText(/Start line unknown/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save map" })).toBeDisabled();
+
+  await page.getByRole("img", { name: /Preview/ }).click({ position: { x: 20, y: 20 } });
+  await expect(page.getByText(/Start line set by you/)).toBeVisible();
+  await page.getByRole("button", { name: "Save map" }).click();
+
+  await expect(
+    page.getByRole("img", { name: /Map of Autodromo Nazionale di Monza/ }),
+  ).toBeVisible();
+  await expect(page.locator("[data-corner]")).toHaveCount(4);
 });

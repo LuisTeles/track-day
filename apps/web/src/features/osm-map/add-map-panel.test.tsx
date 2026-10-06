@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { OsmElement } from "@track-day/osm-track";
 import type { Corner, Layout, Track } from "@track-day/schema";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import interlagosOsm from "../../../../../packages/osm-track/test/fixtures/interlagos.json";
+import monzaOsm from "../../../../../packages/osm-track/test/fixtures/monza.json";
 import { RepositoriesProvider } from "@/data/provider";
 import type { Repositories } from "@/data/repositories";
 import { AddMapPanel } from "./add-map-panel";
@@ -246,5 +247,51 @@ describe("AddMapPanel", () => {
     expect(seen?.aborted).toBe(true);
     expect(screen.queryByText(/can take a minute or two/)).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  describe("start line", () => {
+    const monza = monzaOsm.elements as OsmElement[];
+    const monzaSetup = () =>
+      setup({
+        client: {
+          searchPlaces: vi.fn().mockResolvedValue([place]),
+          fetchRaceways: vi.fn().mockResolvedValue(monza),
+        },
+        layoutOverride: { lengthMeters: 5793, direction: "clockwise" },
+      });
+
+    it("asks for the start line when OpenStreetMap has none, and won't save without it", async () => {
+      const { user } = monzaSetup();
+      await searchAndPick(user);
+
+      expect(screen.getByText(/Start line unknown/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Save map" })).toBeDisabled();
+    });
+
+    it("restarts the outline where the user puts the start line, then saves it", async () => {
+      const { user, saveOutline } = monzaSetup();
+      await searchAndPick(user);
+      const before = screen
+        .getByRole("img", { name: /Preview/ })
+        .querySelector("path")!
+        .getAttribute("d");
+
+      fireEvent.change(screen.getByLabelText("Start line position"), { target: { value: "25" } });
+
+      expect(screen.getByText(/Start line set by you/)).toBeInTheDocument();
+      const after = screen
+        .getByRole("img", { name: /Preview/ })
+        .querySelector("path")!
+        .getAttribute("d");
+      expect(after).not.toBe(before);
+      await user.click(screen.getByRole("button", { name: "Save map" }));
+      expect(saveOutline.mock.calls[0]![0].outlinePath).toBe(after);
+    });
+
+    it("doesn't offer to move a start line OpenStreetMap tags", async () => {
+      const { user } = setup();
+      await searchAndPick(user);
+      expect(screen.queryByLabelText("Start line position")).not.toBeInTheDocument();
+    });
   });
 });

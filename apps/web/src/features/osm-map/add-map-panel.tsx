@@ -1,6 +1,10 @@
 "use client";
 
-import { buildTrackGeometry, type OsmElement } from "@track-day/osm-track";
+import {
+  buildTrackGeometry,
+  type OsmElement,
+  type TrackGeometryResult,
+} from "@track-day/osm-track";
 import type { Corner, Layout, Track } from "@track-day/schema";
 import { useId, useMemo, useRef, useState } from "react";
 import { Button } from "@/shared/ui/button";
@@ -16,6 +20,13 @@ const SOURCE_LABEL: Record<PositionSource, string> = {
   osm: "Position from OpenStreetMap",
   distance: "Placed from distance",
   none: "Not on the map",
+};
+
+const START_LABEL: Record<TrackGeometryResult["start"], string> = {
+  tagged: "Start line from OpenStreetMap",
+  approximate: "Start line estimated — tap the outline to correct it",
+  arbitrary: "Start line unknown — tap the start/finish line on the outline",
+  chosen: "Start line set by you — tap again to adjust",
 };
 
 const meters = (n: number) => `${n.toLocaleString("en-US")} m`;
@@ -53,6 +64,8 @@ export function AddMapPanel({
   const [picked, setPicked] = useState<{ place: Place; elements: OsmElement[] } | null>(null);
   const [loopIndex, setLoopIndex] = useState(0);
   const [useOsmLength, setUseOsmLength] = useState(false);
+  /** Where the user put the start line, as a lap fraction of the loop as built from OSM. */
+  const [startAt, setStartAt] = useState<number | null>(null);
   // Only the latest pick may show its result.
   const pickToken = useRef(0);
   /** Aborts the raceway lookup in flight (Cancel lookup, or a newer search or pick). */
@@ -60,7 +73,7 @@ export function AddMapPanel({
   const save = useSaveMap(onClose);
 
   const lengthMeters = layout.lengthMeters;
-  const result = useMemo(
+  const base = useMemo(
     () =>
       picked && lengthMeters
         ? buildTrackGeometry(picked.elements, {
@@ -70,6 +83,19 @@ export function AddMapPanel({
           })
         : null,
     [picked, lengthMeters, layout.direction, loopIndex],
+  );
+  // Same loop, restarted where the user put the start line.
+  const result = useMemo(
+    () =>
+      base?.ok && picked && lengthMeters && startAt !== null
+        ? buildTrackGeometry(picked.elements, {
+            lengthMeters,
+            direction: layout.direction ?? "clockwise",
+            loopIndex,
+            startAt,
+          })
+        : base,
+    [base, picked, lengthMeters, layout.direction, loopIndex, startAt],
   );
 
   if (!lengthMeters) {
@@ -115,6 +141,7 @@ export function AddMapPanel({
     setPicked(null);
     setLoopIndex(0);
     setUseOsmLength(false);
+    setStartAt(null);
     try {
       const elements = await client.fetchRaceways(place.bbox, { signal: controller.signal });
       if (token !== pickToken.current) return;
@@ -158,6 +185,9 @@ export function AddMapPanel({
   const shown = problem ?? failure;
 
   const preview = result?.ok ? result : null;
+  // OSM's own start line is trusted; an estimated or unknown one can be set by tapping.
+  const startAdjustable = base?.ok === true && base.start !== "tagged";
+  const needsStart = base?.ok === true && base.start === "arbitrary" && startAt === null;
   const finalLength = preview && useOsmLength ? preview.loopLengthMeters : lengthMeters;
   const matched = preview ? matchCorners(corners, preview.corners, finalLength) : [];
   const lengthOff =
@@ -239,21 +269,43 @@ export function AddMapPanel({
             outlinePath={preview.outlinePath}
             matched={matched}
             label={`Preview of ${track.name} from OpenStreetMap`}
+            onPickStart={
+              startAdjustable
+                ? // The tap is measured on the outline as shown, which may already be restarted.
+                  (f) => setStartAt(((((startAt ?? 0) + f) % 1) + 1) % 1)
+                : undefined
+            }
           />
           <OsmAttribution />
           <p className="text-sm">
             Loop {meters(preview.loopLengthMeters)} · layout {meters(lengthMeters)} ·{" "}
-            {preview.start === "tagged"
-              ? "Start line from OpenStreetMap"
-              : "Start line approximate"}
+            {START_LABEL[preview.start]}
           </p>
+          {startAdjustable && (
+            <div className="space-y-1">
+              <Label htmlFor={`${id}-start`}>Start line position</Label>
+              <input
+                id={`${id}-start`}
+                type="range"
+                min={0}
+                max={100}
+                step={0.1}
+                value={(startAt ?? 0) * 100}
+                onChange={(e) => setStartAt(Number(e.target.value) / 100)}
+                className="w-full accent-accent"
+              />
+            </div>
+          )}
           {preview.loops.length > 1 && (
             <div className="space-y-1">
               <Label htmlFor={`${id}-loop`}>Loop</Label>
               <select
                 id={`${id}-loop`}
                 value={loopIndex}
-                onChange={(e) => setLoopIndex(Number(e.target.value))}
+                onChange={(e) => {
+                  setLoopIndex(Number(e.target.value));
+                  setStartAt(null);
+                }}
                 className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
               >
                 {preview.loops.map((l, i) => (
@@ -309,7 +361,7 @@ export function AddMapPanel({
         </Button>
         {preview && (
           <Button
-            disabled={save.isPending || save.isSuccess}
+            disabled={save.isPending || save.isSuccess || needsStart}
             onClick={() =>
               save.mutate({
                 layoutId: layout.id,
