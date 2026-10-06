@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EMPTY_DRAFT, toKnownFacts } from "./known-facts";
+import { EMPTY_DRAFT, parseLapLength, toKnownFacts } from "./known-facts";
 
 describe("toKnownFacts", () => {
   it("leaves out empty fields", () => {
@@ -39,4 +39,25 @@ describe("toKnownFacts", () => {
   it.each(["0", "2.5", "x"])("leaves out an invalid corner count %j", (cornerCount) => {
     expect(toKnownFacts({ ...EMPTY_DRAFT, cornerCount })).toEqual({});
   });
+});
+
+describe("parseLapLength", () => {
+  it.each([
+    ["4309", 4309],
+    ["4.309", 4309],
+    ["4,309", 4309],
+    ["4 309", 4309],
+    ["5_807", 5807],
+    ["4309.4", 4309],
+    ["13.626", 13626],
+  ])("reads %j as %i m", (text, meters) => {
+    expect(parseLapLength(text)).toBe(meters);
+  });
+
+  it.each(["", "0", "-5", "abc", "0.4", "4,3", "4.3"])(
+    "rejects %j (empty, invalid, or too short to be a lap)",
+    (text) => {
+      expect(parseLapLength(text)).toBeNull();
+    },
+  );
 });

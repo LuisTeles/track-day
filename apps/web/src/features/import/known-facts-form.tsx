@@ -4,7 +4,7 @@ import { SIMS } from "@track-day/schema";
 import { useId } from "react";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import type { FactsDraft } from "./known-facts";
+import { parseLapLength, type FactsDraft } from "./known-facts";
 
 const selectClass =
   "h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
@@ -18,6 +18,8 @@ export function KnownFactsForm({
   onChange(draft: FactsDraft): void;
 }) {
   const id = useId();
+  const lengthUnusable =
+    value.lengthMeters.trim() !== "" && parseLapLength(value.lengthMeters) === null;
   const set = <K extends keyof FactsDraft>(key: K, v: FactsDraft[K]) =>
     onChange({ ...value, [key]: v });
 
@@ -50,8 +52,14 @@ export function KnownFactsForm({
           id={`${id}-length`}
           inputMode="numeric"
           value={value.lengthMeters}
+          aria-describedby={lengthUnusable ? `${id}-length-hint` : undefined}
           onChange={(e) => set("lengthMeters", e.target.value)}
         />
+        {lengthUnusable && (
+          <p id={`${id}-length-hint`} className="text-xs text-danger">
+            Not used — enter the lap length in meters, e.g. 4309.
+          </p>
+        )}
       </div>
       <div className="space-y-1">
         <Label htmlFor={`${id}-corners`}>Number of corners</Label>

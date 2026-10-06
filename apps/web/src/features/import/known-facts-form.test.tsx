@@ -40,4 +40,17 @@ describe("KnownFactsForm", () => {
       sim: "iracing",
     });
   });
+
+  it("says when a lap length can't be used", async () => {
+    const user = userEvent.setup();
+    render(<Harness onDraft={() => {}} />);
+    const field = screen.getByLabelText("Lap length (m)");
+
+    await user.type(field, "4.3");
+    expect(field).toHaveAccessibleDescription(/Not used/);
+
+    await user.clear(field);
+    await user.type(field, "4.309");
+    expect(field).not.toHaveAccessibleDescription(/Not used/);
+  });
 });
