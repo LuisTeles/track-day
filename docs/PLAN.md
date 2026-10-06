@@ -255,7 +255,7 @@ One corner per screen for a phone/tablet/second monitor next to the rig.
 ### v2 / Later
 
 - [ ] Video import (frames or timestamped corner list from onboard video)
-- [ ] In-app OpenStreetMap outline import (Overpass from the browser, checked against `lengthMeters`)
+- [x] In-app OpenStreetMap outline import (Overpass from the browser, checked against `lengthMeters`) — pulled forward, see the 2026-10-06 OSM map import spec
 - [ ] Assetto Corsa `fast_lane.ai` import: racing line and outline in real meters, from a user-dropped file
 - [ ] User-selectable speed units
 - [ ] Backend (`apps/api`, NestJS + Prisma) behind `http/` repositories

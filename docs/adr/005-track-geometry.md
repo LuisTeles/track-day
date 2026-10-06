@@ -18,6 +18,7 @@ The track view draws a layout as a map with corner markers, speed/gear chips and
 - **Pan/zoom uses `d3-zoom`**, because markers and collision checks need the zoom transform directly. Markers are HTML elements in a screen-space overlay, so they stay readable at any zoom and are keyboard-focusable.
 - **Path math uses `svg-path-properties`**, which runs in Node, so the geometry is unit-tested without a browser.
 - **Sample outlines come from OpenStreetMap** via `scripts/osm-outline` (ODbL; see `examples/ATTRIBUTION.md`). The script picks the raceway loop matching the official length, starts it at the tagged finish line, and orients it using OSM one-way tags.
+- **Outlines can be added in the app** from OpenStreetMap (Nominatim search + Overpass, from the browser), using the same builder as the script (`packages/osm-track`). `Layout.outlineSource: "osm"` records the origin, and the views show the ODbL attribution for it. Only layouts without an outline can get one this way.
 
 ## Consequences
 

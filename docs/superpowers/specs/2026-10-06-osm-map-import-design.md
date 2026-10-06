@@ -116,7 +116,7 @@ interface LayoutGeometryService {
    - When the loop length differs from the layout length by more than 2%, a checkbox reads "Use OpenStreetMap's length (4,312 m) for this layout". It is unchecked by default.
 5. **Save.** **Save map** calls `saveOutline`, invalidates the track queries, and closes the panel. The track view re-renders as the full map. The button is disabled while saving.
 
-The panel uses the existing `SidePanel` / bottom-sheet component, so it works on phones.
+The panel replaces the corner list inside the no-outline card (full-height, scrollable), so it works on phones without stacking a second side panel.
 
 ## Errors and edge cases
 
