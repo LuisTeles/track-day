@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { CornerDetails, CornerList, cornerTitle } from "./corner-details";
 import { CornerMarkers } from "./corner-markers";
+import { DeleteTrackButton } from "./delete-track-button";
 import { NoOutline } from "./no-outline";
 import { getRacingLine, RacingLineLayer } from "./racing-line";
 import { cornerFraction } from "./geometry/anchors";
@@ -127,6 +128,7 @@ function TrackView({ trackId }: { trackId: string }) {
           ))}
         </select>
       )}
+      <DeleteTrackButton trackId={track.id} trackName={track.name} />
     </>
   );
 

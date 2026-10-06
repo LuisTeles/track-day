@@ -15,6 +15,11 @@ describe("Button", () => {
     expect(screen.getByRole("button", { name: "Cancel" })).toHaveClass("border-input");
   });
 
+  it("renders the destructive variant", () => {
+    render(<Button variant="destructive">Delete track</Button>);
+    expect(screen.getByRole("button", { name: "Delete track" })).toHaveClass("bg-destructive");
+  });
+
   it("renders its child element with asChild", () => {
     render(
       <Button asChild variant="outline">

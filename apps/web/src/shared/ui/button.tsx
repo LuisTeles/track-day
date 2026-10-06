@@ -10,6 +10,7 @@ const buttonVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground hover:opacity-90",
         outline: "border border-input hover:bg-surface",
+        destructive: "bg-destructive text-background hover:opacity-90",
       },
     },
     defaultVariants: { variant: "default" },

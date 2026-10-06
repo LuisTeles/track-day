@@ -57,3 +57,18 @@ test("shows errors by field path for an invalid answer", async ({ page }) => {
   await expect(issues).toContainText("layout.direction");
   await expect(page.getByRole("region", { name: "3. Check and save" })).toHaveCount(0);
 });
+
+test("deletes an imported track after confirmation", async ({ page }) => {
+  await page.goto("/tracks/import/");
+  await page.getByLabel("AI answer").fill(aiAnswer());
+  await page.getByRole("button", { name: "Check JSON" }).click();
+  await page.getByRole("button", { name: "Save track" }).click();
+  await expect(page).toHaveURL(/\/tracks\/view\/\?track=/);
+
+  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  await page.getByRole("button", { name: "Delete track" }).click();
+
+  await expect(page.getByText("No tracks yet")).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("No tracks yet")).toBeVisible();
+});
