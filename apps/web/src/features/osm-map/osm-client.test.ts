@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchRaceways, OVERPASS_SERVERS, searchPlaces } from "./osm-client";
+import { fetchRaceways, OVERPASS_SERVERS, searchArea, searchPlaces } from "./osm-client";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -51,6 +51,34 @@ describe("searchPlaces", () => {
   });
 });
 
+/** Size of a box in meters (east–west, north–south). */
+function sizeOf([s, w, n, e]: [number, number, number, number]) {
+  const mid = ((s + n) / 2) * (Math.PI / 180);
+  return { x: (e - w) * 111_320 * Math.cos(mid), y: (n - s) * 111_320 };
+}
+
+describe("searchArea", () => {
+  it("widens a point result (Monza's venue node, 8 × 11 m) to cover the circuit", () => {
+    const point: [number, number, number, number] = [45.61995, 9.28795, 45.62005, 9.28805];
+    const area = sizeOf(searchArea(point));
+    expect(area.x).toBeGreaterThanOrEqual(3990);
+    expect(area.y).toBeGreaterThanOrEqual(3990);
+  });
+
+  it("keeps a larger area centred, with a margin around it", () => {
+    const big: [number, number, number, number] = [-23.73, -46.73, -23.68, -46.67];
+    const before = sizeOf(big);
+    const after = searchArea(big);
+    expect(sizeOf(after).y).toBeCloseTo(before.y + 400, -1);
+    expect((after[0] + after[2]) / 2).toBeCloseTo((big[0] + big[2]) / 2, 6);
+  });
+
+  it("rounds coordinates to keep the query short", () => {
+    for (const c of searchArea(INTERLAGOS))
+      expect(String(c).split(".")[1]?.length ?? 0).toBeLessThanOrEqual(6);
+  });
+});
+
 describe("fetchRaceways", () => {
   it("posts the raceway query for the bounding box", async () => {
     const fetch = vi
@@ -61,8 +89,9 @@ describe("fetchRaceways", () => {
     const [url, init] = fetch.mock.calls[0]! as [string, RequestInit];
     expect(url).toBe(OVERPASS_SERVERS[0]);
     expect(init.method).toBe("POST");
+    const [s, w, n, e] = searchArea(INTERLAGOS);
     expect(new URLSearchParams(init.body as string).get("data")).toBe(
-      '[out:json][timeout:60];way["highway"="raceway"](-23.712,-46.706,-23.695,-46.69);out body;>;out body qt;',
+      `[out:json][timeout:60];way["highway"="raceway"](${s},${w},${n},${e});out body;>;out body qt;`,
     );
     expect(elements).toHaveLength(1);
   });

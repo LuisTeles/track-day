@@ -139,6 +139,31 @@ export async function searchPlaces(query: string, options: ClientOptions = {}): 
 
 const corner = (lat: number, lon: number): OsmNode => ({ type: "node", id: 0, lat, lon });
 
+/** A circuit fits in this; search results that are a point (a venue node) are widened to it. */
+const MIN_SIDE_M = 4000;
+const MARGIN_M = 200;
+const M_PER_DEG_LAT = 111_320;
+const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
+
+/**
+ * The box to query: the search result's box plus a margin, at least
+ * MIN_SIDE_M on each side. Nominatim often returns a venue as a single
+ * point, whose box would miss the track itself.
+ */
+export function searchArea([s, w, n, e]: BBox): BBox {
+  const lat = (s + n) / 2;
+  const lon = (w + e) / 2;
+  const mPerDegLon = M_PER_DEG_LAT * Math.cos((lat * Math.PI) / 180);
+  const halfY = Math.max(((n - s) * M_PER_DEG_LAT) / 2 + MARGIN_M, MIN_SIDE_M / 2);
+  const halfX = Math.max(((e - w) * mPerDegLon) / 2 + MARGIN_M, MIN_SIDE_M / 2);
+  return [
+    round6(lat - halfY / M_PER_DEG_LAT),
+    round6(lon - halfX / mPerDegLon),
+    round6(lat + halfY / M_PER_DEG_LAT),
+    round6(lon + halfX / mPerDegLon),
+  ];
+}
+
 /** Raceway ways (and their nodes) inside the box — the same query as scripts/osm-outline. */
 export async function fetchRaceways(
   bbox: BBox,
@@ -151,7 +176,8 @@ export async function fetchRaceways(
       "That area is too large — pick the circuit itself, not the city.",
     );
   }
-  const query = `[out:json][timeout:60];way["highway"="raceway"](${s},${w},${n},${e});out body;>;out body qt;`;
+  const [qs, qw, qn, qe] = searchArea(bbox);
+  const query = `[out:json][timeout:60];way["highway"="raceway"](${qs},${qw},${qn},${qe});out body;>;out body qt;`;
   const init: RequestInit = {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
