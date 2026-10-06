@@ -94,3 +94,43 @@ describe("buildTrackGeometry", () => {
     });
   });
 });
+
+describe("buildTrackGeometry on a dense network", () => {
+  /** Two parallel 2 km straights joined by `rungs` link roads, no start line: worst case for the search. */
+  function ladder(rungs: number): OsmElement[] {
+    const elements: OsmElement[] = [];
+    const lonAt = (i: number) => (0.018 * i) / (rungs - 1);
+    for (let i = 0; i < rungs; i++) {
+      elements.push({ type: "node", id: 1000 + i, lat: 0, lon: lonAt(i) });
+      elements.push({ type: "node", id: 2000 + i, lat: 0.0009, lon: lonAt(i) });
+    }
+    const way = (id: number, nodes: number[]): OsmElement => ({
+      type: "way",
+      id,
+      nodes,
+      tags: { highway: "raceway" },
+    });
+    elements.push(
+      way(
+        1,
+        Array.from({ length: rungs }, (_, i) => 1000 + i),
+      ),
+    );
+    elements.push(
+      way(
+        2,
+        Array.from({ length: rungs }, (_, i) => 2000 + i),
+      ),
+    );
+    for (let i = 0; i < rungs; i++) elements.push(way(10 + i, [1000 + i, 2000 + i]));
+    return elements;
+  }
+
+  it("stays responsive and says the network was too complex to search fully", () => {
+    const started = performance.now();
+    const r = buildTrackGeometry(ladder(24), { lengthMeters: 4800, direction: "clockwise" });
+    expect(performance.now() - started).toBeLessThan(1500);
+    const notes = r.ok ? r.warnings.join(" ") : "";
+    expect(r.ok ? notes : "no-loop").toMatch(/too complex|no-loop/);
+  });
+});

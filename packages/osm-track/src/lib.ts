@@ -62,6 +62,19 @@ export function findCycles(
   nodes: Map<number, OsmNode>,
   opts: { maxLength: number; mustInclude?: number },
 ): Cycle[] {
+  return findCyclesBounded(ways, nodes, { ...opts, budget: Infinity }).cycles;
+}
+
+/**
+ * `findCycles` with a cap on search steps, so a dense network (many link
+ * roads, no start line) can't freeze the browser. `complete` is false when
+ * the cap was hit; `cycles` then holds what was found so far.
+ */
+export function findCyclesBounded(
+  ways: OsmWay[],
+  nodes: Map<number, OsmNode>,
+  opts: { maxLength: number; mustInclude?: number; budget: number },
+): { cycles: Cycle[]; complete: boolean; steps: number } {
   const adjacency = new Map<number, Map<number, number>>(); // node -> neighbor -> wayId
   for (const way of ways) {
     for (let i = 1; i < way.nodes.length; i++) {
@@ -113,6 +126,7 @@ export function findCycles(
   const cycles: Cycle[] = [];
   const seen = new Set<string>();
   const starts = opts.mustInclude !== undefined ? [opts.mustInclude] : junctions;
+  let steps = 0;
   for (const start of starts) {
     const stack: { at: number; path: Chain[]; visited: Set<number>; length: number }[] = [
       { at: start, path: [], visited: new Set([start]), length: 0 },
@@ -120,6 +134,7 @@ export function findCycles(
     while (stack.length > 0) {
       const { at, path, visited, length } = stack.pop()!;
       for (const chain of chainsFrom.get(at) ?? []) {
+        if (++steps > opts.budget) return { cycles, complete: false, steps };
         if (path.length > 0 && chain === path[path.length - 1]) continue;
         const end = chain.nodes[chain.nodes.length - 1]!;
         const total = length + chain.length;
@@ -146,7 +161,7 @@ export function findCycles(
       }
     }
   }
-  return cycles;
+  return { cycles, complete: true, steps };
 }
 
 /** Same key for a cycle regardless of start point or direction. */

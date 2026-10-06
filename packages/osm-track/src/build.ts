@@ -1,5 +1,5 @@
 import {
-  findCycles,
+  findCyclesBounded,
   geometryOf,
   longestIncreasing,
   nearestByDistance,
@@ -23,6 +23,8 @@ const STRICT = 0.05;
 /** Loops within this share are still offered, for a wrong lap length. */
 const LOOSE = 0.15;
 const MAX_LOOPS = 5;
+/** Search steps before giving up on a dense network (~0.2 s); real circuits need ~50k. */
+const SEARCH_BUDGET = 1_000_000;
 
 export interface BuildOptions {
   lengthMeters: number;
@@ -96,10 +98,12 @@ export function buildTrackGeometry(
     .find((n) => n && ways.some((w) => w.nodes.includes(n.id)));
 
   const target = options.lengthMeters;
-  const cycles = findCycles(ways, nodes, {
+  const search = findCyclesBounded(ways, nodes, {
     maxLength: target * (1 + LOOSE),
     mustInclude: startNode?.id,
+    budget: SEARCH_BUDGET,
   });
+  const cycles = search.cycles;
   const cornerWays = ways.filter((w) => w.tags["raceway:corner_number"]);
   const candidates = cycles
     .map((c) => ({
@@ -123,6 +127,11 @@ export function buildTrackGeometry(
   const loopIndex = Math.min(Math.max(options.loopIndex ?? 0, 0), candidates.length - 1);
   const best = candidates[loopIndex]!;
   const warnings: string[] = [];
+  if (!search.complete) {
+    warnings.push(
+      "The raceway network here is too complex to search fully; the loops offered may not include the one you want",
+    );
+  }
   if (best.error > 0.02) {
     const pct = ((Math.abs(best.cycle.length - target) / target) * 100).toFixed(1);
     warnings.push(
