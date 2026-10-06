@@ -72,13 +72,13 @@ All in `apps/web/src/features/import/` unless noted.
 
 AI-imported layouts have no `outlinePath` (the prompt tells the AI to leave geometry out). Today `track-view-page.tsx` then shows only "This layout has no outline yet" with no panel.
 
-Change: when there is no outline, the canvas area shows the layout's corners in lap order (number, name, direction, type), with a short line saying the map appears once an outline is added. Selecting a corner is not required for this milestone. The top bar (track name, layout picker) stays as it is.
+Change: when there is no outline, the canvas area shows the layout's corners in lap order (number, name, direction — the existing `CornerList`), with a short line saying the map appears once an outline is added. Selecting a corner opens the existing side panel with its details, since the panel is reused as-is. The top bar (track name, layout picker) stays as it is.
 
 ## shadcn/ui setup
 
 - Run `shadcn init` in `apps/web` (Tailwind v4), aliases pointing at `@/shared/ui` for components and `@/shared/lib/utils` for `cn()`.
 - Dependencies: `clsx`, `tailwind-merge`, `class-variance-authority`, and the Radix packages the added components need.
-- **Keep the existing palette.** Map shadcn's token names onto the existing variables in `globals.css` (for example `--primary: var(--accent)`, `--primary-foreground: var(--accent-foreground)`, `--destructive: var(--danger)`, `--input: var(--border)`, `--ring: var(--accent)`), rather than adopting shadcn's default theme. Light, dark and `[data-theme="practice"]` must look the same as before.
+- **Keep the existing palette.** Map shadcn's token names onto the existing variables in `globals.css` (for example `--primary: var(--accent)`, `--primary-foreground: var(--accent-foreground)`, `--destructive: var(--danger)`, `--input: var(--border)`, `--ring: var(--accent)`), rather than adopting shadcn's default theme. Two shadcn names clash with existing tokens and are not aliased: `accent` (here the brand red, in shadcn a subtle hover background) and `muted` (here a text color, in shadcn a background). Components are written against the project's tokens (`hover:bg-surface`, `text-muted`), and anything added later with `shadcn add` must be adapted the same way. Light, dark and `[data-theme="practice"]` must look the same as before.
 - Components added: `button`, `textarea`, `label`, `input`.
 - Replace the custom `Button` (`src/shared/ui/button.tsx`) at its call sites with the shadcn one. `primary` → `default`, `secondary` → `outline`, matching the current look. `IssueList` stays.
 
@@ -119,4 +119,4 @@ The existing smoke, track-view, practice and offline e2e tests must still pass (
 ## Docs
 
 - `docs/PLAN.md`: tick "shadcn/ui setup" (M2) and the M3 items "Copy-prompt screen", "Paste + lenient parse", "Validation errors by field path", "Preview before save" and "Interlagos e2e test".
-- `README.md`: mention importing a track with AI if the README describes features.
+- `README.md` already describes the AI import; no change.
