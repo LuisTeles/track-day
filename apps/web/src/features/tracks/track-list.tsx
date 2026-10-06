@@ -24,15 +24,21 @@ export function TrackList() {
       <div className="rounded-lg border border-dashed border-border p-8 text-center">
         <p className="font-medium">No tracks yet</p>
         <p className="mt-1 text-sm text-muted">
-          Load the sample tracks (Interlagos and Suzuka) to explore the app, or restore a backup.
+          Import a track with AI from a map image, load the sample tracks (Interlagos and Suzuka) to
+          explore the app, or restore a backup.
         </p>
-        <Button
-          className="mt-4"
-          onClick={() => loadSamples.mutate()}
-          disabled={loadSamples.isPending}
-        >
-          {loadSamples.isPending ? "Loading…" : "Load sample tracks"}
-        </Button>
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <Button asChild>
+            <Link href="/tracks/import/">Import with AI</Link>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => loadSamples.mutate()}
+            disabled={loadSamples.isPending}
+          >
+            {loadSamples.isPending ? "Loading…" : "Load sample tracks"}
+          </Button>
+        </div>
         {loadSamples.error && (
           <p role="alert" className="mt-2 text-sm text-danger">
             Could not load the samples: {loadSamples.error.message}
@@ -43,22 +49,31 @@ export function TrackList() {
   }
 
   return (
-    <ul className="divide-y divide-border rounded-lg border border-border">
-      {tracks.map((track) => (
-        <li key={track.id}>
-          <Link
-            href={`/tracks/view/?track=${track.id}`}
-            className="block px-4 py-3 hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent"
-          >
-            <p className="font-medium">{track.name}</p>
-            {(track.aliases.length > 0 || track.country) && (
-              <p className="text-sm text-muted">
-                {[track.aliases.join(", "), track.city, track.country].filter(Boolean).join(" · ")}
-              </p>
-            )}
-          </Link>
-        </li>
-      ))}
-    </ul>
+    <div className="space-y-3">
+      <div className="flex justify-end">
+        <Button asChild variant="outline">
+          <Link href="/tracks/import/">Import with AI</Link>
+        </Button>
+      </div>
+      <ul className="divide-y divide-border rounded-lg border border-border">
+        {tracks.map((track) => (
+          <li key={track.id}>
+            <Link
+              href={`/tracks/view/?track=${track.id}`}
+              className="block px-4 py-3 hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent"
+            >
+              <p className="font-medium">{track.name}</p>
+              {(track.aliases.length > 0 || track.country) && (
+                <p className="text-sm text-muted">
+                  {[track.aliases.join(", "), track.city, track.country]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </p>
+              )}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
