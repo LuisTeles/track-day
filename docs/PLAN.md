@@ -217,7 +217,7 @@ One corner per screen for a phone/tablet/second monitor next to the rig.
 
 ### M2 — Tracks & corners
 
-- [ ] shadcn/ui setup
+- [x] shadcn/ui setup
 - [ ] Track/layout CRUD
 - [ ] Corner CRUD + ordering
 - [ ] Segments and complexes
@@ -228,12 +228,12 @@ One corner per screen for a phone/tablet/second monitor next to the rig.
 ### M3 — AI import
 
 - [x] Track structure prompt template
-- [ ] Copy-prompt screen
-- [ ] Paste + lenient parse
-- [ ] Validation errors by field path
-- [ ] Preview before save
+- [x] Copy-prompt screen
+- [x] Paste + lenient parse
+- [x] Validation errors by field path
+- [x] Preview before save
 - [x] Interlagos fixture
-- [ ] Interlagos e2e test
+- [x] Interlagos e2e test
 
 ### M4 — Cars & guides
 
