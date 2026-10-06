@@ -18,6 +18,7 @@ import { useSaveMap } from "./use-save-map";
 
 const SOURCE_LABEL: Record<PositionSource, string> = {
   osm: "Position from OpenStreetMap",
+  name: "Position from OpenStreetMap (by name)",
   distance: "Placed from distance",
   none: "Not on the map",
 };
@@ -189,7 +190,9 @@ export function AddMapPanel({
   const startAdjustable = base?.ok === true && base.start !== "tagged";
   const needsStart = base?.ok === true && base.start === "arbitrary" && startAt === null;
   const finalLength = preview && useOsmLength ? preview.loopLengthMeters : lengthMeters;
-  const matched = preview ? matchCorners(corners, preview.corners, finalLength) : [];
+  const matched = preview
+    ? matchCorners(corners, preview.corners, finalLength, preview.sections)
+    : [];
   const lengthOff =
     preview && Math.abs(preview.loopLengthMeters - lengthMeters) / lengthMeters > 0.02;
 

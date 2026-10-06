@@ -81,7 +81,7 @@ export function MapPreview({
               cx={p.x}
               cy={p.y}
               r={r}
-              className={source === "osm" ? "fill-marker" : "fill-muted"}
+              className={source === "osm" || source === "name" ? "fill-marker" : "fill-muted"}
             />
             <text
               x={p.x}

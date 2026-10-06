@@ -41,7 +41,8 @@ function setup({
     fetchRaceways: vi.fn().mockResolvedValue(elements),
   } as OsmClient,
   layoutOverride = {},
-} = {}) {
+  cornersOverride = corners,
+}: { client?: OsmClient; layoutOverride?: Partial<Layout>; cornersOverride?: Corner[] } = {}) {
   const saveOutline = vi.fn().mockResolvedValue(undefined);
   const onClose = vi.fn();
   render(
@@ -52,7 +53,7 @@ function setup({
         <AddMapPanel
           track={track}
           layout={{ ...layout, ...layoutOverride }}
-          corners={corners}
+          corners={cornersOverride}
           onClose={onClose}
           client={client}
         />
@@ -293,5 +294,34 @@ describe("AddMapPanel", () => {
       await searchAndPick(user);
       expect(screen.queryByLabelText("Start line position")).not.toBeInTheDocument();
     });
+  });
+
+  it("places corners on OpenStreetMap sections with the same name", async () => {
+    const named = [
+      { id: "m1", number: 1, name: "Variante del Rettifilo", distanceFromStartMeters: 600 },
+      { id: "m2", number: 2, name: "Variante del Rettifilo", distanceFromStartMeters: 650 },
+      { id: "m11", number: 11, name: "Curva Parabolica", distanceFromStartMeters: 5300 },
+      { id: "m99", number: 99, name: "Made-up Bend", distanceFromStartMeters: 3000 },
+    ] as Corner[];
+    const { user, saveOutline } = setup({
+      client: {
+        searchPlaces: vi.fn().mockResolvedValue([place]),
+        fetchRaceways: vi.fn().mockResolvedValue(monzaOsm.elements as OsmElement[]),
+      },
+      layoutOverride: { lengthMeters: 5793, direction: "clockwise" },
+      cornersOverride: named,
+    });
+    await searchAndPick(user);
+    fireEvent.change(screen.getByLabelText("Start line position"), { target: { value: "10" } });
+
+    const list = screen.getByRole("list", { name: "Corner positions" });
+    expect(within(list).getAllByText("Position from OpenStreetMap (by name)")).toHaveLength(3);
+    expect(within(list).getByText("Placed from distance")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Save map" }));
+    const saved = saveOutline.mock.calls[0]![0].cornerPositions.map(
+      (p: { cornerId: string }) => p.cornerId,
+    );
+    expect(saved.sort()).toEqual(["m1", "m11", "m2"]);
   });
 });
