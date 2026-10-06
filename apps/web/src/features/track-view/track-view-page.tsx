@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CornerDetails, CornerList, cornerTitle } from "./corner-details";
 import { CornerMarkers } from "./corner-markers";
 import { DeleteTrackButton } from "./delete-track-button";
+import { AddMapPanel } from "@/features/osm-map/add-map-panel";
 import { NoOutline } from "./no-outline";
 import { getRacingLine, RacingLineLayer } from "./racing-line";
 import { cornerFraction } from "./geometry/anchors";
@@ -34,6 +35,7 @@ function TrackView({ trackId }: { trackId: string }) {
   const { data, isPending, error } = useTrackView(trackId, params.get("layout"));
   const [showChips, toggleChips] = useStoredToggle("track-view:chips", true);
   const [showRacingLine, toggleRacingLine] = useStoredToggle("track-view:racing-line", true);
+  const [redoingMap, setRedoingMap] = useState(false);
 
   // Until the global car picker exists (M4), the layout's guides are picked here.
   const guide = data?.guides.find((g) => g.id === params.get("guide")) ?? data?.guides[0] ?? null;
@@ -262,9 +264,28 @@ function TrackView({ trackId }: { trackId: string }) {
           >
             Corners
           </ToolButton>
+          {layout.outlineSource === "osm" && (
+            <ToolButton pressed={redoingMap} onClick={() => setRedoingMap(true)}>
+              Redo map
+            </ToolButton>
+          )}
         </>
       }
-      panel={panel}
+      panel={
+        redoingMap ? (
+          <SidePanel open title="Redo map from OpenStreetMap" onClose={() => setRedoingMap(false)}>
+            <AddMapPanel
+              track={track}
+              layout={layout}
+              corners={corners}
+              onClose={() => setRedoingMap(false)}
+              replace
+            />
+          </SidePanel>
+        ) : (
+          panel
+        )
+      }
     />
   );
 }

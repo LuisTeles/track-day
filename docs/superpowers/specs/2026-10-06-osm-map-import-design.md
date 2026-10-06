@@ -118,6 +118,11 @@ interface LayoutGeometryService {
 
 The panel replaces the corner list inside the no-outline card (full-height, scrollable), so it works on phones without stacking a second side panel.
 
+## Added after first use (Monza)
+
+- **Corners by section name.** `buildTrackGeometry` also returns the loop's named sections (`name`, `aliases` from `old_name`/`alt_name`/`name:en`, `from`/`to` lap fractions). A corner is placed by OSM's corner number, else by a section whose name matches its own (ignoring case, accents and punctuation; a unique partial match also counts), else by distance. Corners sharing a section are spread across it in number order. These positions are saved like tagged ones.
+- **Redo map.** Layouts whose outline came from OpenStreetMap get a **Redo map** button in the track view; it opens the same panel in a side panel and saves with `replace: true`. Replacing clears the positions of corners that weren't matched again. Outlines from anywhere else are never replaced.
+
 ## Errors and edge cases
 
 | Case                                                          | Behavior                                                                                                                                                                                                                                                                                                                                                                                                                      |

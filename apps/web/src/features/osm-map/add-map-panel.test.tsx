@@ -42,7 +42,13 @@ function setup({
   } as OsmClient,
   layoutOverride = {},
   cornersOverride = corners,
-}: { client?: OsmClient; layoutOverride?: Partial<Layout>; cornersOverride?: Corner[] } = {}) {
+  replace = false,
+}: {
+  client?: OsmClient;
+  layoutOverride?: Partial<Layout>;
+  cornersOverride?: Corner[];
+  replace?: boolean;
+} = {}) {
   const saveOutline = vi.fn().mockResolvedValue(undefined);
   const onClose = vi.fn();
   render(
@@ -55,6 +61,7 @@ function setup({
           layout={{ ...layout, ...layoutOverride }}
           corners={cornersOverride}
           onClose={onClose}
+          replace={replace}
           client={client}
         />
       </RepositoriesProvider>
@@ -323,5 +330,12 @@ describe("AddMapPanel", () => {
       (p: { cornerId: string }) => p.cornerId,
     );
     expect(saved.sort()).toEqual(["m1", "m11", "m2"]);
+  });
+
+  it("asks the service to replace the map when redoing it", async () => {
+    const { user, saveOutline } = setup({ replace: true });
+    await searchAndPick(user);
+    await user.click(screen.getByRole("button", { name: "Save map" }));
+    expect(saveOutline.mock.calls[0]![0]).toMatchObject({ replace: true });
   });
 });

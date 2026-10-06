@@ -49,12 +49,15 @@ export function AddMapPanel({
   corners,
   onClose,
   client = osmClient,
+  replace = false,
 }: {
   track: Track;
   layout: Layout;
   corners: Corner[];
   onClose(): void;
   client?: OsmClient;
+  /** Redo map: replace the layout's existing OpenStreetMap outline. */
+  replace?: boolean;
 }) {
   const id = useId();
   const [query, setQuery] = useState([track.name, track.city].filter(Boolean).join(" "));
@@ -371,6 +374,7 @@ export function AddMapPanel({
                 outlinePath: preview.outlinePath,
                 outlineSource: "osm",
                 cornerPositions: cornerPositionsToSave(matched),
+                ...(replace && { replace: true }),
                 ...(useOsmLength && lengthOff && { lengthMeters: preview.loopLengthMeters }),
               })
             }

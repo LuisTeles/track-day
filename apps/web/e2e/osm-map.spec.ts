@@ -120,10 +120,22 @@ test("adds Monza, whose start line isn't tagged, after the user taps it", async 
 
   await page.getByRole("img", { name: /Preview/ }).click({ position: { x: 20, y: 20 } });
   await expect(page.getByText(/Start line set by you/)).toBeVisible();
+  // Monza's OSM sections are named; these corners use those names.
+  await expect(page.getByText("Position from OpenStreetMap (by name)").first()).toBeVisible();
   await page.getByRole("button", { name: "Save map" }).click();
 
   await expect(
     page.getByRole("img", { name: /Map of Autodromo Nazionale di Monza/ }),
   ).toBeVisible();
+  await expect(page.locator("[data-corner]")).toHaveCount(4);
+
+  // Redo the map: the same flow in a side panel, replacing the saved outline.
+  await page.getByRole("button", { name: "Redo map" }).click();
+  const redo = page.getByRole("complementary", { name: "Redo map from OpenStreetMap" });
+  await redo.getByRole("button", { name: "Search" }).click();
+  await redo.getByRole("button", { name: /Autodromo Nazionale di Monza/ }).click();
+  await redo.getByRole("img", { name: /Preview/ }).click({ position: { x: 30, y: 30 } });
+  await redo.getByRole("button", { name: "Save map" }).click();
+  await expect(redo).toHaveCount(0);
   await expect(page.locator("[data-corner]")).toHaveCount(4);
 });
