@@ -57,6 +57,10 @@ export const RacingLine = z.object({
 });
 export type RacingLine = z.infer<typeof RacingLine>;
 
+/** Where a layout's outline came from; drives attribution (OSM data is ODbL). */
+export const OutlineSource = z.enum(["osm"]);
+export type OutlineSource = z.infer<typeof OutlineSource>;
+
 export const Layout = EntityBase.extend({
   trackId: Id,
   name: z.string().min(1),
@@ -65,6 +69,8 @@ export const Layout = EntityBase.extend({
   mapAssetId: Id.nullable(),
   /** Track outline; starts at the start/finish line, runs in the driving direction. */
   outlinePath: SvgPath.nullable(),
+  /** Optional so layouts stored before it existed still parse; no migration needed. */
+  outlineSource: OutlineSource.nullable().optional(),
   /** Display rotation in degrees, so the track shows in its natural orientation. */
   rotation: z.number().min(-360).max(360).nullable(),
   racingLine: RacingLine.nullable(),

@@ -107,7 +107,7 @@ ${knownFactsSection(known)}
 - Use null when you are unsure of an optional value. Never guess.
 - Never invent corner names. If a corner has no well-known name, set "name" to null.
 - Use the official turn numbering when one exists.
-- Omit layout.outlinePath, layout.racingLinePath, layout.rotation, and each corner's pathPosition and labelOffset. The track geometry comes from map data or the app's editor, not from an image estimate.
+- Omit layout.outlinePath, layout.outlineSource, layout.racingLinePath, layout.rotation, and each corner's pathPosition and labelOffset. The track geometry comes from map data or the app's editor, not from an image estimate.
 
 ## JSON Schema
 ${JSON.stringify(trackImportJsonSchema(), null, 2)}

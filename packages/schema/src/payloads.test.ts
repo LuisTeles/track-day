@@ -208,3 +208,28 @@ describe("CornerGuide defaults", () => {
     });
   });
 });
+
+describe("outlineSource", () => {
+  it("accepts a track payload layout with outlineSource osm", () => {
+    const parsed = TrackImportPayload.parse({
+      schemaVersion: 1,
+      kind: "track",
+      track: { name: "Test" },
+      layout: { name: "GP", lengthMeters: 1000, direction: "clockwise", outlineSource: "osm" },
+      corners: [{ number: 1, direction: "left" }],
+    });
+    expect(parsed.layout.outlineSource).toBe("osm");
+  });
+
+  it("rejects an unknown outline source", () => {
+    expect(() =>
+      TrackImportPayload.parse({
+        schemaVersion: 1,
+        kind: "track",
+        track: { name: "Test" },
+        layout: { name: "GP", lengthMeters: 1000, direction: "clockwise", outlineSource: "ai" },
+        corners: [{ number: 1, direction: "left" }],
+      }),
+    ).toThrow();
+  });
+});

@@ -37,6 +37,7 @@ export class LocalTrackImportService implements TrackImportService {
           direction: payload.layout.direction,
           mapAssetId: null,
           outlinePath: payload.layout.outlinePath ?? null,
+          outlineSource: payload.layout.outlineSource ?? null,
           rotation: payload.layout.rotation ?? null,
           racingLine: payload.layout.racingLinePath
             ? { path: payload.layout.racingLinePath, source: "manual" }

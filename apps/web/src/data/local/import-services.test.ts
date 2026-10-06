@@ -1,7 +1,7 @@
 // @vitest-environment node
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
-import { GuideImportPayload, TrackImportPayload } from "@track-day/schema";
+import { GuideImportPayload, TrackImportPayload, type Layout } from "@track-day/schema";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Repositories } from "../repositories";
 import { TrackDayDb } from "./db";
@@ -27,6 +27,30 @@ afterEach(async () => {
 });
 
 describe("importTrack", () => {
+  it("stores the outline source, and defaults it to null", async () => {
+    const withSource = await repos.trackImport.importTrack({
+      ...interlagos,
+      layout: { ...interlagos.layout, outlineSource: "osm" },
+    });
+    expect(await repos.layouts.get(withSource.layoutId)).toMatchObject({ outlineSource: "osm" });
+
+    const without = await repos.trackImport.importTrack({
+      ...interlagos,
+      layout: { ...interlagos.layout, outlineSource: undefined },
+    });
+    expect((await repos.layouts.get(without.layoutId))?.outlineSource).toBeNull();
+  });
+
+  it("still reads a stored layout written before outlineSource existed", async () => {
+    const { layoutId } = await repos.trackImport.importTrack(interlagos);
+    const legacy: Partial<Layout> = { ...(await db.layouts.get(layoutId))! };
+    delete legacy.outlineSource;
+    await db.layouts.put(legacy as Layout);
+    await expect(repos.layouts.update(layoutId, { name: "GP 2" })).resolves.toMatchObject({
+      name: "GP 2",
+    });
+  });
+
   it("creates the track, layout, corners, segments and complexes", async () => {
     const { trackId, layoutId } = await repos.trackImport.importTrack(interlagos);
 

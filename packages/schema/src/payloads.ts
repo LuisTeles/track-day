@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Confidence, PathFraction, ScreenOffset, SpeedKmh, SvgPath } from "./common";
 import {
+  OutlineSource,
   Asset,
   BrakePressure,
   CUE_MAX_LENGTH,
@@ -68,6 +69,7 @@ export const TrackImportPayload = z
       direction: TrackDirection,
       /** Optional; see ADR-005 for the coordinate conventions. */
       outlinePath: opt(SvgPath),
+      outlineSource: opt(OutlineSource),
       rotation: opt(z.number().min(-360).max(360)),
       racingLinePath: opt(SvgPath),
     }),
