@@ -13,6 +13,7 @@ import { SidePanel } from "./side-panel";
 import { TrackCanvas, type TrackCanvasHandle } from "./track-canvas";
 import { ToolButton, TrackViewShell } from "./track-view-shell";
 import { useStoredToggle } from "@/shared/hooks/use-stored-toggle";
+import { OsmAttribution } from "@/shared/ui/osm-attribution";
 import { CornerGuideSection } from "./corner-guide-section";
 import { chipsFor, guideLabel } from "./guides";
 import { useCornerGuides, useTrackView } from "./use-track-view";
@@ -194,24 +195,31 @@ function TrackView({ trackId }: { trackId: string }) {
     <TrackViewShell
       topBar={topBar}
       canvas={
-        <TrackCanvas
-          ref={canvas}
-          outlinePath={layout.outlinePath}
-          rotation={layout.rotation}
-          lengthMeters={layout.lengthMeters}
-          trackLayers={() => racingLine && showRacingLine && <RacingLineLayer line={racingLine} />}
-          label={`Map of ${track.name}, ${layout.name} layout`}
-          overlay={(ctx) => (
-            <CornerMarkers
-              ctx={ctx}
-              layout={layout}
-              corners={corners}
-              selectedId={selected?.id ?? null}
-              onSelect={selectCorner}
-              chips={showChips ? chips : null}
-            />
+        <>
+          <TrackCanvas
+            ref={canvas}
+            outlinePath={layout.outlinePath}
+            rotation={layout.rotation}
+            lengthMeters={layout.lengthMeters}
+            trackLayers={() =>
+              racingLine && showRacingLine && <RacingLineLayer line={racingLine} />
+            }
+            label={`Map of ${track.name}, ${layout.name} layout`}
+            overlay={(ctx) => (
+              <CornerMarkers
+                ctx={ctx}
+                layout={layout}
+                corners={corners}
+                selectedId={selected?.id ?? null}
+                onSelect={selectCorner}
+                chips={showChips ? chips : null}
+              />
+            )}
+          />
+          {layout.outlineSource === "osm" && (
+            <OsmAttribution className="absolute right-2 bottom-1 z-10 rounded bg-background/80 px-1.5 max-md:bottom-16" />
           )}
-        />
+        </>
       }
       controls={
         <>

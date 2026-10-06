@@ -28,6 +28,7 @@ import {
 } from "./navigation/steps";
 import { createTrackPath } from "@/features/track-view/geometry/path";
 import { cornerFraction } from "@/features/track-view/geometry/anchors";
+import { OsmAttribution } from "@/shared/ui/osm-attribution";
 import { CornerDiagram } from "./corner-diagram";
 import { cornerDiagram, schematicDiagram, type CornerPositions } from "./diagram-geometry";
 import { brakeAtText, directionText, titleOf } from "./format";
@@ -170,7 +171,12 @@ function Practice({ trackId }: { trackId: string }) {
         brakeMeters: guides[0]?.brakeMarkerMeters ?? null,
         racingLine: racingPath,
       });
-      return <CornerDiagram diagram={diagram} apexLabels={apexLabels} brakeLabel={brakeLabel} />;
+      return (
+        <>
+          <CornerDiagram diagram={diagram} apexLabels={apexLabels} brakeLabel={brakeLabel} />
+          {layout.outlineSource === "osm" && <OsmAttribution className="text-center" />}
+        </>
+      );
     }
     const first = s.corners[0]!;
     return (
