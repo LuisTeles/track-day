@@ -184,7 +184,9 @@ function TrackView({ trackId }: { trackId: string }) {
     return (
       <TrackViewShell
         topBar={topBar}
-        canvas={<NoOutline corners={corners} onSelect={selectCorner} />}
+        canvas={
+          <NoOutline track={track} layout={layout} corners={corners} onSelect={selectCorner} />
+        }
         controls={null}
         panel={panel}
       />
