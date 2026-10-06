@@ -1,22 +1,37 @@
-import type { ButtonHTMLAttributes } from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { cva, type VariantProps } from "class-variance-authority";
+import type { ComponentProps } from "react";
+import { cn } from "@/shared/lib/utils";
 
-type Variant = "primary" | "secondary";
+const buttonVariants = cva(
+  "inline-flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground hover:opacity-90",
+        outline: "border border-input hover:bg-surface",
+      },
+    },
+    defaultVariants: { variant: "default" },
+  },
+);
 
-const variants: Record<Variant, string> = {
-  primary: "bg-accent text-accent-foreground hover:opacity-90",
-  secondary: "border border-border hover:bg-surface",
-};
-
-export function Button({
-  variant = "secondary",
-  className = "",
+function Button({
+  className,
+  variant,
+  asChild = false,
+  type,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
+}: ComponentProps<"button"> & VariantProps<typeof buttonVariants> & { asChild?: boolean }) {
+  const Comp = asChild ? Slot : "button";
   return (
-    <button
-      type="button"
-      className={`inline-flex items-center rounded-md px-3 py-1.5 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-50 ${variants[variant]} ${className}`}
+    <Comp
+      data-slot="button"
+      type={asChild ? type : (type ?? "button")}
+      className={cn(buttonVariants({ variant, className }))}
       {...props}
     />
   );
 }
+
+export { Button, buttonVariants };

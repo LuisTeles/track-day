@@ -27,7 +27,6 @@ export function TrackList() {
           Load the sample tracks (Interlagos and Suzuka) to explore the app, or restore a backup.
         </p>
         <Button
-          variant="primary"
           className="mt-4"
           onClick={() => loadSamples.mutate()}
           disabled={loadSamples.isPending}

@@ -75,6 +75,15 @@
   --color-marker: var(--marker);
   --color-marker-foreground: var(--marker-foreground);
   --color-chip: var(--chip);
+  /* shadcn/ui names, mapped onto our tokens. `accent` and `muted` are not
+     aliased: ours mean brand red and a text color, shadcn's mean a hover
+     background and a background. Adapt `shadcn add` output to use
+     `hover:bg-surface` and `text-muted` instead. */
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-foreground);
+  --color-destructive: var(--danger);
+  --color-input: var(--border);
+  --color-ring: var(--accent);
   --color-pressure: var(--pressure, #dc2626);
   --color-estimate: var(--estimate, #b45309);
   --font-sans: var(--font-geist-sans);

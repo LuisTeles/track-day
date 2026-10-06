@@ -60,7 +60,7 @@ export function BackupPanel() {
         <p className="text-sm text-muted">
           Download everything — tracks, cars, guides and map images — as a single JSON file.
         </p>
-        <Button variant="primary" onClick={handleExport} disabled={status.kind === "busy"}>
+        <Button onClick={handleExport} disabled={status.kind === "busy"}>
           Export backup
         </Button>
       </section>
