@@ -49,3 +49,25 @@ test("adds a map from OpenStreetMap to an imported track", async ({ page }) => {
   await expect(page.locator("[data-corner]")).toHaveCount(interlagos.corners.length);
   await expect(page.getByRole("link", { name: "OpenStreetMap contributors" })).toBeVisible();
 });
+
+test("shows the OpenStreetMap credit unclipped in practice mode", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Load sample tracks" }).click();
+  await page.getByRole("link", { name: /Interlagos/ }).click();
+  await page.getByRole("link", { name: "Practice" }).click();
+
+  const credit = page.getByRole("link", { name: "OpenStreetMap contributors" });
+  await expect(credit).toBeInViewport();
+  // In viewport isn't enough: an overflow-hidden parent can clip it. The
+  // topmost element at its centre must be the link itself.
+  const onTop = await credit.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    const clip = el
+      .closest("[class*='overflow-hidden'], [class*='max-h']")
+      ?.getBoundingClientRect();
+    const inside = !clip || (r.top >= clip.top - 0.5 && r.bottom <= clip.bottom + 0.5);
+    return el.contains(hit) && inside;
+  });
+  expect(onTop).toBe(true);
+});

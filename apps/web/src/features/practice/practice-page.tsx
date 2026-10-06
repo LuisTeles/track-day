@@ -172,10 +172,14 @@ function Practice({ trackId }: { trackId: string }) {
         racingLine: racingPath,
       });
       return (
-        <>
-          <CornerDiagram diagram={diagram} apexLabels={apexLabels} brakeLabel={brakeLabel} />
-          {layout.outlineSource === "osm" && <OsmAttribution className="text-center" />}
-        </>
+        // The diagram fills the space left after the credit line, so the
+        // credit is never clipped by the card's height cap.
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="min-h-0 flex-1">
+            <CornerDiagram diagram={diagram} apexLabels={apexLabels} brakeLabel={brakeLabel} />
+          </div>
+          {layout.outlineSource === "osm" && <OsmAttribution className="shrink-0 text-center" />}
+        </div>
       );
     }
     const first = s.corners[0]!;
