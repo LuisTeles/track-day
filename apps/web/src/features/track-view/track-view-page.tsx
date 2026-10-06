@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { CornerDetails, CornerList, cornerTitle } from "./corner-details";
 import { CornerMarkers } from "./corner-markers";
+import { NoOutline } from "./no-outline";
 import { getRacingLine, RacingLineLayer } from "./racing-line";
 import { cornerFraction } from "./geometry/anchors";
 import { SidePanel } from "./side-panel";
@@ -129,13 +130,60 @@ function TrackView({ trackId }: { trackId: string }) {
     </>
   );
 
-  if (!layout?.outlinePath) {
+  if (!layout) {
     return (
       <TrackViewShell
         topBar={topBar}
-        canvas={<Message>This layout has no outline yet, so there’s no map to show.</Message>}
+        canvas={<Message>This track has no layouts yet.</Message>}
         controls={null}
         panel={null}
+      />
+    );
+  }
+
+  const panel = (
+    <SidePanel
+      open={selected !== null || listOpen}
+      title={selected ? cornerTitle(selected) : "Corners"}
+      onClose={closePanel}
+    >
+      {selected ? (
+        <CornerDetails
+          corner={selected}
+          complexes={complexes}
+          allCorners={corners}
+          onSelect={selectCorner}
+          actions={
+            <Link
+              href={practiceHref(track.id, layout.id, params.get("guide"), selected.number)}
+              className="inline-block rounded-lg bg-foreground px-3 py-1.5 text-sm font-medium text-background hover:opacity-90"
+            >
+              Practice from T{selected.number}
+            </Link>
+          }
+          guide={
+            guide &&
+            currentGuideLabel && (
+              <CornerGuideSection
+                guide={cornerGuides?.find((g) => g.cornerId === selected.id)}
+                label={currentGuideLabel}
+              />
+            )
+          }
+        />
+      ) : (
+        <CornerList corners={corners} onSelect={selectCorner} />
+      )}
+    </SidePanel>
+  );
+
+  if (!layout.outlinePath) {
+    return (
+      <TrackViewShell
+        topBar={topBar}
+        canvas={<NoOutline corners={corners} onSelect={selectCorner} />}
+        controls={null}
+        panel={panel}
       />
     );
   }
@@ -204,41 +252,7 @@ function TrackView({ trackId }: { trackId: string }) {
           </ToolButton>
         </>
       }
-      panel={
-        <SidePanel
-          open={selected !== null || listOpen}
-          title={selected ? cornerTitle(selected) : "Corners"}
-          onClose={closePanel}
-        >
-          {selected ? (
-            <CornerDetails
-              corner={selected}
-              complexes={complexes}
-              allCorners={corners}
-              onSelect={selectCorner}
-              actions={
-                <Link
-                  href={practiceHref(track.id, layout.id, params.get("guide"), selected.number)}
-                  className="inline-block rounded-lg bg-foreground px-3 py-1.5 text-sm font-medium text-background hover:opacity-90"
-                >
-                  Practice from T{selected.number}
-                </Link>
-              }
-              guide={
-                guide &&
-                currentGuideLabel && (
-                  <CornerGuideSection
-                    guide={cornerGuides?.find((g) => g.cornerId === selected.id)}
-                    label={currentGuideLabel}
-                  />
-                )
-              }
-            />
-          ) : (
-            <CornerList corners={corners} onSelect={selectCorner} />
-          )}
-        </SidePanel>
-      }
+      panel={panel}
     />
   );
 }
