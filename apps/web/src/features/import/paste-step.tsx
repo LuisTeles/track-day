@@ -16,7 +16,14 @@ const TITLES: Record<Failure["stage"], string> = {
   validate: "The JSON doesn’t match the track format",
 };
 
-export function PasteStep({ onResult }: { onResult(payload: TrackImportPayload | null): void }) {
+export function PasteStep({
+  onResult,
+  disabled = false,
+}: {
+  onResult(payload: TrackImportPayload | null): void;
+  /** Locks the answer, e.g. while it is being saved. */
+  disabled?: boolean;
+}) {
   const [raw, setRaw] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const id = useId();
@@ -46,6 +53,7 @@ export function PasteStep({ onResult }: { onResult(payload: TrackImportPayload |
         <Textarea
           id={id}
           value={raw}
+          disabled={disabled}
           onChange={(e) => handleChange(e.target.value)}
           placeholder="Paste the AI's whole reply. Code fences and text around the JSON are fine."
           spellCheck={false}
@@ -53,7 +61,7 @@ export function PasteStep({ onResult }: { onResult(payload: TrackImportPayload |
         />
       </div>
       <div className="flex items-center gap-3">
-        <Button onClick={handleCheck} disabled={raw.trim() === ""}>
+        <Button onClick={handleCheck} disabled={disabled || raw.trim() === ""}>
           Check JSON
         </Button>
         <p aria-live="polite" className="text-sm text-muted">

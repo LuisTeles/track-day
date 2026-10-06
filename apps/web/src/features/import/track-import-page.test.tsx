@@ -71,4 +71,15 @@ describe("TrackImportPage", () => {
     );
     expect(push).not.toHaveBeenCalled();
   });
+
+  it("locks the answer while saving, so a re-check can't re-enable Save", async () => {
+    const user = userEvent.setup();
+    setup(vi.fn(() => new Promise<never>(() => {})));
+    await pasteValid(user);
+
+    await user.click(screen.getByRole("button", { name: "Save track" }));
+
+    expect(screen.getByRole("button", { name: "Check JSON" })).toBeDisabled();
+    expect(screen.getByLabelText("AI answer")).toBeDisabled();
+  });
 });

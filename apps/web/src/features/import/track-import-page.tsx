@@ -39,6 +39,7 @@ export function TrackImportPage() {
 
       <Step title="2. Paste the AI’s answer">
         <PasteStep
+          disabled={save.isPending || save.isSuccess}
           onResult={(p) => {
             setPayload(p);
             save.reset();
