@@ -26,6 +26,7 @@ import type {
 import { base64ToBlob, blobToBase64 } from "./base64";
 import { TrackDayDb } from "./db";
 import { LocalGuideImportService, LocalTrackImportService } from "./import-services";
+import { LocalTrackDeletionService } from "./track-deletion";
 
 interface Schema<T> {
   parse(input: unknown): T;
@@ -307,5 +308,6 @@ export function createLocalRepositories(db = new TrackDayDb()): Repositories {
     ...repos,
     trackImport: new LocalTrackImportService(db, repos),
     guideImport: new LocalGuideImportService(db, repos),
+    trackDeletion: new LocalTrackDeletionService(db),
   };
 }

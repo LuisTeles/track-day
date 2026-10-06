@@ -103,6 +103,14 @@ export interface TrackImportService {
   importTrack(payload: TrackImportPayload): Promise<{ trackId: string; layoutId: string }>;
 }
 
+export interface TrackDeletionService {
+  /**
+   * Soft-deletes a track with its layouts, corners, segments, complexes,
+   * guides and corner guides in one transaction, and removes its map images.
+   */
+  deleteTrack(trackId: string): Promise<void>;
+}
+
 export interface GuideImportOptions {
   layoutId: string;
   target: GuideTarget;
@@ -133,4 +141,5 @@ export interface Repositories {
   backup: BackupService;
   trackImport: TrackImportService;
   guideImport: GuideImportService;
+  trackDeletion: TrackDeletionService;
 }
