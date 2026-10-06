@@ -68,6 +68,18 @@ describe("PasteStep", () => {
     expect(onResult).toHaveBeenLastCalledWith(null);
   });
 
+  it("shows the AI's own error instead of schema errors", async () => {
+    const { user, onResult } = await paste('{"error": "No image was attached"}');
+    await check(user);
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("The AI couldn’t build the track");
+    expect(alert).toHaveTextContent("No image was attached");
+    expect(alert).toHaveTextContent(/attach a track map/i);
+    expect(alert).not.toHaveTextContent("schemaVersion");
+    expect(onResult).toHaveBeenLastCalledWith(null);
+  });
+
   it("keeps Check JSON disabled for an empty or whitespace-only answer", async () => {
     await paste("   \n  ");
     expect(screen.getByRole("button", { name: "Check JSON" })).toBeDisabled();

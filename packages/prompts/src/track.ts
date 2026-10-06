@@ -84,7 +84,9 @@ ${lines.join("\n")}
 export function buildTrackPrompt(known: KnownTrackFacts = {}): string {
   return `You are helping build a structured database of race track knowledge.
 
-I have attached an image of a race circuit (a track map and/or screenshots). Identify the track and describe its layout as JSON.
+I will attach an image of a race circuit (a track map and/or screenshots). Identify the track and describe its layout as JSON.
+
+If no image is attached, or the image is not a race circuit you can identify, do not guess: reply with only {"error": "<short reason>"} (for example {"error": "No image was attached"}).
 ${knownFactsSection(known)}
 ## Required — the import is rejected without these
 - layout.lengthMeters: the official lap length in meters.${known.lengthMeters ? " Use the known value above." : ""}
@@ -101,7 +103,7 @@ ${knownFactsSection(known)}
 
 ## Rules
 - Output ONLY a single JSON object. No prose, no markdown code fences.
-- The JSON must validate against the JSON Schema below.
+- The JSON must validate against the JSON Schema below, unless you reply with the error object described above.
 - Use null when you are unsure of an optional value. Never guess.
 - Never invent corner names. If a corner has no well-known name, set "name" to null.
 - Use the official turn numbering when one exists.
