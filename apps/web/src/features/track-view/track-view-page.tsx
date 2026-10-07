@@ -8,8 +8,14 @@ import { CornerMarkers } from "./corner-markers";
 import { DeleteTrackButton } from "./delete-track-button";
 import { AddMapPanel } from "@/features/osm-map/add-map-panel";
 import { NoOutline } from "./no-outline";
+import { CornerGuideForm } from "./edit/corner-guide-form";
+import { CornerNotesForm } from "./edit/corner-notes-form";
+import { CarLinesLayer, carLines } from "./edit/car-lines";
+import { LinePoints, useLinePointPick } from "./edit/line-points";
+import type { LinePoint } from "./geometry/nearest";
 import { getRacingLine, RacingLineLayer } from "./racing-line";
 import { cornerFraction } from "./geometry/anchors";
+import { Button } from "@/shared/ui/button";
 import { SidePanel } from "./side-panel";
 import { TrackCanvas, type TrackCanvasHandle } from "./track-canvas";
 import { ToolButton, TrackViewShell } from "./track-view-shell";
@@ -36,6 +42,16 @@ function TrackView({ trackId }: { trackId: string }) {
   const [showChips, toggleChips] = useStoredToggle("track-view:chips", true);
   const [showRacingLine, toggleRacingLine] = useStoredToggle("track-view:racing-line", true);
   const [redoingMap, setRedoingMap] = useState(false);
+  const editing = params.get("edit") === "1";
+  const [picking, setPicking] = useState<LinePoint | null>(null);
+  const [pickError, setPickError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState<Record<string, boolean>>({});
+  const markDirty = (key: string) => (value: boolean) =>
+    setDirty((d) => (d[key] === value ? d : { ...d, [key]: value }));
+  const onCornerDirty = markDirty("corner");
+  const onGuideDirty = markDirty("guide");
+  const confirmDiscard = () =>
+    !Object.values(dirty).some(Boolean) || window.confirm("Discard unsaved changes?");
 
   // Until the global car picker exists (M4), the layout's guides are picked here.
   const guide = data?.guides.find((g) => g.id === params.get("guide")) ?? data?.guides[0] ?? null;
@@ -56,11 +72,33 @@ function TrackView({ trackId }: { trackId: string }) {
     },
     [params, pathname, router],
   );
-  const selectCorner = useCallback(
-    (id: string) => setParams({ corner: id, panel: null }),
-    [setParams],
-  );
-  const closePanel = useCallback(() => setParams({ corner: null, panel: null }), [setParams]);
+  const selectCorner = (id: string) => {
+    if (!confirmDiscard()) return;
+    setDirty({});
+    setPicking(null);
+    setParams({ corner: id, panel: null });
+  };
+  const closePanel = () => {
+    if (!confirmDiscard()) return;
+    setDirty({});
+    setPicking(null);
+    setParams({ corner: null, panel: null });
+  };
+  const toggleEdit = () => {
+    if (editing && !confirmDiscard()) return;
+    setDirty({});
+    setPicking(null);
+    setParams({ edit: editing ? null : "1" });
+  };
+
+  useEffect(() => {
+    if (!picking) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPicking(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [picking]);
 
   // Keep the selected corner out from under the side panel / bottom sheet.
   const selectedCorner = data?.corners.find((c) => c.id === cornerId);
@@ -81,6 +119,33 @@ function TrackView({ trackId }: { trackId: string }) {
     });
     return () => cancelAnimationFrame(frame);
   }, [selectedFraction]);
+
+  const selectedGuide = cornerGuides?.find((g) => g.cornerId === cornerId);
+  const pick = useLinePointPick({
+    guideId: guide?.id ?? "",
+    cornerId: cornerId ?? "",
+    guide: selectedGuide,
+    cornerFraction: selectedFraction,
+    lengthMeters: data?.layout?.lengthMeters ?? null,
+    point: picking ?? "apex",
+    onDone: () => {
+      setPicking(null);
+      setPickError(null);
+    },
+    onError: setPickError,
+  });
+  const lines = useMemo(
+    () =>
+      data?.layout?.outlinePath && cornerGuides
+        ? carLines({
+            outlinePath: data.layout.outlinePath,
+            lengthMeters: data.layout.lengthMeters,
+            corners: data.corners,
+            cornerGuides,
+          })
+        : [],
+    [data, cornerGuides],
+  );
 
   if (isPending) return <Message>Loading track…</Message>;
   if (error) return <Message>Could not load the track: {error.message}</Message>;
@@ -146,6 +211,12 @@ function TrackView({ trackId }: { trackId: string }) {
     );
   }
 
+  const editButton = (
+    <ToolButton pressed={editing} onClick={toggleEdit}>
+      Edit
+    </ToolButton>
+  );
+
   const panel = (
     <SidePanel
       open={selected !== null || listOpen}
@@ -166,13 +237,57 @@ function TrackView({ trackId }: { trackId: string }) {
               Practice from T{selected.number}
             </Link>
           }
+          hideNotes={editing}
           guide={
-            guide &&
-            currentGuideLabel && (
-              <CornerGuideSection
-                guide={cornerGuides?.find((g) => g.cornerId === selected.id)}
-                label={currentGuideLabel}
-              />
+            editing ? (
+              <div className="space-y-4">
+                <CornerNotesForm
+                  key={selected.id}
+                  trackId={track.id}
+                  corner={selected}
+                  onDirtyChange={onCornerDirty}
+                />
+                {guide && currentGuideLabel ? (
+                  <CornerGuideForm
+                    key={`${guide.id}:${selected.id}`}
+                    guideId={guide.id}
+                    cornerId={selected.id}
+                    label={`${currentGuideLabel} · T${selected.number}`}
+                    guide={selectedGuide}
+                    onDirtyChange={onGuideDirty}
+                  >
+                    <LinePoints
+                      guideId={guide.id}
+                      cornerId={selected.id}
+                      guide={selectedGuide}
+                      cornerFraction={selectedFraction}
+                      lengthMeters={layout.lengthMeters}
+                      hasOutline={layout.outlinePath !== null}
+                      picking={picking}
+                      onPickStart={(p) => {
+                        setPickError(null);
+                        setPicking(p);
+                      }}
+                      onPickEnd={() => setPicking(null)}
+                    />
+                    {pickError && (
+                      <p role="status" className="text-sm text-danger">
+                        {pickError}
+                      </p>
+                    )}
+                  </CornerGuideForm>
+                ) : (
+                  <section className="space-y-2 rounded-lg border border-dashed border-border p-3 text-muted">
+                    <p>Add a car to record its values for this corner.</p>
+                    <Button type="button">Add car</Button>
+                  </section>
+                )}
+              </div>
+            ) : (
+              guide &&
+              currentGuideLabel && (
+                <CornerGuideSection guide={selectedGuide} label={currentGuideLabel} />
+              )
             )
           }
         />
@@ -189,7 +304,7 @@ function TrackView({ trackId }: { trackId: string }) {
         canvas={
           <NoOutline track={track} layout={layout} corners={corners} onSelect={selectCorner} />
         }
-        controls={null}
+        controls={editButton}
         panel={panel}
       />
     );
@@ -206,7 +321,18 @@ function TrackView({ trackId }: { trackId: string }) {
             rotation={layout.rotation}
             lengthMeters={layout.lengthMeters}
             trackLayers={() =>
-              racingLine && showRacingLine && <RacingLineLayer line={racingLine} />
+              showRacingLine && (
+                <>
+                  {racingLine && <RacingLineLayer line={racingLine} dim={lines.length > 0} />}
+                  <CarLinesLayer lines={lines} />
+                </>
+              )
+            }
+            onPick={
+              editing && picking
+                ? (f) =>
+                    void pick(f).catch((e: Error) => setPickError(`Could not save: ${e.message}`))
+                : undefined
             }
             label={`Map of ${track.name}, ${layout.name} layout`}
             overlay={(ctx) => (
@@ -238,17 +364,23 @@ function TrackView({ trackId }: { trackId: string }) {
             Speed &amp; gear
           </ToolButton>
           <ToolButton
-            pressed={showRacingLine && racingLine !== null}
-            disabled={!racingLine}
+            pressed={showRacingLine && (racingLine !== null || lines.length > 0)}
+            disabled={!racingLine && lines.length === 0}
             onClick={toggleRacingLine}
           >
             Racing line
           </ToolButton>
+          {editButton}
           {guides.length > 0 && (
             <select
-              aria-label="Guide"
+              aria-label="Car"
               value={guide?.id}
-              onChange={(e) => setParams({ guide: e.target.value })}
+              onChange={(e) => {
+                if (!confirmDiscard()) return;
+                setDirty({});
+                setPicking(null);
+                setParams({ guide: e.target.value });
+              }}
               className="max-w-44 rounded-lg border border-border bg-transparent px-1.5 py-1 text-sm"
             >
               {guides.map((g) => (

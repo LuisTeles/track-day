@@ -16,6 +16,8 @@ interface CornerDetailsProps {
   guide?: ReactNode;
   /** Buttons or links shown above the details, e.g. "Practice from here". */
   actions?: ReactNode;
+  /** Hide the read-only notes and mistakes (edit mode shows forms instead). */
+  hideNotes?: boolean;
 }
 
 export function CornerDetails({
@@ -25,6 +27,7 @@ export function CornerDetails({
   onSelect,
   guide,
   actions,
+  hideNotes = false,
 }: CornerDetailsProps) {
   const memberOf = complexes.filter((c) => c.cornerIds.includes(corner.id));
   const index = allCorners.findIndex((c) => c.id === corner.id);
@@ -60,14 +63,14 @@ export function CornerDetails({
         </section>
       ))}
 
-      {corner.notes && (
+      {!hideNotes && corner.notes && (
         <section>
           <h3 className="font-medium">Notes</h3>
           <p className="mt-1 whitespace-pre-line">{corner.notes}</p>
         </section>
       )}
 
-      {corner.commonMistakes.length > 0 && (
+      {!hideNotes && corner.commonMistakes.length > 0 && (
         <section>
           <h3 className="font-medium">Common mistakes</h3>
           <ul className="mt-1 list-disc space-y-1 pl-5">

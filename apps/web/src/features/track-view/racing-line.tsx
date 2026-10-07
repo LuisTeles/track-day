@@ -10,7 +10,7 @@ export function getRacingLine(layout: Pick<Layout, "racingLine">): RacingLine | 
 }
 
 /** Drawn inside the canvas' rotated group, in the outline's coordinate space. */
-export function RacingLineLayer({ line }: { line: RacingLine }) {
+export function RacingLineLayer({ line, dim = false }: { line: RacingLine; dim?: boolean }) {
   return (
     <path
       d={line.path}
@@ -19,6 +19,7 @@ export function RacingLineLayer({ line }: { line: RacingLine }) {
       strokeWidth={2.5}
       strokeLinejoin="round"
       strokeLinecap="round"
+      opacity={dim ? 0.35 : 1}
       vectorEffect="non-scaling-stroke"
       data-testid="racing-line"
       data-source={line.source}
