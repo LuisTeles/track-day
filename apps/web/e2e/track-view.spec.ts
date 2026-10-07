@@ -121,7 +121,7 @@ test("speed & gear chips come from the guide and can be hidden", async ({ page }
 
   const t10 = page.getByRole("button", { name: /^Turn 10,/ });
   await expect(t10).toContainText("50 km/h · G2 est.");
-  await expect(page.getByRole("combobox", { name: "Guide" })).toHaveValue(/.+/);
+  await expect(page.getByRole("combobox", { name: "Car" })).toHaveValue(/.+/);
   await page.screenshot({ path: testInfo.outputPath("chips.png") });
 
   await t10.click();
@@ -150,7 +150,10 @@ test("tracks without a guide have no chips and the toggle is disabled", async ({
   await page.getByRole("link", { name: /Suzuka/ }).click();
   await expect(page.locator("[data-corner]")).toHaveCount(18);
   await expect(page.getByRole("button", { name: "Speed & gear" })).toBeDisabled();
-  await expect(page.getByRole("combobox", { name: "Guide" })).toHaveCount(0);
+  // The car select stays (to add a car) but has no car to pick.
+  await expect(page.getByRole("combobox", { name: "Car" }).locator("option:checked")).toHaveText(
+    "No car yet",
+  );
 });
 
 test("racing line layer can be toggled where one exists", async ({ page }, testInfo) => {

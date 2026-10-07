@@ -214,11 +214,13 @@ One corner per screen for a phone/tablet/second monitor next to the rig.
 - [x] P4 — Corner diagram from real geometry
 - [x] P5 — Wheel button binding (experimental); spike result pending a check on the sim PC (ADR-006)
 - [x] P6 — Offline (PWA), pulled forward from M5
+- [x] Car racing line from turn-in/apex/exit points (ADR-007)
 
 ### M2 — Tracks & corners
 
 - [x] shadcn/ui setup
 - [ ] Track/layout CRUD
+- [x] Corner notes and common mistakes editing (in-app editing spec, 2026-10-07)
 - [ ] Corner CRUD + ordering
 - [ ] Segments and complexes
 - [ ] Cascade soft-delete (track → layouts → corners…)
@@ -239,7 +241,8 @@ One corner per screen for a phone/tablet/second monitor next to the rig.
 
 - [ ] Car class / car CRUD + seed data
 - [ ] Global car + sim selector
-- [ ] Guide + CornerGuide editor
+- [x] Guide + CornerGuide editor
+- [x] Add a car (empty or from an AI guide) from the track view
 - [ ] Car → class fallback in the UI
 - [x] Car guide prompt template
 - [ ] AI-estimate badges + confirm action
@@ -272,3 +275,4 @@ One corner per screen for a phone/tablet/second monitor next to the rig.
 - **Guides keyed by sim:** yes — see ADR-004.
 - **Video import:** deferred to v2.
 - **Framework:** Next.js with static export instead of Vite — see ADR-003.
+- **Backend:** still deferred. Editing and practice happen on one device, so IndexedDB plus JSON backup is enough (2026-10-07).
