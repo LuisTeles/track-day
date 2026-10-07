@@ -51,7 +51,8 @@ export function useManualNavigator({ count, current, onChange, onExit, paused = 
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (paused) return;
+      // A layer above (e.g. a dialog closing on Escape) already took this key.
+      if (paused || e.defaultPrevented) return;
       if (e.altKey || e.ctrlKey || e.metaKey || ownsKey(e.target, e.key)) return;
       switch (e.key) {
         case "ArrowRight":

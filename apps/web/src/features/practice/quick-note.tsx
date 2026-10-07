@@ -36,7 +36,14 @@ export function QuickNote({
   const id = useId();
 
   return (
-    <AlertDialog open={open} onOpenChange={(next) => !append.isPending && onOpenChange(next)}>
+    <AlertDialog
+      open={open}
+      onOpenChange={(next) => {
+        if (append.isPending) return;
+        if (!next) append.reset();
+        onOpenChange(next);
+      }}
+    >
       <AlertDialogContent data-theme="practice">
         <AlertDialogTitle>Note for T{corner.number}</AlertDialogTitle>
         <AlertDialogDescription>

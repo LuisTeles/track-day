@@ -61,6 +61,16 @@ describe("useManualNavigator", () => {
     expect(onExit).not.toHaveBeenCalled();
   });
 
+  it("ignores a key another layer already handled", () => {
+    const onExit = vi.fn();
+    render(<Harness onExit={onExit} />);
+    const early = (e: Event) => e.preventDefault();
+    document.addEventListener("keydown", early, true);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", cancelable: true }));
+    document.removeEventListener("keydown", early, true);
+    expect(onExit).not.toHaveBeenCalled();
+  });
+
   it("taps: right two thirds next, left third previous; swipes", () => {
     render(<Harness />);
     const surface = screen.getByTestId("surface");
