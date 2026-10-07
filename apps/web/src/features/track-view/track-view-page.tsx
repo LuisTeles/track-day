@@ -321,6 +321,8 @@ function TrackView({ trackId }: { trackId: string }) {
           carClasses={data.carClasses ?? []}
           onAdded={(guideId) => {
             setAddingCar(false);
+            setDirty({});
+            setPicking(null);
             setParams({ guide: guideId });
           }}
         />
@@ -406,7 +408,10 @@ function TrackView({ trackId }: { trackId: string }) {
             aria-label="Car"
             value={guide?.id ?? "__none__"}
             onChange={(e) => {
-              if (e.target.value === "__add__") return setAddingCar(true);
+              if (e.target.value === "__add__") {
+                if (confirmDiscard()) setAddingCar(true);
+                return;
+              }
               if (!confirmDiscard()) return;
               setDirty({});
               setPicking(null);

@@ -155,12 +155,18 @@ export function AddCarDialog({
           <fieldset className="space-y-1 text-sm">
             <legend className="font-medium">Start</legend>
             <label className="flex items-center gap-2">
-              <input type="radio" checked={start === "empty"} onChange={() => setStart("empty")} />
+              <input
+                type="radio"
+                name={`${id}-start`}
+                checked={start === "empty"}
+                onChange={() => setStart("empty")}
+              />
               Start empty
             </label>
             <label className="flex items-center gap-2">
               <input
                 type="radio"
+                name={`${id}-start`}
                 checked={start === "ai"}
                 disabled={!prompt}
                 onChange={() => setStart("ai")}

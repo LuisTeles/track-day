@@ -98,6 +98,22 @@ describe("TrackViewPage edit mode", () => {
     confirm.mockRestore();
   });
 
+  it("asks before opening Add car over unsaved edits", async () => {
+    const { t1, user } = await open({ edit: "1" });
+    search.set("corner", t1.id);
+    rerenderPage();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    await user.type(await screen.findByLabelText("Corner notes"), "x");
+    await user.selectOptions(screen.getByLabelText("Car"), "__add__");
+    expect(confirm).toHaveBeenCalledWith("Discard unsaved changes?");
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+
+    confirm.mockReturnValue(true);
+    await user.selectOptions(screen.getByLabelText("Car"), "__add__");
+    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
+    confirm.mockRestore();
+  });
+
   it("keeps focus and every keystroke while typing in the notes", async () => {
     const { t1, user } = await open({ edit: "1" });
     search.set("corner", t1.id);
