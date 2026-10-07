@@ -60,7 +60,23 @@ describe("cornerDiagram", () => {
     });
     expect(d.markers.filter((m) => m.kind === "apex")).toHaveLength(2);
     expect(d.racingLine!.length).toBeGreaterThan(10);
+    expect(d.lineSource).toBe("layout");
     expect(dist(d.racingLine![0]!, d.centerline[0]!)).toBeLessThan(10);
+  });
+
+  it("draws a car's generated line in place of the layout's", () => {
+    const line = [
+      { x: 1, y: 1 },
+      { x: 2, y: 2 },
+    ];
+    const d = cornerDiagram({ ...base, corners: [{ apex: 0.3 }], line });
+    expect(d.lineSource).toBe("car");
+    expect(d.racingLine).toHaveLength(2);
+  });
+
+  it("reports no line source without a line", () => {
+    const d = cornerDiagram({ ...base, corners: [{ apex: 0.3 }] });
+    expect(d.lineSource).toBeNull();
   });
 });
 

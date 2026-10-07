@@ -1,5 +1,7 @@
+"use client";
+
 import type { CornerGuide } from "@track-day/schema";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { isEstimate } from "@/features/guides/estimate";
 import { brakeAtText, pressureOf } from "./format";
 
@@ -21,6 +23,8 @@ export interface PracticeCardProps {
   guideLabel: string | null;
   next: NextCorner | null;
   diagram?: ReactNode;
+  /** Car notes, corner notes and common mistakes for this step. */
+  notes?: { car: string; corner: string; mistakes: string[] } | null;
 }
 
 const DASH = "—";
@@ -37,6 +41,7 @@ export function PracticeCard({
   guideLabel,
   next,
   diagram,
+  notes,
 }: PracticeCardProps) {
   const brakeAt = brakeAtText(guide);
   const pressure = pressureOf(guide);
@@ -130,6 +135,7 @@ export function PracticeCard({
               </p>
             </>
           )}
+          <PracticeNotes notes={notes ?? null} />
         </div>
         {diagram && (
           <div className="min-h-0 min-w-0 basis-2/5 portrait:max-h-[35%] landscape:basis-[40%]">
@@ -190,6 +196,47 @@ function Tile({
         </span>
         {extra}
       </dd>
+    </div>
+  );
+}
+
+function PracticeNotes({
+  notes,
+}: {
+  notes: { car: string; corner: string; mistakes: string[] } | null;
+}) {
+  const [open, setOpen] = useState(false);
+  if (!notes) return null;
+  const parts = [notes.car.trim(), notes.corner.trim()].filter(Boolean);
+  if (parts.length === 0 && notes.mistakes.length === 0) return null;
+  return (
+    <div
+      data-testid="practice-notes"
+      data-no-nav
+      className="shrink-0 rounded-2xl bg-surface p-[calc(0.75rem*var(--practice-scale,1))] text-[calc(clamp(0.95rem,2.6vmin,1.4rem)*var(--practice-scale,1))]"
+    >
+      <div className={open ? "space-y-2" : "line-clamp-3 space-y-2"}>
+        {parts.map((p, i) => (
+          <p key={i} className="whitespace-pre-line">
+            {p}
+          </p>
+        ))}
+      </div>
+      {open && notes.mistakes.length > 0 && (
+        <ul className="mt-2 list-disc pl-5 text-muted">
+          {notes.mistakes.map((m, i) => (
+            <li key={i}>{m}</li>
+          ))}
+        </ul>
+      )}
+      <button
+        type="button"
+        className="mt-1 text-sm text-muted underline"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+      >
+        {open ? "Fewer notes" : "More notes"}
+      </button>
     </div>
   );
 }

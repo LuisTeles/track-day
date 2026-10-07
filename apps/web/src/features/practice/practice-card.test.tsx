@@ -1,5 +1,6 @@
 import type { CornerGuide } from "@track-day/schema";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { brakeAtText, directionText, pressureOf, titleOf } from "./format";
 import { PracticeCard, type PracticeCardProps } from "./practice-card";
@@ -79,6 +80,39 @@ describe("PracticeCard", () => {
     ).toBeInTheDocument();
     render(<PracticeCard {...props({ guide: null, guideLabel: null })} />);
     expect(screen.getByText("No guide for this layout yet.")).toBeInTheDocument();
+  });
+
+  it("shows car notes first, then corner notes, and expands to the mistakes", async () => {
+    render(
+      <PracticeCard
+        {...props({
+          notes: {
+            car: "Brake at 120 in the MX-5",
+            corner: "Bumpy entry",
+            mistakes: ["Early apex"],
+          },
+        })}
+      />,
+    );
+    const notes = screen.getByTestId("practice-notes");
+    expect(notes).toHaveTextContent(/Brake at 120 in the MX-5.*Bumpy entry/);
+    expect(screen.queryByText("Early apex")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "More notes" }));
+    expect(screen.getByText("Early apex")).toBeInTheDocument();
+  });
+
+  it("shows corner notes even without a guide", () => {
+    render(
+      <PracticeCard
+        {...props({ guide: null, notes: { car: "", corner: "Bumpy", mistakes: [] } })}
+      />,
+    );
+    expect(screen.getByTestId("practice-notes")).toHaveTextContent("Bumpy");
+  });
+
+  it("has no notes area when there are no notes", () => {
+    render(<PracticeCard {...props({ notes: { car: "", corner: "", mistakes: [] } })} />);
+    expect(screen.queryByTestId("practice-notes")).not.toBeInTheDocument();
   });
 });
 

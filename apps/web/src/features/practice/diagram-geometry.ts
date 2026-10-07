@@ -18,6 +18,8 @@ export interface DiagramInput {
   /** Distance-board value: meters before the first corner's turn-in (ADR-006). */
   brakeMeters?: number | null;
   racingLine?: TrackPath | null;
+  /** A car's generated line (path coordinates); drawn instead of `racingLine`. */
+  line?: Point[] | null;
 }
 
 export interface DiagramMarker {
@@ -33,6 +35,7 @@ export interface Diagram {
   /** Centerline slice, rotated so the approach points up (screen y-down). */
   centerline: Point[];
   racingLine: Point[] | null;
+  lineSource: "car" | "layout" | null;
   markers: DiagramMarker[];
   bounds: Bounds;
   unitsPerMeter: number;
@@ -56,6 +59,7 @@ export function cornerDiagram({
   corners,
   brakeMeters,
   racingLine,
+  line,
 }: DiagramInput): Diagram {
   const first = corners[0]!;
   const last = corners[corners.length - 1]!;
@@ -103,9 +107,12 @@ export function cornerDiagram({
   const centerline = raw.map(orient);
   return {
     centerline,
-    racingLine: racingLine
-      ? sliceNear(racingLine, raw[0]!, raw[raw.length - 1]!).map(orient)
-      : null,
+    racingLine: line
+      ? line.map(orient)
+      : racingLine
+        ? sliceNear(racingLine, raw[0]!, raw[raw.length - 1]!).map(orient)
+        : null,
+    lineSource: line ? "car" : racingLine ? "layout" : null,
     markers,
     bounds: boundsOf(centerline),
     unitsPerMeter,
@@ -173,6 +180,7 @@ export function schematicDiagram(type: Corner["type"], direction: Corner["direct
   return {
     centerline: points,
     racingLine: null,
+    lineSource: null,
     markers: [{ kind: "apex", point: apex }],
     bounds: boundsOf(points),
     unitsPerMeter: 1,

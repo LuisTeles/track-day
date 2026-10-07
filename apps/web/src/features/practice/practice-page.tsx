@@ -1,5 +1,6 @@
 "use client";
 
+import { cornerLine } from "@/features/track-view/geometry/corner-line";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -164,12 +165,29 @@ function Practice({ trackId }: { trackId: string }) {
       ];
     });
     if (outline && layout.lengthMeters && positions.length === s.corners.length) {
+      const hasCarPoints = s.corners.some((_, i) => {
+        const l = guides[i]?.line;
+        return l != null && (l.turnInAt ?? l.apexAt ?? l.exitAt) != null;
+      });
+      const generated = hasCarPoints
+        ? cornerLine({
+            path: outline,
+            lengthMeters: layout.lengthMeters,
+            corners: s.corners.map((c, i) => ({
+              direction: c.direction,
+              turnIn: positions[i]!.turnIn ?? null,
+              apex: positions[i]!.apex,
+              exit: positions[i]!.exit ?? null,
+            })),
+          })
+        : null;
       const diagram = cornerDiagram({
         path: outline,
         lengthMeters: layout.lengthMeters,
         corners: positions,
         brakeMeters: guides[0]?.brakeMarkerMeters ?? null,
         racingLine: racingPath,
+        line: generated?.points ?? null,
       });
       return (
         // The diagram fills the space left after the credit line, so the
@@ -277,6 +295,17 @@ function Practice({ trackId }: { trackId: string }) {
         direction={directionText(step.corners)}
         guide={session.guide ? stepGuide(step, session.guideFor) : null}
         guideLabel={session.guideLabel}
+        notes={{
+          car: step.corners
+            .map((c) => (session.guide ? (session.guideFor(c.id)?.notes ?? "") : ""))
+            .filter(Boolean)
+            .join("\n"),
+          corner: step.corners
+            .map((c) => c.notes)
+            .filter(Boolean)
+            .join("\n"),
+          mistakes: step.corners.flatMap((c) => c.commonMistakes),
+        }}
         next={{
           title: titleOf(nextStep.corners),
           name: nextStep.complex?.name ?? nextStep.corners[0]!.name,

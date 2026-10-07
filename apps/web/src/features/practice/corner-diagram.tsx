@@ -76,6 +76,7 @@ export function CornerDiagram({ diagram, apexLabels, brakeLabel }: CornerDiagram
             strokeWidth={width * 0.18}
             strokeLinecap="round"
             data-testid="diagram-racing-line"
+            data-source={diagram.lineSource ?? undefined}
           />
         )}
 
