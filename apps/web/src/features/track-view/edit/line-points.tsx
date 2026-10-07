@@ -91,6 +91,7 @@ export function LinePoints({
   picking,
   onPickStart,
   onPickEnd,
+  onError,
 }: {
   guideId: string;
   cornerId: string;
@@ -101,6 +102,8 @@ export function LinePoints({
   picking: LinePoint | null;
   onPickStart(point: LinePoint): void;
   onPickEnd(): void;
+  /** A clear that failed to save, shown with the pick errors. */
+  onError(message: string): void;
 }) {
   const save = useSaveCornerGuide();
   const set = positions(guide);
@@ -124,12 +127,15 @@ export function LinePoints({
                 variant="outline"
                 aria-label={`Clear ${NAMES[p]}`}
                 onClick={() =>
-                  save.mutate({
-                    guideId,
-                    cornerId,
-                    existing: guide,
-                    patch: { line: lineWith(guide, p, null) },
-                  })
+                  save.mutate(
+                    {
+                      guideId,
+                      cornerId,
+                      existing: guide,
+                      patch: { line: lineWith(guide, p, null) },
+                    },
+                    { onError: (e) => onError(`Could not save: ${e.message}`) },
+                  )
                 }
               >
                 ×

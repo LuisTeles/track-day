@@ -135,7 +135,8 @@ export function PracticeCard({
               </p>
             </>
           )}
-          <PracticeNotes notes={notes ?? null} />
+          {/* Keyed so "More notes" collapses again on the next corner. */}
+          <PracticeNotes key={title} notes={notes ?? null} />
         </div>
         {diagram && (
           <div className="min-h-0 min-w-0 basis-2/5 portrait:max-h-[35%] landscape:basis-[40%]">

@@ -101,6 +101,15 @@ describe("PracticeCard", () => {
     expect(screen.getByText("Early apex")).toBeInTheDocument();
   });
 
+  it("collapses the notes again on the next corner", async () => {
+    const notes = { car: "Brake at 120", corner: "Bumpy entry", mistakes: ["Early apex"] };
+    const { rerender } = render(<PracticeCard {...props({ notes })} />);
+    await userEvent.click(screen.getByRole("button", { name: "More notes" }));
+    expect(screen.getByText("Early apex")).toBeInTheDocument();
+    rerender(<PracticeCard {...props({ title: "T2", notes })} />);
+    expect(screen.queryByText("Early apex")).not.toBeInTheDocument();
+  });
+
   it("shows corner notes even without a guide", () => {
     render(
       <PracticeCard

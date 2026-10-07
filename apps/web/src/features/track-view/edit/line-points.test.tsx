@@ -94,6 +94,7 @@ describe("LinePoints", () => {
       picking: null,
       onPickStart,
       onPickEnd: vi.fn(),
+      onError: vi.fn(),
     };
     const Wrapper = wrap({ cornerGuides: { update } as never });
     const { rerender } = render(<LinePoints {...props} hasOutline />, { wrapper: Wrapper });
@@ -108,5 +109,27 @@ describe("LinePoints", () => {
     rerender(<LinePoints {...props} hasOutline={false} />);
     expect(screen.getByRole("button", { name: "Set apex" })).toBeDisabled();
     expect(screen.getByText(/Add a map from OpenStreetMap/)).toBeInTheDocument();
+  });
+
+  it("reports a failed clear", async () => {
+    const update = vi.fn().mockRejectedValue(new Error("Disk full"));
+    const onError = vi.fn();
+    render(
+      <LinePoints
+        guideId="g1"
+        cornerId="c1"
+        guide={guide()}
+        cornerFraction={0.5}
+        lengthMeters={4000}
+        hasOutline
+        picking={null}
+        onPickStart={vi.fn()}
+        onPickEnd={vi.fn()}
+        onError={onError}
+      />,
+      { wrapper: wrap({ cornerGuides: { update } as never }) },
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Clear apex" }));
+    await vi.waitFor(() => expect(onError).toHaveBeenCalledWith("Could not save: Disk full"));
   });
 });

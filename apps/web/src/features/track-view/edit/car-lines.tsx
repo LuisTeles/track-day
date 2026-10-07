@@ -44,7 +44,8 @@ export function carLines({
       lines.push({
         cornerId: corner.id,
         d: pointsToPath(generated.points),
-        estimated: generated.estimated,
+        // No apex of its own: the corner's position stands in, so it's a guess too.
+        estimated: generated.estimated || line.apexAt == null,
       });
     }
   }

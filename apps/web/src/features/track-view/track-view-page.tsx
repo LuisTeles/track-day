@@ -323,6 +323,7 @@ function TrackView({ trackId }: { trackId: string }) {
                           setPicking(p);
                         }}
                         onPickEnd={() => setPicking(null)}
+                        onError={setPickError}
                       />
                       {pickError && (
                         <p role="status" className="text-sm text-danger">

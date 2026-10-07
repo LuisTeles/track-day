@@ -46,13 +46,19 @@ describe("carLines", () => {
     ).toEqual([]);
   });
 
-  it("falls back to the corner's position for the apex", () => {
-    const lines = carLines({
-      outlinePath,
-      lengthMeters: 4000,
-      corners: [corner("a", "right")],
-      cornerGuides: [cg("a", { turnInAt: 0.11 })],
-    });
-    expect(lines).toHaveLength(1);
+  it("falls back to the corner's position for the apex, marked as estimated", () => {
+    const lines = (line: Partial<CornerGuide["line"]>) =>
+      carLines({
+        outlinePath,
+        lengthMeters: 4000,
+        corners: [corner("a", "right")],
+        cornerGuides: [cg("a", line)],
+      });
+    expect(lines({ turnInAt: 0.11, apexAt: 0.125, exitAt: 0.14 })).toEqual([
+      expect.objectContaining({ estimated: false }),
+    ]);
+    expect(lines({ turnInAt: 0.11, exitAt: 0.14 })).toEqual([
+      expect.objectContaining({ estimated: true }),
+    ]);
   });
 });

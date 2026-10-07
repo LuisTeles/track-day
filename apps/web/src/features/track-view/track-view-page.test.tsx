@@ -287,6 +287,25 @@ describe("TrackViewPage edit mode", () => {
     rect.mockRestore();
   });
 
+  it("shows a failed clear, and drops the error on another corner", async () => {
+    const { t1, t2, user } = await open({ edit: "1" }, ({ guideId, t1 }) =>
+      repos.cornerGuides.create({
+        ...emptyCornerGuide(guideId, t1.id),
+        line: { turnIn: null, apex: null, exit: null, turnInAt: null, apexAt: 0.02, exitAt: null },
+      }),
+    );
+    search.set("corner", t1.id);
+    rerenderPage();
+    vi.spyOn(repos.cornerGuides, "update").mockRejectedValueOnce(new Error("Disk full"));
+    await user.click(await screen.findByRole("button", { name: "Clear apex" }));
+    expect(await screen.findByText("Could not save: Disk full")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /^Turn 2,/ }));
+    expect(search.get("corner")).toBe(t2.id);
+    await screen.findByRole("form", { name: /GT3 · any sim · T2/ });
+    expect(screen.queryByText("Could not save: Disk full")).not.toBeInTheDocument();
+  });
+
   it("toggles edit mode from the toolbar", async () => {
     const { user } = await open({});
     await user.click(await screen.findByRole("button", { name: "Edit" }));
