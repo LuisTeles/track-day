@@ -6,6 +6,8 @@ interface Options {
   current: number;
   onChange(index: number): void;
   onExit?(): void;
+  /** While true (e.g. a sheet is open) keys, taps and swipes do nothing. */
+  paused?: boolean;
 }
 
 const SWIPE_PX = 50;
@@ -35,7 +37,7 @@ function ownsKey(target: EventTarget | null, key: string) {
  * Text fields keep their keys, and Space on a focused button only presses
  * the button, so it never also advances the corner.
  */
-export function useManualNavigator({ count, current, onChange, onExit }: Options) {
+export function useManualNavigator({ count, current, onChange, onExit, paused = false }: Options) {
   const navigator = useMemo<CornerNavigator>(
     () => ({
       current,
@@ -49,6 +51,7 @@ export function useManualNavigator({ count, current, onChange, onExit }: Options
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (paused) return;
       if (e.altKey || e.ctrlKey || e.metaKey || ownsKey(e.target, e.key)) return;
       switch (e.key) {
         case "ArrowRight":
@@ -74,14 +77,15 @@ export function useManualNavigator({ count, current, onChange, onExit }: Options
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [navigator, onExit]);
+  }, [navigator, onExit, paused]);
 
   const start = useRef<{ x: number; y: number; t: number } | null>(null);
   const surfaceProps = {
     onPointerDown(e: PointerEvent<HTMLElement>) {
-      start.current = matches(e.target, INTERACTIVE)
-        ? null
-        : { x: e.clientX, y: e.clientY, t: e.timeStamp };
+      start.current =
+        paused || matches(e.target, INTERACTIVE)
+          ? null
+          : { x: e.clientX, y: e.clientY, t: e.timeStamp };
     },
     onPointerUp(e: PointerEvent<HTMLElement>) {
       const s = start.current;

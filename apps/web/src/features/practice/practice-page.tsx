@@ -34,6 +34,7 @@ import { CornerDiagram } from "./corner-diagram";
 import { cornerDiagram, schematicDiagram, type CornerPositions } from "./diagram-geometry";
 import { brakeAtText, directionText, titleOf } from "./format";
 import { PracticeCard } from "./practice-card";
+import { QuickNote } from "./quick-note";
 import { usePracticeSession } from "./use-practice-session";
 
 /** `?track=&layout=&guide=&corner=<number>` (ADR-006). */
@@ -56,6 +57,7 @@ function Practice({ trackId }: { trackId: string }) {
     layoutParam,
     params.get("guide") ?? remembered?.guide ?? null,
   );
+  const [noting, setNoting] = useState(false);
   const wakeLock = useWakeLock();
   const fullscreen = useFullscreen();
   const [fontSize, setFontSize] = useStoredChoice("practice:font-size", FONT_SIZES, "M");
@@ -123,6 +125,7 @@ function Practice({ trackId }: { trackId: string }) {
     current,
     onChange: goToStep,
     onExit: exit,
+    paused: noting,
   });
 
   // Optional wheel/gamepad button (experimental, desktop second monitor).
@@ -135,7 +138,11 @@ function Practice({ trackId }: { trackId: string }) {
   const { supported: gamepadSupported } = useGamepadButtons({
     bindings,
     capturing: capturing !== null,
-    onAction: (action) => (action === "next" ? navigator.next() : navigator.prev()),
+    onAction: (action) => {
+      if (noting) return;
+      if (action === "next") navigator.next();
+      else navigator.prev();
+    },
     onCapture: (binding) => {
       if (capturing) updateBindings({ ...bindings, [capturing]: binding });
       setCapturing(null);
@@ -223,6 +230,7 @@ function Practice({ trackId }: { trackId: string }) {
           <span className="text-muted tabular-nums max-sm:mr-auto">
             {current + 1}/{steps.length}
           </span>
+          <ControlButton onClick={() => setNoting(true)}>Note</ControlButton>
           <ControlButton onClick={navigator.prev} aria-label="Previous corner">
             ‹ Prev
           </ControlButton>
@@ -312,6 +320,14 @@ function Practice({ trackId }: { trackId: string }) {
           direction: directionText(nextStep.corners),
           brakeAt: brakeAtText(stepGuide(nextStep, session.guideFor)),
         }}
+      />
+      <QuickNote
+        trackId={trackId}
+        corner={step.corners[0]!}
+        guideId={session.guide?.id ?? null}
+        existing={session.guide ? (session.guideFor(step.corners[0]!.id) ?? undefined) : undefined}
+        open={noting}
+        onOpenChange={setNoting}
       />
     </PracticeShell>
   );

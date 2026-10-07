@@ -4,13 +4,14 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { useManualNavigator } from "./use-manual-navigator";
 
-function Harness({ onExit = vi.fn() }: { onExit?: () => void }) {
+function Harness({ onExit = vi.fn(), paused = false }: { onExit?: () => void; paused?: boolean }) {
   const [current, setCurrent] = useState(0);
   const { navigator, surfaceProps } = useManualNavigator({
     count: 3,
     current,
     onChange: setCurrent,
     onExit,
+    paused,
   });
   return (
     <div data-testid="surface" {...surfaceProps} style={{ width: 300, height: 100 }}>
@@ -48,6 +49,16 @@ describe("useManualNavigator", () => {
     render(<Harness onExit={onExit} />);
     await userEvent.keyboard("{Escape}");
     expect(onExit).toHaveBeenCalled();
+  });
+
+  it("ignores keys and taps while paused", async () => {
+    const onExit = vi.fn();
+    render(<Harness onExit={onExit} paused />);
+    await userEvent.keyboard("{ArrowRight}{Escape}");
+    fireEvent.pointerDown(screen.getByTestId("surface"), { clientX: 250, clientY: 50 });
+    fireEvent.pointerUp(screen.getByTestId("surface"), { clientX: 250, clientY: 50 });
+    expect(screen.getByText("Step 1")).toBeInTheDocument();
+    expect(onExit).not.toHaveBeenCalled();
   });
 
   it("taps: right two thirds next, left third previous; swipes", () => {
