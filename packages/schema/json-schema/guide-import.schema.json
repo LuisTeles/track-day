@@ -131,6 +131,56 @@
               }
             ]
           },
+          "brakePressure": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["none", "light", "firm", "heavy"]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "brakePressurePct": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cue": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 160
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "downshiftTo": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 10
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notes": {
+            "type": ["string", "null"]
+          },
           "confidence": {
             "anyOf": [
               {

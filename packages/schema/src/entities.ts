@@ -210,6 +210,8 @@ export const CornerGuide = EntityBase.extend({
    * (e.g. down to 2nd to rotate the car, apex in 3rd). See ADR-006.
    */
   downshiftTo: z.number().int().min(1).max(10).nullable().default(null),
+  /** Free text for this car at this corner (edited in the app, or quick notes from practice). */
+  notes: z.string().default(""),
   source: Source,
   confidence: Confidence.nullable(),
 });

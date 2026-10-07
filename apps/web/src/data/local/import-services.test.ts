@@ -168,4 +168,28 @@ describe("importGuide", () => {
     ).rejects.toThrow(/numbered 99/);
     expect(await db.guides.count()).toBe(0);
   });
+
+  it("stores per-corner notes, and defaults them to empty", async () => {
+    const { layoutId } = await repos.trackImport.importTrack(interlagos);
+    const classId = (
+      await repos.carClasses.create({
+        name: "Road car",
+        description: "",
+        drivetrain: null,
+        downforce: null,
+      })
+    ).id;
+    const { guideId } = await repos.guideImport.importGuide(
+      { ...guide, corners: [{ cornerNumber: 1, notes: "Bumpy" }, { cornerNumber: 2 }] },
+      { layoutId, target: { carClassId: classId }, sim: null },
+    );
+    const notes = (await repos.cornerGuides.listByGuide(guideId)).map((g) => g.notes).sort();
+    expect(notes).toEqual(["", "Bumpy"]);
+
+    // A backup round-trip keeps them.
+    const backup = await repos.backup.exportAll();
+    await repos.backup.importAll(backup, "replace");
+    const restored = (await repos.cornerGuides.listByGuide(guideId)).map((g) => g.notes).sort();
+    expect(restored).toEqual(["", "Bumpy"]);
+  });
 });

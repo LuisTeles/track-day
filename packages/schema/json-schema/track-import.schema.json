@@ -101,6 +101,17 @@
             }
           ]
         },
+        "outlineSource": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": ["osm"]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "rotation": {
           "anyOf": [
             {

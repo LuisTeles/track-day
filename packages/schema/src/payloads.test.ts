@@ -205,7 +205,46 @@ describe("CornerGuide defaults", () => {
       brakePressurePct: null,
       cue: null,
       downshiftTo: null,
+      notes: "",
     });
+  });
+
+  it("keeps notes when present", () => {
+    const now = "2026-01-01T00:00:00.000Z";
+    const parsed = CornerGuide.parse({
+      id: crypto.randomUUID(),
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null,
+      guideId: crypto.randomUUID(),
+      cornerId: crypto.randomUUID(),
+      brakeReference: null,
+      brakeMarkerMeters: null,
+      entrySpeedKmh: null,
+      minSpeedKmh: null,
+      exitSpeedKmh: null,
+      gear: null,
+      line: { turnIn: null, apex: null, exit: null, turnInAt: null, apexAt: null, exitAt: null },
+      throttleNotes: "",
+      trailBrakeNotes: "",
+      priority: null,
+      source: "manual",
+      confidence: null,
+      notes: "Kerb on exit is high",
+    });
+    expect(parsed.notes).toBe("Kerb on exit is high");
+  });
+});
+
+describe("GuideImportPayload notes", () => {
+  it("accepts per-corner notes", () => {
+    const parsed = GuideImportPayload.parse({
+      schemaVersion: 1,
+      kind: "guide",
+      guide: {},
+      corners: [{ cornerNumber: 1, notes: "Bumpy under braking" }],
+    });
+    expect(parsed.corners[0]!.notes).toBe("Bumpy under braking");
   });
 });
 

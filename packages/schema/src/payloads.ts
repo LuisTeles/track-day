@@ -209,6 +209,7 @@ export const GuideImportPayload = z.object({
       brakePressurePct: opt(z.number().min(0).max(100)),
       cue: opt(z.string().trim().min(1).max(CUE_MAX_LENGTH)),
       downshiftTo: opt(z.number().int().min(1).max(10)),
+      notes: opt(z.string()),
       confidence: opt(Confidence),
     }),
   ),

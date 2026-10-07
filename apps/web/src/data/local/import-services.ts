@@ -146,6 +146,7 @@ export class LocalGuideImportService implements GuideImportService {
           brakePressurePct: c.brakePressurePct ?? null,
           cue: c.cue ?? null,
           downshiftTo: c.downshiftTo ?? null,
+          notes: c.notes ?? "",
           source,
           confidence: c.confidence ?? null,
         });
