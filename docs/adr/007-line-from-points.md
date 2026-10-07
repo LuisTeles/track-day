@@ -14,6 +14,7 @@ Users want to mark the line they take through a corner, per car, on a phone or t
 - A lead-in 40 m before turn-in and a lead-out 40 m after exit, on the outside, then a centripetal Catmull-Rom curve.
 - Missing turn-in or exit is estimated (60 m before / 50 m after the apex) and drawn dashed. No apex or no direction: no line.
 - A car's generated line is drawn on top of the layout's imported line, which is dimmed; in practice it replaces it.
+- A corner complex is drawn as one line through its corners in lap order.
 
 ## Consequences
 
