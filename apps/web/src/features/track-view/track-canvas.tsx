@@ -1,7 +1,9 @@
 "use client";
 
 import { useImperativeHandle, useMemo, useRef, type ReactNode, type Ref } from "react";
+import { rotatePoint } from "./geometry/bounds";
 import { fitToViewport } from "./geometry/fit";
+import { nearestFraction } from "./geometry/nearest";
 import { applyAffine, composeAffine, type Affine, type Point, type Size } from "./geometry/types";
 import { useSize } from "./use-size";
 import { useTrackGeometry, type TrackGeometry } from "./use-track-geometry";
@@ -44,6 +46,8 @@ interface TrackCanvasProps {
   /** Screen-space overlays (markers, labels). */
   overlay?: (ctx: CanvasContext) => ReactNode;
   label: string;
+  /** Pick mode: a click/tap (not a drag) reports the nearest lap position. */
+  onPick?: (fraction: number) => void;
   ref?: Ref<TrackCanvasHandle>;
 }
 
@@ -58,6 +62,7 @@ export function TrackCanvas({
   trackLayers,
   overlay,
   label,
+  onPick,
   ref,
 }: TrackCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -107,10 +112,35 @@ export function TrackCanvas({
   const start = ctx.toScreen(geometry.pointAt(0));
   const startTangent = geometry.tangentAt(0);
 
+  const down = useRef<{ x: number; y: number } | null>(null);
+  const pickProps = onPick
+    ? {
+        onPointerDown: (e: React.PointerEvent) => {
+          down.current = { x: e.clientX, y: e.clientY };
+        },
+        onClick: (e: React.MouseEvent<HTMLDivElement>) => {
+          const start = down.current;
+          down.current = null;
+          if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 5) return;
+          const rect = e.currentTarget.getBoundingClientRect();
+          const screen = composeAffine(zoom, fit);
+          const display = {
+            x: (e.clientX - rect.left - screen.x) / screen.k,
+            y: (e.clientY - rect.top - screen.y) / screen.k,
+          };
+          const outline = rotatePoint(display, -geometry.rotation, geometry.pivot);
+          onPick(nearestFraction(geometry.path, outline));
+        },
+      }
+    : {};
+
   return (
     <div
       ref={containerRef}
-      className="absolute inset-0 cursor-grab touch-none overflow-hidden select-none active:cursor-grabbing"
+      {...pickProps}
+      className={`absolute inset-0 touch-none overflow-hidden select-none ${
+        onPick ? "cursor-crosshair" : "cursor-grab active:cursor-grabbing"
+      }`}
     >
       <svg
         width={viewport.width}
@@ -156,7 +186,17 @@ export function TrackCanvas({
           </>
         )}
       </svg>
-      {ready && overlay?.(ctx)}
+      {ready && (
+        // While picking, nothing in the overlay may swallow the click, even markers
+        // that opt back in with pointer-events-auto.
+        <div
+          className={
+            onPick ? "pointer-events-none contents [&_*]:pointer-events-none!" : "contents"
+          }
+        >
+          {overlay?.(ctx)}
+        </div>
+      )}
     </div>
   );
 }
