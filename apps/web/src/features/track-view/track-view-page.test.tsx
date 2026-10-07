@@ -91,6 +91,17 @@ describe("TrackViewPage", () => {
   });
 });
 
+describe("TrackViewPage without an outline", () => {
+  it("still offers the car picker", async () => {
+    await open({}, ({ layoutId }) =>
+      repos.layouts.update(layoutId, { outlinePath: null, outlineSource: null }),
+    );
+    const car = await screen.findByRole("combobox", { name: "Car" });
+    expect(within(car).getByRole("option", { name: "+ Add car…" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+  });
+});
+
 describe("TrackViewPage edit mode", () => {
   it("shows the edit forms for the selected corner", async () => {
     const { t1 } = await open({ edit: "1" });

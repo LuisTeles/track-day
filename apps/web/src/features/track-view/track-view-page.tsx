@@ -239,6 +239,33 @@ function TrackView({ trackId }: { trackId: string }) {
     </ToolButton>
   );
 
+  const carPicker = (
+    <select
+      aria-label="Car"
+      value={guide?.id ?? "__none__"}
+      onChange={(e) => {
+        if (e.target.value === "__add__") {
+          if (confirmDiscard()) setAddingCar(true);
+          return;
+        }
+        if (leaveEdits()) setParams({ guide: e.target.value });
+      }}
+      className="max-w-44 rounded-lg border border-border bg-transparent px-1.5 py-1 text-sm"
+    >
+      {guides.length === 0 && (
+        <option value="__none__" disabled>
+          No car yet
+        </option>
+      )}
+      {guides.map((g) => (
+        <option key={g.id} value={g.id}>
+          {guideLabel(g, data.carClasses ?? [], data.cars ?? [])}
+        </option>
+      ))}
+      <option value="__add__">+ Add car…</option>
+    </select>
+  );
+
   const panel = (
     <>
       <SidePanel
@@ -351,7 +378,12 @@ function TrackView({ trackId }: { trackId: string }) {
         canvas={
           <NoOutline track={track} layout={layout} corners={corners} onSelect={selectCorner} />
         }
-        controls={editButton}
+        controls={
+          <>
+            {editButton}
+            {carPicker}
+          </>
+        }
         panel={panel}
       />
     );
@@ -418,30 +450,7 @@ function TrackView({ trackId }: { trackId: string }) {
             Racing line
           </ToolButton>
           {editButton}
-          <select
-            aria-label="Car"
-            value={guide?.id ?? "__none__"}
-            onChange={(e) => {
-              if (e.target.value === "__add__") {
-                if (confirmDiscard()) setAddingCar(true);
-                return;
-              }
-              if (leaveEdits()) setParams({ guide: e.target.value });
-            }}
-            className="max-w-44 rounded-lg border border-border bg-transparent px-1.5 py-1 text-sm"
-          >
-            {guides.length === 0 && (
-              <option value="__none__" disabled>
-                No car yet
-              </option>
-            )}
-            {guides.map((g) => (
-              <option key={g.id} value={g.id}>
-                {guideLabel(g, data.carClasses ?? [], data.cars ?? [])}
-              </option>
-            ))}
-            <option value="__add__">+ Add car…</option>
-          </select>
+          {carPicker}
           <ToolButton
             pressed={listOpen}
             onClick={() => {
