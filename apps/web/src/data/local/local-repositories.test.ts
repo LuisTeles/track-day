@@ -83,6 +83,44 @@ describe("local repositories", () => {
     await expect(repos.corners.reorder(layoutId, [c1!.id])).rejects.toThrow();
   });
 
+  it("fills defaulted fields on rows stored before they existed", async () => {
+    const legacy = {
+      id: crypto.randomUUID(),
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      deletedAt: null,
+      guideId: crypto.randomUUID(),
+      cornerId: crypto.randomUUID(),
+      brakeReference: null,
+      brakeMarkerMeters: null,
+      entrySpeedKmh: null,
+      minSpeedKmh: null,
+      exitSpeedKmh: 120,
+      gear: 3,
+      line: { turnIn: null, apex: null, exit: null, turnInAt: null, apexAt: null, exitAt: null },
+      throttleNotes: "",
+      trailBrakeNotes: "",
+      priority: null,
+      source: "manual",
+      confidence: null,
+    };
+    // Written straight through Dexie, as a pre-notes build would have stored it.
+    await db.cornerGuides.put(legacy as never);
+
+    const expected = {
+      exitSpeedKmh: 120,
+      notes: "",
+      brakePressure: null,
+      brakePressurePct: null,
+      cue: null,
+      downshiftTo: null,
+    };
+    expect(await repos.cornerGuides.get(legacy.id)).toMatchObject(expected);
+    expect(await repos.cornerGuides.listByGuide(legacy.guideId)).toEqual([
+      expect.objectContaining(expected),
+    ]);
+  });
+
   it("stores asset blobs", async () => {
     const asset = await repos.assets.put(new Blob(["map"], { type: "image/png" }), {
       fileName: "map.png",

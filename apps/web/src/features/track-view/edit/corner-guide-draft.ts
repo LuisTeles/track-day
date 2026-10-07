@@ -120,7 +120,8 @@ export function asManual(
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /** Appends `YYYY-MM-DD: text` (local date) on its own line. */
-export function appendNote(notes: string, text: string, date: Date): string {
+export function appendNote(notes: string | undefined, text: string, date: Date): string {
+  notes ??= "";
   const day = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
   const line = `${day}: ${text.trim()}`;
   return notes.trim() === "" ? line : `${notes.replace(/\s+$/, "")}\n${line}`;

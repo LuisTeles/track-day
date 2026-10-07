@@ -1,6 +1,6 @@
 import interlagos from "@examples/interlagos.track.json";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { TrackImportPayload } from "@track-day/schema";
+import { TrackImportPayload, type CornerGuide } from "@track-day/schema";
 import { act, renderHook } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -126,5 +126,29 @@ describe("edit mutations", () => {
       result.current.mutateAsync({ text: "Kerb", corner, guideId: null, existing: undefined }),
     );
     expect((await repos.corners.get(corner.id))!.notes).toMatch(/\d{4}-\d{2}-\d{2}: Kerb$/);
+  });
+
+  it("appends a quick note to a corner guide stored before notes existed", async () => {
+    const { trackId, corner, guideId } = await seed();
+    const legacy: Partial<CornerGuide> & { id: string } = {
+      ...emptyCornerGuide(guideId, corner.id),
+      id: crypto.randomUUID(),
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      deletedAt: null,
+      gear: 3,
+    };
+    delete legacy.notes;
+    await db.cornerGuides.put(legacy as never);
+    const { result } = renderHook(() => useAppendNote(trackId), { wrapper });
+    // The row exactly as an older build left it: no `notes` key at all.
+    const existing = legacy as unknown as CornerGuide;
+    await act(() =>
+      result.current.mutateAsync({ text: "Turn in later", corner, guideId, existing }),
+    );
+    expect(await repos.cornerGuides.get(legacy.id)).toMatchObject({
+      gear: 3,
+      notes: expect.stringMatching(/^\d{4}-\d{2}-\d{2}: Turn in later$/),
+    });
   });
 });

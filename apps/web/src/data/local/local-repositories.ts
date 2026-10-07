@@ -31,6 +31,7 @@ import { LocalTrackDeletionService } from "./track-deletion";
 
 interface Schema<T> {
   parse(input: unknown): T;
+  safeParse(input: unknown): { success: true; data: T } | { success: false };
 }
 
 const now = () => new Date().toISOString();
@@ -47,8 +48,20 @@ class LocalRepository<T extends EntityBase> implements Repository<T> {
     protected readonly schema: Schema<T>,
   ) {}
 
-  get(id: string) {
-    return this.table.get(id);
+  /**
+   * Rows stored by an older build lack fields added since with a schema
+   * `.default()` (e.g. `CornerGuide.notes`); parsing on read fills them in.
+   * A row that no longer validates for another reason is returned as stored.
+   */
+  protected normalize = (row: T): T => {
+    const parsed = this.schema.safeParse(row);
+    return parsed.success ? parsed.data : row;
+  };
+
+  /** Includes soft-deleted rows. */
+  async get(id: string) {
+    const row = await this.table.get(id);
+    return row && this.normalize(row);
   }
 
   async create(input: NewEntity<T>) {
@@ -93,11 +106,13 @@ class LocalRepository<T extends EntityBase> implements Repository<T> {
   }
 
   protected async listWhere(index: string, value: string): Promise<T[]> {
-    return (await this.table.where(index).equals(value).toArray()).filter(alive);
+    return (await this.table.where(index).equals(value).toArray())
+      .filter(alive)
+      .map(this.normalize);
   }
 
   async list(): Promise<T[]> {
-    return (await this.table.toArray()).filter(alive);
+    return (await this.table.toArray()).filter(alive).map(this.normalize);
   }
 }
 
