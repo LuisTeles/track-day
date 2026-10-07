@@ -11,14 +11,14 @@ const corner = { id: "c1", notes: "Bumpy", commonMistakes: ["Early apex"] } as C
 
 function setup(update = vi.fn().mockResolvedValue(corner)) {
   const onDirtyChange = vi.fn();
-  render(
+  const view = render(
     <QueryClientProvider client={new QueryClient()}>
       <RepositoriesProvider repositories={{ corners: { update } } as unknown as Repositories}>
         <CornerNotesForm trackId="t1" corner={corner} onDirtyChange={onDirtyChange} />
       </RepositoriesProvider>
     </QueryClientProvider>,
   );
-  return { update, onDirtyChange, user: userEvent.setup() };
+  return { update, onDirtyChange, unmount: view.unmount, user: userEvent.setup() };
 }
 
 describe("CornerNotesForm", () => {
@@ -58,5 +58,13 @@ describe("CornerNotesForm", () => {
       "Could not save: QuotaExceededError",
     );
     expect(screen.getByLabelText("Corner notes")).toHaveValue("Bumpy!");
+  });
+
+  it("reports no unsaved changes once unmounted", async () => {
+    const { onDirtyChange, unmount, user } = setup();
+    await user.type(screen.getByLabelText("Corner notes"), " x");
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+    unmount();
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
   });
 });

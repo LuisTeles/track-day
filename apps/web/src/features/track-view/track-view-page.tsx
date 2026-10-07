@@ -62,6 +62,18 @@ function TrackView({ trackId }: { trackId: string }) {
   );
   const confirmDiscard = () =>
     !Object.values(dirtyRef.current).some(Boolean) || window.confirm("Discard unsaved changes?");
+  /** Asks before dropping unsaved edits; on yes, clears the edit state. */
+  const leaveEdits = () => {
+    if (!confirmDiscard()) return false;
+    setDirty({});
+    setPicking(null);
+    setPickError(null);
+    return true;
+  };
+  /** For links: cancels the navigation when the user keeps their edits. */
+  const guardLink = (e: React.MouseEvent) => {
+    if (!leaveEdits()) e.preventDefault();
+  };
 
   // Until the global car picker exists (M4), the layout's guides are picked here.
   const guide = data?.guides.find((g) => g.id === params.get("guide")) ?? data?.guides[0] ?? null;
@@ -83,22 +95,13 @@ function TrackView({ trackId }: { trackId: string }) {
     [params, pathname, router],
   );
   const selectCorner = (id: string) => {
-    if (!confirmDiscard()) return;
-    setDirty({});
-    setPicking(null);
-    setParams({ corner: id, panel: null });
+    if (leaveEdits()) setParams({ corner: id, panel: null });
   };
   const closePanel = () => {
-    if (!confirmDiscard()) return;
-    setDirty({});
-    setPicking(null);
-    setParams({ corner: null, panel: null });
+    if (leaveEdits()) setParams({ corner: null, panel: null });
   };
   const toggleEdit = () => {
-    if (editing && !confirmDiscard()) return;
-    setDirty({});
-    setPicking(null);
-    setParams({ edit: editing ? null : "1" });
+    if (leaveEdits()) setParams({ edit: editing ? null : "1" });
   };
 
   useEffect(() => {
@@ -173,7 +176,7 @@ function TrackView({ trackId }: { trackId: string }) {
 
   const topBar = (
     <>
-      <Link href="/" className="text-sm text-muted hover:text-foreground">
+      <Link href="/" onClick={guardLink} className="text-sm text-muted hover:text-foreground">
         ← Tracks
       </Link>
       <h1 className="text-sm font-semibold">
@@ -190,6 +193,7 @@ function TrackView({ trackId }: { trackId: string }) {
             params.get("guide"),
             selectedCorner?.number ?? null,
           )}
+          onClick={guardLink}
           className="rounded-md bg-foreground px-2 py-0.5 text-sm font-medium text-background hover:opacity-90"
         >
           Practice
@@ -199,7 +203,9 @@ function TrackView({ trackId }: { trackId: string }) {
         <select
           aria-label="Layout"
           value={layout?.id}
-          onChange={(e) => setParams({ layout: e.target.value, corner: null })}
+          onChange={(e) => {
+            if (leaveEdits()) setParams({ layout: e.target.value, corner: null });
+          }}
           className="rounded-md border border-border bg-transparent px-1.5 py-0.5 text-sm"
         >
           {layouts.map((l) => (
@@ -246,6 +252,7 @@ function TrackView({ trackId }: { trackId: string }) {
             actions={
               <Link
                 href={practiceHref(track.id, layout.id, params.get("guide"), selected.number)}
+                onClick={guardLink}
                 className="inline-block rounded-lg bg-foreground px-3 py-1.5 text-sm font-medium text-background hover:opacity-90"
               >
                 Practice from T{selected.number}
@@ -326,6 +333,7 @@ function TrackView({ trackId }: { trackId: string }) {
             setAddingCar(false);
             setDirty({});
             setPicking(null);
+            setPickError(null);
             setParams({ guide: guideId });
           }}
         />
@@ -415,10 +423,7 @@ function TrackView({ trackId }: { trackId: string }) {
                 if (confirmDiscard()) setAddingCar(true);
                 return;
               }
-              if (!confirmDiscard()) return;
-              setDirty({});
-              setPicking(null);
-              setParams({ guide: e.target.value });
+              if (leaveEdits()) setParams({ guide: e.target.value });
             }}
             className="max-w-44 rounded-lg border border-border bg-transparent px-1.5 py-1 text-sm"
           >
@@ -436,12 +441,19 @@ function TrackView({ trackId }: { trackId: string }) {
           </select>
           <ToolButton
             pressed={listOpen}
-            onClick={() => setParams({ panel: listOpen ? null : "corners", corner: null })}
+            onClick={() => {
+              if (leaveEdits()) setParams({ panel: listOpen ? null : "corners", corner: null });
+            }}
           >
             Corners
           </ToolButton>
           {layout.outlineSource === "osm" && (
-            <ToolButton pressed={redoingMap} onClick={() => setRedoingMap(true)}>
+            <ToolButton
+              pressed={redoingMap}
+              onClick={() => {
+                if (leaveEdits()) setRedoingMap(true);
+              }}
+            >
               Redo map
             </ToolButton>
           )}

@@ -38,6 +38,8 @@ export function CornerGuideForm({
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(draftFrom(saved));
   useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange]);
+  // Unmounting drops the draft, so it no longer counts as unsaved.
+  useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
 
   const set = (field: keyof GuideDraft) => (value: string) =>
     setDraft((d) => ({ ...d, [field]: value }));

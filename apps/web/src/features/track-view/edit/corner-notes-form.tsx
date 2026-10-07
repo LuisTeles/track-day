@@ -30,6 +30,8 @@ export function CornerNotesForm({
   const dirty =
     notes !== saved.notes || JSON.stringify(mistakes) !== JSON.stringify(saved.commonMistakes);
   useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange]);
+  // Unmounting drops the draft, so it no longer counts as unsaved.
+  useEffect(() => () => onDirtyChange(false), [onDirtyChange]);
 
   function reset() {
     setNotes(saved.notes);

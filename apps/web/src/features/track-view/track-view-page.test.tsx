@@ -182,6 +182,64 @@ describe("TrackViewPage edit mode", () => {
     expect(within(form).getByLabelText("Car notes")).toHaveValue("Stay wide");
   });
 
+  it("asks before the Corners button drops unsaved edits, and not otherwise", async () => {
+    const { t1, user } = await open({ edit: "1" });
+    search.set("corner", t1.id);
+    rerenderPage();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const corners = await screen.findByRole("button", { name: "Corners" });
+
+    await user.type(await screen.findByLabelText("Corner notes"), "x");
+    await user.click(corners);
+    expect(confirm).toHaveBeenCalledWith("Discard unsaved changes?");
+    expect(search.get("corner")).toBe(t1.id);
+
+    confirm.mockClear();
+    fireEvent.change(screen.getByLabelText("Corner notes"), { target: { value: t1.notes } });
+    await user.click(corners);
+    expect(confirm).not.toHaveBeenCalled();
+    expect(search.get("panel")).toBe("corners");
+    confirm.mockRestore();
+  });
+
+  it("asks before Practice from T# drops unsaved edits, and not otherwise", async () => {
+    const { t1, user } = await open({ edit: "1" });
+    search.set("corner", t1.id);
+    rerenderPage();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const link = await screen.findByRole("link", { name: "Practice from T1" });
+    // Stop jsdom from navigating; fireEvent's return value says whether the
+    // page's own handler cancelled the click.
+    const block = (e: Event) => e.preventDefault();
+
+    await user.type(await screen.findByLabelText("Corner notes"), "x");
+    expect(fireEvent.click(link)).toBe(false);
+    expect(confirm).toHaveBeenCalledWith("Discard unsaved changes?");
+
+    confirm.mockClear();
+    fireEvent.change(screen.getByLabelText("Corner notes"), { target: { value: t1.notes } });
+    document.addEventListener("click", block);
+    fireEvent.click(link);
+    document.removeEventListener("click", block);
+    expect(confirm).not.toHaveBeenCalled();
+    confirm.mockRestore();
+  });
+
+  it("forgets a discarded draft once its form is gone", async () => {
+    const { t1, t2, user } = await open({ edit: "1" });
+    search.set("corner", t1.id);
+    rerenderPage();
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    await user.type(await screen.findByLabelText("Corner notes"), "x");
+    await user.click(screen.getByRole("button", { name: "Corners" }));
+    expect(confirm).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: /^Turn 2,/ }));
+    expect(search.get("corner")).toBe(t2.id);
+    expect(confirm).toHaveBeenCalledTimes(1);
+    confirm.mockRestore();
+  });
+
   it("toggles edit mode from the toolbar", async () => {
     const { user } = await open({});
     await user.click(await screen.findByRole("button", { name: "Edit" }));

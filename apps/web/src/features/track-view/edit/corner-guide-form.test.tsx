@@ -12,7 +12,7 @@ function setup(guide?: CornerGuide) {
   const create = vi.fn().mockImplementation(async (v) => ({ id: "cg1", ...v }));
   const update = vi.fn().mockImplementation(async (id, patch) => ({ ...guide, id, ...patch }));
   const onDirtyChange = vi.fn();
-  render(
+  const view = render(
     <QueryClientProvider client={new QueryClient()}>
       <RepositoriesProvider
         repositories={{ cornerGuides: { create, update } } as unknown as Repositories}
@@ -27,7 +27,7 @@ function setup(guide?: CornerGuide) {
       </RepositoriesProvider>
     </QueryClientProvider>,
   );
-  return { create, update, onDirtyChange, user: userEvent.setup() };
+  return { create, update, onDirtyChange, unmount: view.unmount, user: userEvent.setup() };
 }
 
 describe("CornerGuideForm", () => {
@@ -86,5 +86,13 @@ describe("CornerGuideForm", () => {
     const { user } = setup();
     await user.type(screen.getByLabelText("Cue"), "Late apex");
     expect(screen.getByText("9/160")).toBeInTheDocument();
+  });
+
+  it("reports no unsaved changes once unmounted", async () => {
+    const { onDirtyChange, unmount, user } = setup();
+    await user.type(screen.getByLabelText("Gear"), "3");
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+    unmount();
+    expect(onDirtyChange).toHaveBeenLastCalledWith(false);
   });
 });
