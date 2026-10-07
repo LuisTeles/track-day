@@ -117,6 +117,9 @@ function TrackView({ trackId }: { trackId: string }) {
   }, [picking]);
 
   // Keep the selected corner out from under the side panel / bottom sheet.
+  // Edit mode, its loaded form and a pick change the sheet's height on a
+  // phone, so re-measure then too.
+  const guidesLoaded = cornerGuides !== undefined;
   const selectedCorner = data?.corners.find((c) => c.id === cornerId);
   const selectedFraction =
     selectedCorner && data?.layout ? cornerFraction(selectedCorner, data.layout) : null;
@@ -134,7 +137,7 @@ function TrackView({ trackId }: { trackId: string }) {
       );
     });
     return () => cancelAnimationFrame(frame);
-  }, [selectedFraction]);
+  }, [selectedFraction, editing, picking, guidesLoaded]);
 
   const selectedGuide = cornerGuides?.find((g) => g.cornerId === cornerId);
   const pick = useLinePointPick({

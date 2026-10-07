@@ -26,34 +26,20 @@ test("edit a car's corner, place its apex, and see it in practice", async ({ pag
 
   // Place the apex where the T1 marker is (measured now: selecting it panned the map).
   await page.getByRole("button", { name: "Set apex" }).click();
-  // On a phone the bottom sheet covers the lower map: if it overlaps T1, pan T1 up into view.
-  const sheet = (await page.getByRole("complementary").boundingBox())!;
-  const overlaps = (m: { x: number; y: number; width: number; height: number }) =>
-    m.x < sheet.x + sheet.width &&
-    m.x + m.width > sheet.x &&
-    m.y < sheet.y + sheet.height &&
-    m.y + m.height > sheet.y;
-  if (overlaps((await t1.boundingBox())!)) {
-    // Start the drag on bare map canvas (no marker, control or link), centred above the sheet.
-    const start = await page.evaluate(
-      ({ cx, top }) => {
-        for (let y = top - 20; y > 120; y -= 10) {
-          const el = document.elementFromPoint(cx, y);
-          if (el && !el.closest("button, a, [role=toolbar], header, aside")) return { x: cx, y };
-        }
-        return null;
-      },
-      { cx: page.viewportSize()!.width / 2, top: sheet.y },
+  // The page keeps T1 clear of the panel (on a phone, of the bottom sheet the
+  // edit form fills) without any manual pan; T1 must be clear before the tap.
+  const panel = page.getByTestId("side-panel");
+  const overlap = async () => {
+    const [m, sheet] = [(await t1.boundingBox())!, (await panel.boundingBox())!];
+    return (
+      m.x < sheet.x + sheet.width &&
+      m.x + m.width > sheet.x &&
+      m.y < sheet.y + sheet.height &&
+      m.y + m.height > sheet.y
     );
-    expect(start).not.toBeNull();
-    await page.mouse.move(start!.x, start!.y);
-    await page.mouse.down();
-    await page.mouse.move(start!.x, start!.y - 300, { steps: 10 });
-    await page.mouse.up();
-  }
+  };
+  await expect.poll(overlap).toBe(false);
   const box = (await t1.boundingBox())!;
-  // T1 must be clear of the panel before it is clicked.
-  expect(overlaps(box)).toBe(false);
   const [x, y] = [box.x + box.width / 2, box.y + box.height / 2];
   // A touch device taps; with touch emulation a synthetic mouse click yields no click event.
   if (isMobile) await page.touchscreen.tap(x, y);
@@ -83,7 +69,6 @@ test("edit a car's corner, place its apex, and see it in practice", async ({ pag
   const mx5 = await car.locator("option", { hasText: "Mazda MX-5" }).getAttribute("value");
   await car.selectOption(mx5!);
   await page.getByRole("button", { name: /^Turn 1,/ }).click();
-  const panel = page.getByTestId("side-panel");
   await expect(panel).toContainText("Brake before the bridge shadow");
   await expect(panel).toContainText("Turn in later");
 });
