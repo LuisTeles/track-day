@@ -79,7 +79,7 @@ describe("TrackViewPage edit mode", () => {
   });
 
   it("asks before leaving a corner with unsaved edits, and not otherwise", async () => {
-    const { t1, user } = await open({ edit: "1" });
+    const { t1, t2, user } = await open({ edit: "1" });
     search.set("corner", t1.id);
     rerenderPage();
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
@@ -87,6 +87,7 @@ describe("TrackViewPage edit mode", () => {
     // fireEvent: user-event's mousedown has no `view`, which d3-zoom chokes on.
     fireEvent.click(await screen.findByRole("button", { name: /^Turn 2,/ }));
     expect(confirm).not.toHaveBeenCalled();
+    expect(search.get("corner")).toBe(t2.id);
 
     search.set("corner", t1.id);
     rerenderPage();
@@ -94,6 +95,33 @@ describe("TrackViewPage edit mode", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Turn 2,/ }));
     expect(confirm).toHaveBeenCalledWith("Discard unsaved changes?");
     expect(search.get("corner")).toBe(t1.id);
+    confirm.mockRestore();
+  });
+
+  it("keeps focus and every keystroke while typing in the notes", async () => {
+    const { t1, user } = await open({ edit: "1" });
+    search.set("corner", t1.id);
+    rerenderPage();
+    const notes = await screen.findByLabelText("Corner notes");
+    await user.clear(notes);
+    await user.type(notes, "late brake");
+    expect(notes).toHaveValue("late brake");
+    expect(notes).toHaveFocus();
+  });
+
+  it("cancels a pick on Escape without closing the panel", async () => {
+    const { t1, user } = await open({ edit: "1" });
+    search.set("corner", t1.id);
+    rerenderPage();
+    const confirm = vi.spyOn(window, "confirm");
+    const apex = await screen.findByRole("button", { name: /^Set apex/ });
+    await user.click(apex);
+    expect(screen.getByText(/Click or tap the track/)).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByText(/Click or tap the track/)).not.toBeInTheDocument();
+    expect(screen.getByTestId("side-panel")).toBeInTheDocument();
+    expect(search.get("corner")).toBe(t1.id);
+    expect(confirm).not.toHaveBeenCalled();
     confirm.mockRestore();
   });
 

@@ -18,13 +18,17 @@ export function SidePanel({ open, title, onClose, children }: SidePanelProps) {
   const headingId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const returnFocus = useRef<Element | null>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!open) return;
     returnFocus.current = document.activeElement;
     headingRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape" && !e.defaultPrevented) onCloseRef.current();
     };
     document.addEventListener("keydown", onKey);
     return () => {
@@ -32,7 +36,7 @@ export function SidePanel({ open, title, onClose, children }: SidePanelProps) {
       const target = returnFocus.current;
       if (target instanceof HTMLElement && target.isConnected) target.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

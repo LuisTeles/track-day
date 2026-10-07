@@ -46,12 +46,20 @@ function TrackView({ trackId }: { trackId: string }) {
   const [picking, setPicking] = useState<LinePoint | null>(null);
   const [pickError, setPickError] = useState<string | null>(null);
   const [dirty, setDirty] = useState<Record<string, boolean>>({});
-  const markDirty = (key: string) => (value: boolean) =>
-    setDirty((d) => (d[key] === value ? d : { ...d, [key]: value }));
-  const onCornerDirty = markDirty("corner");
-  const onGuideDirty = markDirty("guide");
+  const dirtyRef = useRef(dirty);
+  useEffect(() => {
+    dirtyRef.current = dirty;
+  });
+  const onCornerDirty = useCallback(
+    (value: boolean) => setDirty((d) => (d.corner === value ? d : { ...d, corner: value })),
+    [setDirty],
+  );
+  const onGuideDirty = useCallback(
+    (value: boolean) => setDirty((d) => (d.guide === value ? d : { ...d, guide: value })),
+    [setDirty],
+  );
   const confirmDiscard = () =>
-    !Object.values(dirty).some(Boolean) || window.confirm("Discard unsaved changes?");
+    !Object.values(dirtyRef.current).some(Boolean) || window.confirm("Discard unsaved changes?");
 
   // Until the global car picker exists (M4), the layout's guides are picked here.
   const guide = data?.guides.find((g) => g.id === params.get("guide")) ?? data?.guides[0] ?? null;
@@ -94,10 +102,13 @@ function TrackView({ trackId }: { trackId: string }) {
   useEffect(() => {
     if (!picking) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPicking(null);
+      if (e.key !== "Escape") return;
+      // Capture phase + preventDefault: cancelling a pick must not also close the panel.
+      e.preventDefault();
+      setPicking(null);
     };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
   }, [picking]);
 
   // Keep the selected corner out from under the side panel / bottom sheet.
