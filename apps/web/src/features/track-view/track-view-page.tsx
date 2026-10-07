@@ -8,6 +8,7 @@ import { CornerMarkers } from "./corner-markers";
 import { DeleteTrackButton } from "./delete-track-button";
 import { AddMapPanel } from "@/features/osm-map/add-map-panel";
 import { NoOutline } from "./no-outline";
+import { AddCarDialog } from "./edit/add-car-dialog";
 import { CornerGuideForm } from "./edit/corner-guide-form";
 import { CornerNotesForm } from "./edit/corner-notes-form";
 import { CarLinesLayer, carLines } from "./edit/car-lines";
@@ -44,6 +45,7 @@ function TrackView({ trackId }: { trackId: string }) {
   const [redoingMap, setRedoingMap] = useState(false);
   const editing = params.get("edit") === "1";
   const [picking, setPicking] = useState<LinePoint | null>(null);
+  const [addingCar, setAddingCar] = useState(false);
   const [pickError, setPickError] = useState<string | null>(null);
   const [dirty, setDirty] = useState<Record<string, boolean>>({});
   const dirtyRef = useRef(dirty);
@@ -229,83 +231,101 @@ function TrackView({ trackId }: { trackId: string }) {
   );
 
   const panel = (
-    <SidePanel
-      open={selected !== null || listOpen}
-      title={selected ? cornerTitle(selected) : "Corners"}
-      onClose={closePanel}
-    >
-      {selected ? (
-        <CornerDetails
-          corner={selected}
-          complexes={complexes}
-          allCorners={corners}
-          onSelect={selectCorner}
-          actions={
-            <Link
-              href={practiceHref(track.id, layout.id, params.get("guide"), selected.number)}
-              className="inline-block rounded-lg bg-foreground px-3 py-1.5 text-sm font-medium text-background hover:opacity-90"
-            >
-              Practice from T{selected.number}
-            </Link>
-          }
-          hideNotes={editing}
-          guide={
-            editing ? (
-              <div className="space-y-4">
-                <CornerNotesForm
-                  key={selected.id}
-                  trackId={track.id}
-                  corner={selected}
-                  onDirtyChange={onCornerDirty}
-                />
-                {guide && currentGuideLabel ? (
-                  <CornerGuideForm
-                    key={`${guide.id}:${selected.id}`}
-                    guideId={guide.id}
-                    cornerId={selected.id}
-                    label={`${currentGuideLabel} · T${selected.number}`}
-                    guide={selectedGuide}
-                    onDirtyChange={onGuideDirty}
-                  >
-                    <LinePoints
+    <>
+      <SidePanel
+        open={selected !== null || listOpen}
+        title={selected ? cornerTitle(selected) : "Corners"}
+        onClose={closePanel}
+      >
+        {selected ? (
+          <CornerDetails
+            corner={selected}
+            complexes={complexes}
+            allCorners={corners}
+            onSelect={selectCorner}
+            actions={
+              <Link
+                href={practiceHref(track.id, layout.id, params.get("guide"), selected.number)}
+                className="inline-block rounded-lg bg-foreground px-3 py-1.5 text-sm font-medium text-background hover:opacity-90"
+              >
+                Practice from T{selected.number}
+              </Link>
+            }
+            hideNotes={editing}
+            guide={
+              editing ? (
+                <div className="space-y-4">
+                  <CornerNotesForm
+                    key={selected.id}
+                    trackId={track.id}
+                    corner={selected}
+                    onDirtyChange={onCornerDirty}
+                  />
+                  {guide && currentGuideLabel ? (
+                    <CornerGuideForm
+                      key={`${guide.id}:${selected.id}`}
                       guideId={guide.id}
                       cornerId={selected.id}
+                      label={`${currentGuideLabel} · T${selected.number}`}
                       guide={selectedGuide}
-                      cornerFraction={selectedFraction}
-                      lengthMeters={layout.lengthMeters}
-                      hasOutline={layout.outlinePath !== null}
-                      picking={picking}
-                      onPickStart={(p) => {
-                        setPickError(null);
-                        setPicking(p);
-                      }}
-                      onPickEnd={() => setPicking(null)}
-                    />
-                    {pickError && (
-                      <p role="status" className="text-sm text-danger">
-                        {pickError}
-                      </p>
-                    )}
-                  </CornerGuideForm>
-                ) : (
-                  <section className="space-y-2 rounded-lg border border-dashed border-border p-3 text-muted">
-                    <p>Add a car to record its values for this corner.</p>
-                    <Button type="button">Add car</Button>
-                  </section>
-                )}
-              </div>
-            ) : (
-              guide &&
-              currentGuideLabel && (
-                <CornerGuideSection guide={selectedGuide} label={currentGuideLabel} />
+                      onDirtyChange={onGuideDirty}
+                    >
+                      <LinePoints
+                        guideId={guide.id}
+                        cornerId={selected.id}
+                        guide={selectedGuide}
+                        cornerFraction={selectedFraction}
+                        lengthMeters={layout.lengthMeters}
+                        hasOutline={layout.outlinePath !== null}
+                        picking={picking}
+                        onPickStart={(p) => {
+                          setPickError(null);
+                          setPicking(p);
+                        }}
+                        onPickEnd={() => setPicking(null)}
+                      />
+                      {pickError && (
+                        <p role="status" className="text-sm text-danger">
+                          {pickError}
+                        </p>
+                      )}
+                    </CornerGuideForm>
+                  ) : (
+                    <section className="space-y-2 rounded-lg border border-dashed border-border p-3 text-muted">
+                      <p>Add a car to record its values for this corner.</p>
+                      <Button type="button" variant="outline" onClick={() => setAddingCar(true)}>
+                        Add car
+                      </Button>
+                    </section>
+                  )}
+                </div>
+              ) : (
+                guide &&
+                currentGuideLabel && (
+                  <CornerGuideSection guide={selectedGuide} label={currentGuideLabel} />
+                )
               )
-            )
-          }
+            }
+          />
+        ) : (
+          <CornerList corners={corners} onSelect={selectCorner} />
+        )}
+      </SidePanel>
+      {addingCar && (
+        <AddCarDialog
+          open
+          onOpenChange={setAddingCar}
+          track={track}
+          layout={layout}
+          corners={corners}
+          carClasses={data.carClasses ?? []}
+          onAdded={(guideId) => {
+            setAddingCar(false);
+            setParams({ guide: guideId });
+          }}
         />
-      ) : (
-        <CornerList corners={corners} onSelect={selectCorner} />
       )}
-    </SidePanel>
+    </>
   );
 
   if (!layout.outlinePath) {
@@ -382,25 +402,30 @@ function TrackView({ trackId }: { trackId: string }) {
             Racing line
           </ToolButton>
           {editButton}
-          {guides.length > 0 && (
-            <select
-              aria-label="Car"
-              value={guide?.id}
-              onChange={(e) => {
-                if (!confirmDiscard()) return;
-                setDirty({});
-                setPicking(null);
-                setParams({ guide: e.target.value });
-              }}
-              className="max-w-44 rounded-lg border border-border bg-transparent px-1.5 py-1 text-sm"
-            >
-              {guides.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {guideLabel(g, data.carClasses ?? [], data.cars ?? [])}
-                </option>
-              ))}
-            </select>
-          )}
+          <select
+            aria-label="Car"
+            value={guide?.id ?? "__none__"}
+            onChange={(e) => {
+              if (e.target.value === "__add__") return setAddingCar(true);
+              if (!confirmDiscard()) return;
+              setDirty({});
+              setPicking(null);
+              setParams({ guide: e.target.value });
+            }}
+            className="max-w-44 rounded-lg border border-border bg-transparent px-1.5 py-1 text-sm"
+          >
+            {guides.length === 0 && (
+              <option value="__none__" disabled>
+                No car yet
+              </option>
+            )}
+            {guides.map((g) => (
+              <option key={g.id} value={g.id}>
+                {guideLabel(g, data.carClasses ?? [], data.cars ?? [])}
+              </option>
+            ))}
+            <option value="__add__">+ Add car…</option>
+          </select>
           <ToolButton
             pressed={listOpen}
             onClick={() => setParams({ panel: listOpen ? null : "corners", corner: null })}
