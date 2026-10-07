@@ -261,7 +261,10 @@ function TrackView({ trackId }: { trackId: string }) {
                     corner={selected}
                     onDirtyChange={onCornerDirty}
                   />
-                  {guide && currentGuideLabel ? (
+                  {guide && currentGuideLabel && !cornerGuides ? (
+                    // The form's draft starts from the stored values: wait for them.
+                    <p className="text-sm text-muted">Loading…</p>
+                  ) : guide && currentGuideLabel ? (
                     <CornerGuideForm
                       key={`${guide.id}:${selected.id}`}
                       guideId={guide.id}
@@ -362,7 +365,7 @@ function TrackView({ trackId }: { trackId: string }) {
               )
             }
             onPick={
-              editing && picking
+              editing && picking && cornerGuides
                 ? (f) =>
                     void pick(f).catch((e: Error) => setPickError(`Could not save: ${e.message}`))
                 : undefined

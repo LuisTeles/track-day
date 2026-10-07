@@ -1,7 +1,7 @@
 import interlagos from "@examples/interlagos.track.json";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { TrackImportPayload } from "@track-day/schema";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { TrackImportPayload, type Corner } from "@track-day/schema";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RepositoriesProvider } from "@/data/provider";
@@ -9,6 +9,7 @@ import type { Repositories } from "@/data/repositories";
 import { TrackDayDb } from "@/data/local/db";
 import { createLocalRepositories } from "@/data/local/local-repositories";
 import { mockLayout } from "@/test/dom";
+import { emptyCornerGuide } from "./edit/corner-guide-draft";
 import { TrackViewPage } from "./track-view-page";
 
 let search = new URLSearchParams();
@@ -33,7 +34,10 @@ beforeEach(() => {
 });
 afterEach(() => db.delete());
 
-async function open(params: Record<string, string>) {
+async function open(
+  params: Record<string, string>,
+  seed?: (ids: { layoutId: string; t1: Corner }) => Promise<unknown>,
+) {
   const { trackId, layoutId } = await repos.trackImport.importTrack(
     TrackImportPayload.parse(interlagos),
   );
@@ -53,6 +57,7 @@ async function open(params: Record<string, string>) {
   });
   const t1 = (await repos.corners.listByLayout(layoutId)).find((c) => c.number === 1)!;
   const t2 = (await repos.corners.listByLayout(layoutId)).find((c) => c.number === 2)!;
+  await seed?.({ layoutId, t1 });
   search = new URLSearchParams({ track: trackId, layout: layoutId, guide: guide.id, ...params });
   const client = new QueryClient();
   const ui = () => (
@@ -75,7 +80,8 @@ describe("TrackViewPage edit mode", () => {
     expect(
       await screen.findByRole("form", { name: "Corner notes (all cars)" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("form", { name: /GT3 · any sim/ })).toBeInTheDocument();
+    // The car's form waits for its stored values before it renders.
+    expect(await screen.findByRole("form", { name: /GT3 · any sim/ })).toBeInTheDocument();
   });
 
   it("asks before leaving a corner with unsaved edits, and not otherwise", async () => {
@@ -139,6 +145,41 @@ describe("TrackViewPage edit mode", () => {
     expect(search.get("corner")).toBe(t1.id);
     expect(confirm).not.toHaveBeenCalled();
     confirm.mockRestore();
+  });
+
+  it("shows the stored values after switching car with a corner open", async () => {
+    let gt4 = "";
+    const { t1, user } = await open({ edit: "1" }, async ({ layoutId, t1 }) => {
+      const cls = await repos.carClasses.create({
+        name: "GT4",
+        description: "",
+        drivetrain: null,
+        downforce: null,
+      });
+      gt4 = (
+        await repos.guides.create({
+          layoutId,
+          target: { carClassId: cls.id },
+          sim: null,
+          referenceLapTime: null,
+          setupNotes: "",
+          source: "manual",
+        })
+      ).id;
+      await repos.cornerGuides.create({
+        ...emptyCornerGuide(gt4, t1.id),
+        gear: 4,
+        notes: "Stay wide",
+      });
+    });
+    search.set("corner", t1.id);
+    rerenderPage();
+    await screen.findByRole("form", { name: /GT3 · any sim/ });
+
+    await user.selectOptions(screen.getByLabelText("Car"), gt4);
+    const form = await screen.findByRole("form", { name: /GT4 · any sim/ });
+    expect(within(form).getByLabelText("Gear")).toHaveValue("4");
+    expect(within(form).getByLabelText("Car notes")).toHaveValue("Stay wide");
   });
 
   it("toggles edit mode from the toolbar", async () => {
