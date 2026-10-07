@@ -53,6 +53,7 @@ export function CornerGuideSection({
       )}
       {guide.throttleNotes && <p>{guide.throttleNotes}</p>}
       {guide.trailBrakeNotes && <p>{guide.trailBrakeNotes}</p>}
+      {guide.notes.trim() && <p className="whitespace-pre-line">{guide.notes}</p>}
     </section>
   );
 }

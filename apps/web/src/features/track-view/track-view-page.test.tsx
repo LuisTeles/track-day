@@ -36,7 +36,7 @@ afterEach(() => db.delete());
 
 async function open(
   params: Record<string, string>,
-  seed?: (ids: { layoutId: string; t1: Corner }) => Promise<unknown>,
+  seed?: (ids: { layoutId: string; guideId: string; t1: Corner }) => Promise<unknown>,
 ) {
   const { trackId, layoutId } = await repos.trackImport.importTrack(
     TrackImportPayload.parse(interlagos),
@@ -57,7 +57,7 @@ async function open(
   });
   const t1 = (await repos.corners.listByLayout(layoutId)).find((c) => c.number === 1)!;
   const t2 = (await repos.corners.listByLayout(layoutId)).find((c) => c.number === 2)!;
-  await seed?.({ layoutId, t1 });
+  await seed?.({ layoutId, guideId: guide.id, t1 });
   search = new URLSearchParams({ track: trackId, layout: layoutId, guide: guide.id, ...params });
   const client = new QueryClient();
   const ui = () => (
@@ -71,6 +71,25 @@ async function open(
   rerenderPage = () => view.rerender(ui());
   return { t1, t2, guide, user: userEvent.setup() };
 }
+
+describe("TrackViewPage", () => {
+  it("shows the car's notes for the selected corner", async () => {
+    const { t1 } = await open({}, async ({ guideId, t1 }) => {
+      await repos.cornerGuides.create({
+        ...emptyCornerGuide(guideId, t1.id),
+        notes: "Brake at the shadow\n2026-10-07: Turn in later",
+      });
+    });
+    search.set("corner", t1.id);
+    rerenderPage();
+    const section = (await screen.findByRole("heading", { name: /GT3 · any sim/ })).closest(
+      "section",
+    )!;
+    expect(within(section).getByText(/Brake at the shadow/)).toHaveTextContent(
+      "Brake at the shadow 2026-10-07: Turn in later",
+    );
+  });
+});
 
 describe("TrackViewPage edit mode", () => {
   it("shows the edit forms for the selected corner", async () => {

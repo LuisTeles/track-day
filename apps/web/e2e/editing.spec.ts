@@ -36,14 +36,14 @@ test("edit a car's corner, place its apex, and see it in practice", async ({ pag
   if (overlaps((await t1.boundingBox())!)) {
     // Start the drag on bare map canvas (no marker, control or link), centred above the sheet.
     const start = await page.evaluate(
-      ([cx, top]) => {
+      ({ cx, top }) => {
         for (let y = top - 20; y > 120; y -= 10) {
           const el = document.elementFromPoint(cx, y);
           if (el && !el.closest("button, a, [role=toolbar], header, aside")) return { x: cx, y };
         }
         return null;
       },
-      [page.viewportSize()!.width / 2, sheet.y],
+      { cx: page.viewportSize()!.width / 2, top: sheet.y },
     );
     expect(start).not.toBeNull();
     await page.mouse.move(start!.x, start!.y);
@@ -77,4 +77,13 @@ test("edit a car's corner, place its apex, and see it in practice", async ({ pag
   await expect(page.getByTestId("practice-notes")).toContainText("Turn in later");
   await page.keyboard.press("Escape");
   await expect(page).toHaveURL(/\/tracks\/view\//);
+
+  // Back in the track view (view mode), T1 shows the car note and the quick note.
+  const car = page.getByLabel("Car", { exact: true });
+  const mx5 = await car.locator("option", { hasText: "Mazda MX-5" }).getAttribute("value");
+  await car.selectOption(mx5!);
+  await page.getByRole("button", { name: /^Turn 1,/ }).click();
+  const panel = page.getByTestId("side-panel");
+  await expect(panel).toContainText("Brake before the bridge shadow");
+  await expect(panel).toContainText("Turn in later");
 });
