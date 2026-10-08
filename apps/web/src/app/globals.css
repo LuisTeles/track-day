@@ -2,7 +2,8 @@
 
 /* One definition per token: light-dark() picks by color-scheme, which follows
    the OS unless the theme toggle sets data-theme on <html>. */
-:root {
+:root,
+.scheme-light {
   color-scheme: light dark;
   --background: light-dark(#ffffff, #0a0a0a);
   --foreground: light-dark(#171717, #ededed);
@@ -23,6 +24,11 @@
   --marker-foreground: light-dark(#ffffff, #0a0a0a);
   --chip: light-dark(#ffffff, #1c1f24);
   --pressure: light-dark(#dc2626, #ef4444);
+}
+/* Re-declares the tokens above so light-dark() resolves to light inside (the
+   cheat sheet prints black on white in a dark app). */
+.scheme-light {
+  color-scheme: light;
 }
 :root[data-theme="light"] {
   color-scheme: light;
@@ -128,5 +134,25 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Printing: the cheat sheet is black on white whatever the app theme (~20 corners per A4 page). */
+@page {
+  size: A4;
+  margin: 12mm;
+}
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color-scheme: light;
+    font-size: 10pt;
+  }
+  * {
+    box-shadow: none !important;
+  }
+  table {
+    font-size: 10pt;
   }
 }

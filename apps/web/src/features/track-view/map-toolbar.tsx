@@ -7,11 +7,13 @@ import {
   Minus,
   MoreHorizontal,
   Pencil,
+  Printer,
   Plus,
   RotateCcw,
   Wrench,
   Map as MapIcon,
 } from "lucide-react";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { useRovingFocus } from "@/shared/hooks/use-roving-focus";
 import {
@@ -39,6 +41,8 @@ export interface MapToolbarProps {
   onToggleList(): void;
   redoMap: { available: boolean; active: boolean; open(): void };
   carSetup: { available: boolean; open(): void };
+  cheatSheetHref: string;
+  onCheatSheetClick(e: React.MouseEvent<HTMLAnchorElement>): void; // the view's unsaved-edits guard
   onShowShortcuts(): void;
 }
 
@@ -143,6 +147,12 @@ export function MapToolbar(p: MapToolbarProps) {
           >
             <Wrench aria-hidden />
             Car setup
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href={p.cheatSheetHref} onClick={p.onCheatSheetClick}>
+              <Printer aria-hidden />
+              Cheat sheet
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={p.onShowShortcuts}>
             <Keyboard aria-hidden />

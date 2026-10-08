@@ -368,6 +368,7 @@ function TrackView({ trackId }: { trackId: string }) {
     </Select>
   );
 
+  const cheatSheetHref = printHref(track.id, layout.id, guide?.id ?? null);
   const toolbar = (
     <MapToolbar
       hasMap={layout.outlinePath !== null}
@@ -394,6 +395,8 @@ function TrackView({ trackId }: { trackId: string }) {
         },
       }}
       carSetup={{ available: guide !== null, open: openSetup }}
+      cheatSheetHref={cheatSheetHref}
+      onCheatSheetClick={(e) => guardLink(e, cheatSheetHref)}
       onShowShortcuts={() => setHelpOpen(true)}
     />
   );
@@ -607,6 +610,12 @@ function practiceHref(track: string, layout: string, guide: string | null, corne
   if (guide) q.set("guide", guide);
   if (corner !== null) q.set("corner", String(corner));
   return `/tracks/practice/?${q}`;
+}
+
+function printHref(track: string, layout: string, guide: string | null) {
+  const q = new URLSearchParams({ track, layout });
+  if (guide) q.set("guide", guide);
+  return `/tracks/print/?${q}`;
 }
 
 function Message({ children }: { children: React.ReactNode }) {

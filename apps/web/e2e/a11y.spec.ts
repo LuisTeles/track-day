@@ -1,7 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-type PageKey = "home-empty" | "home" | "backup" | "import" | "track" | "track-panel" | "practice";
+type PageKey =
+  "home-empty" | "home" | "backup" | "import" | "track" | "track-panel" | "practice" | "print";
 
 /**
  * Rule ids that fail today, per page. Each UI task removes the ones it fixes;
@@ -15,6 +16,7 @@ const KNOWN_VIOLATIONS: Record<PageKey, string[]> = {
   track: [],
   "track-panel": [],
   practice: [],
+  print: [],
 };
 
 test("no page has known violations left", () => {
@@ -81,3 +83,15 @@ test("practice is accessible", async ({ page }) => {
   await expect(page.getByTestId("practice-card")).toBeVisible();
   await scan(page, "practice");
 });
+
+for (const scheme of ["light", "dark"] as const) {
+  test(`cheat sheet is accessible (${scheme})`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    await loadSamples(page);
+    await page.getByRole("link", { name: /Interlagos/ }).click();
+    await page.getByRole("button", { name: "More map actions" }).click();
+    await page.getByRole("menuitem", { name: "Cheat sheet" }).click();
+    await expect(page.getByRole("table")).toBeVisible();
+    await scan(page, "print");
+  });
+}

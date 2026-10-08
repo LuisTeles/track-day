@@ -22,6 +22,8 @@ const props = () => ({
   onToggleList: vi.fn(),
   redoMap: { available: true, active: false, open: vi.fn() },
   carSetup: { available: true, open: vi.fn() },
+  cheatSheetHref: "/tracks/print/?track=t&layout=l&guide=g",
+  onCheatSheetClick: vi.fn((e: { preventDefault(): void }) => e.preventDefault()),
   onShowShortcuts: vi.fn(),
 });
 
@@ -128,5 +130,21 @@ describe("MapToolbar", () => {
     expect(screen.getByRole("menuitem", { name: "Keyboard shortcuts" })).toBeInTheDocument();
     for (const name of ["Reset view", "Redo map", "Zoom in", "Zoom out"])
       expect(screen.queryByRole("menuitem", { name })).toBeNull();
+  });
+
+  it("links to the cheat sheet through the click guard, with or without a map", async () => {
+    for (const hasMap of [true, false]) {
+      const p = { ...props(), hasMap };
+      const { unmount } = render(<MapToolbar {...p} />);
+      await userEvent.click(screen.getByRole("button", { name: "More map actions" }));
+      const link = screen.getByRole("menuitem", { name: "Cheat sheet" });
+      expect(link).toHaveAttribute(
+        "href",
+        expect.stringMatching(/^\/tracks\/print\/?\?track=t&layout=l&guide=g$/),
+      );
+      await userEvent.click(link);
+      expect(p.onCheatSheetClick).toHaveBeenCalledTimes(1);
+      unmount();
+    }
   });
 });
