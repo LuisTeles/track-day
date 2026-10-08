@@ -140,7 +140,7 @@ function TrackView({ trackId }: { trackId: string }) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       // A dialog over the pick (discard, far point, Add car) owns this Escape.
-      if (document.querySelector("[role=alertdialog]")) return;
+      if (document.querySelector("[role=alertdialog][data-state=open]")) return;
       // Capture phase + preventDefault: cancelling a pick must not also close the panel.
       e.preventDefault();
       setPicking(null);

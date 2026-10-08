@@ -189,6 +189,88 @@ describe("TrackViewPage edit mode", () => {
     await waitFor(() => expect(push).toHaveBeenCalledWith("/"));
   });
 
+  it("switches car only after Discard changes", async () => {
+    let gt4 = "";
+    const { t1, guide, user } = await open({ edit: "1" }, async ({ layoutId }) => {
+      const cls = await repos.carClasses.create({
+        name: "GT4",
+        description: "",
+        drivetrain: null,
+        downforce: null,
+      });
+      gt4 = (
+        await repos.guides.create({
+          layoutId,
+          target: { carClassId: cls.id },
+          sim: null,
+          referenceLapTime: null,
+          setupNotes: "",
+          source: "manual",
+        })
+      ).id;
+    });
+    search.set("corner", t1.id);
+    rerenderPage();
+    await user.type(await screen.findByLabelText("Corner notes"), "x");
+
+    await user.selectOptions(screen.getByLabelText("Car"), gt4);
+    await user.click(within(await discardDialog()).getByRole("button", { name: "Keep editing" }));
+    expect(search.get("guide")).toBe(guide.id);
+    expect((screen.getByLabelText("Corner notes") as HTMLTextAreaElement).value).toMatch(/x$/);
+
+    await user.selectOptions(screen.getByLabelText("Car"), gt4);
+    await user.click(
+      within(await discardDialog()).getByRole("button", { name: "Discard changes" }),
+    );
+    await waitFor(() => expect(search.get("guide")).toBe(gt4));
+  });
+
+  it("switches layout only after Discard changes", async () => {
+    let short = "";
+    const { t1, user } = await open({ edit: "1" }, async ({ layoutId }) => {
+      const { id, createdAt, updatedAt, deletedAt, ...gp } = (await repos.layouts.get(layoutId))!;
+      void [id, createdAt, updatedAt, deletedAt];
+      short = (await repos.layouts.create({ ...gp, name: "Short" })).id;
+    });
+    const layoutId = search.get("layout");
+    search.set("corner", t1.id);
+    rerenderPage();
+    await user.type(await screen.findByLabelText("Corner notes"), "x");
+
+    await user.selectOptions(screen.getByLabelText("Layout"), short);
+    await user.click(within(await discardDialog()).getByRole("button", { name: "Keep editing" }));
+    expect(search.get("layout")).toBe(layoutId);
+    expect(search.get("corner")).toBe(t1.id);
+    expect((screen.getByLabelText("Corner notes") as HTMLTextAreaElement).value).toMatch(/x$/);
+
+    await user.selectOptions(screen.getByLabelText("Layout"), short);
+    await user.click(
+      within(await discardDialog()).getByRole("button", { name: "Discard changes" }),
+    );
+    await waitFor(() => expect(search.get("layout")).toBe(short));
+    expect(search.get("corner")).toBeNull();
+  });
+
+  it("asks before the top-bar Practice link, and navigates only on Discard changes", async () => {
+    const { t1, user } = await open({ edit: "1" });
+    search.set("corner", t1.id);
+    rerenderPage();
+    await user.type(await screen.findByLabelText("Corner notes"), "x");
+    const link = screen.getByRole("link", { name: "Practice" });
+
+    expect(fireEvent.click(link)).toBe(false);
+    await user.click(within(await discardDialog()).getByRole("button", { name: "Keep editing" }));
+    expect(push).not.toHaveBeenCalled();
+
+    expect(fireEvent.click(link)).toBe(false);
+    await user.click(
+      within(await discardDialog()).getByRole("button", { name: "Discard changes" }),
+    );
+    await waitFor(() =>
+      expect(push).toHaveBeenCalledWith(expect.stringMatching(/^\/tracks\/practice\/\?.*corner=1/)),
+    );
+  });
+
   it("closes only the dialog on Escape, leaving the panel open", async () => {
     const { t1, user } = await open({ edit: "1" });
     search.set("corner", t1.id);

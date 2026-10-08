@@ -77,4 +77,36 @@ describe("useConfirm", () => {
     await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
     expect(results).toEqual([false]);
   });
+
+  it("answers no to a first ask when a second one comes", async () => {
+    const results: string[] = [];
+    function Twice() {
+      const confirm = useConfirm();
+      return (
+        <button
+          onClick={() => {
+            void confirm({ title: "First?", confirmLabel: "Yes" }).then((v) =>
+              results.push(`first:${v}`),
+            );
+            void confirm({ title: "Second?", confirmLabel: "Yes" }).then((v) =>
+              results.push(`second:${v}`),
+            );
+          }}
+        >
+          ask twice
+        </button>
+      );
+    }
+    render(
+      <ConfirmProvider>
+        <Twice />
+      </ConfirmProvider>,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "ask twice" }));
+    expect(screen.getByRole("alertdialog", { name: "Second?" })).toBeInTheDocument();
+    await waitFor(() => expect(results).toEqual(["first:false"]));
+    await userEvent.click(screen.getByRole("button", { name: "Yes" }));
+    await waitFor(() => expect(results).toEqual(["first:false", "second:true"]));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
 });
