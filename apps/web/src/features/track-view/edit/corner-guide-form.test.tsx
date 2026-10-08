@@ -95,4 +95,40 @@ describe("CornerGuideForm", () => {
     unmount();
     expect(onDirtyChange).toHaveBeenLastCalledWith(false);
   });
+
+  it("keeps field names but shows short labels with unit suffixes", () => {
+    setup();
+    const entry = screen.getByLabelText("Entry speed (km/h)");
+    expect(entry.parentElement).toHaveTextContent("km/h");
+    expect(screen.getByText("Entry", { selector: "label" })).toBeVisible();
+    for (const n of [
+      "Minimum speed (km/h)",
+      "Exit speed (km/h)",
+      "Gear",
+      "Downshift to",
+      "Brake board (m)",
+      "Pressure (%)",
+    ])
+      expect(screen.getByLabelText(n)).toBeInTheDocument();
+  });
+
+  it("lays numeric fields out in two columns", () => {
+    setup();
+    const grid = screen.getByLabelText("Entry speed (km/h)").closest("[data-slot=field-grid]");
+    expect(grid).toHaveClass("grid-cols-2");
+  });
+
+  it("saves with Ctrl/Cmd+Enter from any field", async () => {
+    const { create, user } = setup();
+    await user.type(screen.getByLabelText("Gear"), "3");
+    await user.keyboard("{Control>}{Enter}{/Control}");
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ gear: 3 }));
+  });
+
+  it("shows Unsaved changes in the save bar only when dirty", async () => {
+    const { user } = setup();
+    expect(screen.queryByText("Unsaved changes")).toBeNull();
+    await user.type(screen.getByLabelText("Gear"), "3");
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+  });
 });

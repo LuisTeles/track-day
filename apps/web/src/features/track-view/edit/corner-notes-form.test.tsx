@@ -67,4 +67,13 @@ describe("CornerNotesForm", () => {
     unmount();
     expect(onDirtyChange).toHaveBeenLastCalledWith(false);
   });
+
+  it("saves with Ctrl/Cmd+Enter and shows Unsaved changes when dirty", async () => {
+    const { update, user } = setup();
+    expect(screen.queryByText("Unsaved changes")).toBeNull();
+    await user.type(screen.getByLabelText("Corner notes"), "!");
+    expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+    await user.keyboard("{Control>}{Enter}{/Control}");
+    expect(update).toHaveBeenCalledWith("c1", expect.objectContaining({ notes: "Bumpy!" }));
+  });
 });

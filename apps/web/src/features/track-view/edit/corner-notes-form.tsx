@@ -39,22 +39,32 @@ export function CornerNotesForm({
     save.reset();
   }
 
+  function submit() {
+    const commonMistakes = mistakes.map((m) => m.trim()).filter(Boolean);
+    save.mutate(
+      { id: corner.id, patch: { notes, commonMistakes } },
+      {
+        onSuccess: () => {
+          setMistakes(commonMistakes);
+          setSaved({ notes, commonMistakes });
+        },
+      },
+    );
+  }
+
   return (
     <form
       className="space-y-3 rounded-lg border border-border p-3"
       aria-label="Corner notes (all cars)"
       onSubmit={(e) => {
         e.preventDefault();
-        const commonMistakes = mistakes.map((m) => m.trim()).filter(Boolean);
-        save.mutate(
-          { id: corner.id, patch: { notes, commonMistakes } },
-          {
-            onSuccess: () => {
-              setMistakes(commonMistakes);
-              setSaved({ notes, commonMistakes });
-            },
-          },
-        );
+        submit();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          submit();
+        }
       }}
     >
       <h3 className="font-medium">Corner notes (all cars)</h3>
@@ -94,16 +104,17 @@ export function CornerNotesForm({
           Could not save: {save.error.message}
         </p>
       )}
-      <div className="flex items-center gap-2">
-        <Button type="submit" disabled={save.isPending} aria-label="Save corner notes">
-          {save.error ? "Retry" : "Save"}
-        </Button>
-        <Button variant="outline" onClick={reset} disabled={save.isPending}>
-          Cancel
-        </Button>
+      <div className="sticky bottom-0 -mx-4 flex items-center gap-3 border-t border-border bg-background/95 px-4 py-3 backdrop-blur">
+        {dirty && <span className="text-sm text-muted">Unsaved changes</span>}
         <p aria-live="polite" className="text-sm text-muted">
           {save.isSuccess && !dirty && "Saved"}
         </p>
+        <Button variant="outline" className="ml-auto" onClick={reset} disabled={save.isPending}>
+          Cancel
+        </Button>
+        <Button type="submit" disabled={save.isPending} aria-label="Save corner notes">
+          {save.error ? "Retry" : "Save"}
+        </Button>
       </div>
     </form>
   );
