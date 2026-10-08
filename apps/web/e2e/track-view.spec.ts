@@ -215,6 +215,14 @@ test("the map toolbar stays one row on a small phone", async ({ page }, testInfo
   expect(box.height).toBeLessThanOrEqual(56);
   expect(box.x).toBeGreaterThanOrEqual(0);
   expect(box.x + box.width).toBeLessThanOrEqual(360);
+  // The bar scrolls when it overflows, so also require that nothing is scrolled off.
+  const { scrollWidth, clientWidth } = await bar.evaluate((el) => ({
+    scrollWidth: el.scrollWidth,
+    clientWidth: el.clientWidth,
+  }));
+  expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+  const more = (await page.getByRole("button", { name: "More map actions" }).boundingBox())!;
+  expect(more.x + more.width).toBeLessThanOrEqual(360);
 });
 
 test("Escape closes the Layers menu and leaves the side panel open", async ({ page }, testInfo) => {

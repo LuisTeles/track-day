@@ -251,7 +251,7 @@ function TrackView({ trackId }: { trackId: string }) {
         }
         if (leaveEdits()) setParams({ guide: e.target.value });
       }}
-      className="h-10 w-auto max-w-44 pointer-coarse:h-11"
+      className="h-10 w-auto max-w-44 max-sm:max-w-28 pointer-coarse:h-11"
     >
       {guides.length === 0 && (
         <option value="__none__" disabled>
