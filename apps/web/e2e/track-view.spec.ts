@@ -5,6 +5,8 @@ async function loadSamples(page: Page) {
   await page.goto("/");
   await page.getByRole("button", { name: "Load sample tracks" }).click();
   await expect(page.getByRole("link", { name: /Interlagos/ })).toBeVisible();
+  // The "Sample tracks loaded." toast sits over the map and would swallow wheel events.
+  await expect(page.getByText("Sample tracks loaded.")).toBeHidden({ timeout: 8_000 });
 }
 
 const markers = (page: Page) => page.locator("[data-corner]");
