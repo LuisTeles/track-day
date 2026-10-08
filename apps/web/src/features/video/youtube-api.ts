@@ -44,7 +44,10 @@ export function loadYouTubeApi(timeoutMs = 10000): Promise<YTNamespace> {
   const attempt = new Promise<YTNamespace>((resolve, reject) => {
     const script = document.createElement("script");
     const previous = w.onYouTubeIframeAPIReady;
+    let settled = false;
     const fail = (message: string) => {
+      if (settled) return;
+      settled = true;
       clearTimeout(timer);
       script.remove();
       w.onYouTubeIframeAPIReady = previous;
@@ -54,7 +57,8 @@ export function loadYouTubeApi(timeoutMs = 10000): Promise<YTNamespace> {
 
     w.onYouTubeIframeAPIReady = () => {
       previous?.();
-      if (w.YT?.Player) {
+      if (!settled && w.YT?.Player) {
+        settled = true;
         clearTimeout(timer);
         resolve(w.YT);
       }

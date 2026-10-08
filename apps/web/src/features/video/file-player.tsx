@@ -48,7 +48,10 @@ export function FilePlayer({
       controls
       playsInline
       className="aspect-video w-full rounded-xl bg-black"
-      onLoadedMetadata={(e) => onMetadata?.({ durationSec: e.currentTarget.duration })}
+      onLoadedMetadata={(e) => {
+        const durationSec = e.currentTarget.duration;
+        if (Number.isFinite(durationSec) && durationSec > 0) onMetadata?.({ durationSec });
+      }}
     />
   );
 }

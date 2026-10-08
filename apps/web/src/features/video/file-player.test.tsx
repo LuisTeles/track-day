@@ -49,6 +49,17 @@ describe("FilePlayer", () => {
     expect(onMetadata).toHaveBeenCalledWith({ durationSec: 42.5 });
   });
 
+  it("ignores non-finite or zero durations", () => {
+    const onMetadata = vi.fn();
+    const { container } = render(<FilePlayer file={file()} title="t" onMetadata={onMetadata} />);
+    const video = container.querySelector("video")!;
+    for (const value of [NaN, Infinity, 0]) {
+      Object.defineProperty(video, "duration", { value, configurable: true });
+      fireEvent(video, new Event("loadedmetadata"));
+    }
+    expect(onMetadata).not.toHaveBeenCalled();
+  });
+
   it("exposes a handle that seeks, plays and pauses", () => {
     const ref = createRef<VideoPlayerHandle>();
     const { container } = render(<FilePlayer ref={ref} file={file()} title="t" />);

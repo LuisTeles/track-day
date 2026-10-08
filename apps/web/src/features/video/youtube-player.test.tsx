@@ -1,4 +1,4 @@
-import { createRef } from "react";
+import { createRef, StrictMode } from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { VideoPlayerHandle } from "./player";
@@ -117,5 +117,41 @@ describe("YouTubePlayer", () => {
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     await waitFor(() => expect(FakePlayer.instances).toHaveLength(1));
     expect(screen.queryByText("The video needs an internet connection.")).not.toBeInTheDocument();
+  });
+
+  it("clears the error and builds a new player when the videoId changes", async () => {
+    const { rerender } = render(<YouTubePlayer videoId="dQw4w9WgXcQ" title="Onboard" />);
+    await waitFor(() => expect(FakePlayer.instances).toHaveLength(1));
+    const old = last();
+    act(() => old.opts.events!.onError!({ data: 100 }));
+    expect(screen.getByText("This video isn't available.")).toBeInTheDocument();
+    rerender(<YouTubePlayer videoId="abcdefghijk" title="Onboard" />);
+    await waitFor(() => expect(FakePlayer.instances).toHaveLength(2));
+    expect(old.calls).toContainEqual(["destroy"]);
+    expect(last().opts.videoId).toBe("abcdefghijk");
+    expect(screen.queryByText("This video isn't available.")).not.toBeInTheDocument();
+  });
+
+  it("creates exactly one player under StrictMode", async () => {
+    render(
+      <StrictMode>
+        <YouTubePlayer videoId="dQw4w9WgXcQ" title="Onboard" />
+      </StrictMode>,
+    );
+    await waitFor(() => expect(FakePlayer.instances).toHaveLength(1));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(FakePlayer.instances).toHaveLength(1);
+  });
+
+  it("shows the unavailable message when the Player constructor throws", async () => {
+    loadYouTubeApi.mockResolvedValue({
+      Player: class {
+        constructor() {
+          throw new Error("boom");
+        }
+      },
+    });
+    render(<YouTubePlayer videoId="dQw4w9WgXcQ" title="Onboard" />);
+    expect(await screen.findByText("This video isn't available.")).toBeInTheDocument();
   });
 });

@@ -68,4 +68,37 @@ describe("loadYouTubeApi", () => {
     await vi.advanceTimersByTimeAsync(501);
     await assertion;
   });
+
+  it("ignores a late script error after a timeout and lets the retry finish", async () => {
+    vi.useFakeTimers();
+    const load = await freshLoader();
+    const first = load(500);
+    const firstAssertion = expect(first).rejects.toThrow();
+    await vi.advanceTimersByTimeAsync(501);
+    await firstAssertion;
+
+    const retry = load();
+    expect(scripts).toHaveLength(2);
+    scripts[0]!.onerror?.(new Event("error")); // late, from the timed-out attempt
+    expect(load()).toBe(retry);
+    expect(scripts).toHaveLength(2);
+    expect(win.onYouTubeIframeAPIReady).toBeTypeOf("function");
+    const YT = { Player: class {} };
+    win.YT = YT;
+    win.onYouTubeIframeAPIReady?.();
+    await expect(retry).resolves.toBe(YT);
+  });
+
+  it("does not throw on a late ready after a timeout, and a later call resolves", async () => {
+    vi.useFakeTimers();
+    const load = await freshLoader();
+    const first = load(500);
+    const firstAssertion = expect(first).rejects.toThrow();
+    await vi.advanceTimersByTimeAsync(501);
+    await firstAssertion;
+    const YT = { Player: class {} };
+    win.YT = YT;
+    expect(() => win.onYouTubeIframeAPIReady?.()).not.toThrow();
+    await expect(load()).resolves.toBe(YT);
+  });
 });
