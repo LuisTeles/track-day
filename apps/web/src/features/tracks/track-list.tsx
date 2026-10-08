@@ -28,14 +28,7 @@ export function TrackList() {
           explore the app, or restore a backup.
         </p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
-          <Button asChild>
-            <Link href="/tracks/import/">Import with AI</Link>
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => loadSamples.mutate()}
-            disabled={loadSamples.isPending}
-          >
+          <Button onClick={() => loadSamples.mutate()} disabled={loadSamples.isPending}>
             {loadSamples.isPending ? "Loading…" : "Load sample tracks"}
           </Button>
         </div>
@@ -50,11 +43,6 @@ export function TrackList() {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
-        <Button asChild variant="outline">
-          <Link href="/tracks/import/">Import with AI</Link>
-        </Button>
-      </div>
       <ul className="divide-y divide-border rounded-lg border border-border">
         {tracks.map((track) => (
           <li key={track.id}>

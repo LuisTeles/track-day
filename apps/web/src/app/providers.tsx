@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 import { RepositoriesProvider } from "@/data/provider";
+import { ToastProvider } from "@/shared/ui/toast";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -14,7 +15,9 @@ export function Providers({ children }: { children: ReactNode }) {
   );
   return (
     <QueryClientProvider client={queryClient}>
-      <RepositoriesProvider>{children}</RepositoriesProvider>
+      <RepositoriesProvider>
+        <ToastProvider>{children}</ToastProvider>
+      </RepositoriesProvider>
     </QueryClientProvider>
   );
 }
