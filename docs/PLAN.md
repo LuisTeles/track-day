@@ -256,6 +256,21 @@ One corner per screen for a phone/tablet/second monitor next to the rig.
 - [ ] Sample track library in `/examples`
 - [ ] First release via release-please
 
+### M6 — Learning the track ([feasibility study](ideas/2026-10-08-track-learning.md))
+
+- [ ] Setup screen for a car's baseline setup (`Guide.setupNotes`) — S
+- [ ] Elevation and camber markers on the map — S
+- [ ] Printable cheat sheet — S
+- [ ] Onboard video synced to the map (YouTube or local file, hand-marked corner times) — L
+- [ ] Audio lap (Web Speech API, timed from video marks) — M
+- [ ] Quiz, flashcards, spaced repetition, corner order — L
+- [ ] Corner card gaps: braking-reference photos, kerb use — M
+- [ ] Corner priority: suggested ranking, per-car override, sequences — M
+- [ ] Race-specific knowledge: overtaking, lap 1, restarts, rules, conditions — M
+- [ ] "Blind corner" flag — S
+- [ ] One-day study plan — S (after video and quiz)
+- [ ] Measured elevation profile — only with a user-supplied elevation file (no usable free data)
+
 ### v2 / Later
 
 - [ ] Video import (frames or timestamped corner list from onboard video)
