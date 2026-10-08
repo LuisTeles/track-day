@@ -9,6 +9,14 @@ async function loadSamples(page: Page) {
 
 const markers = (page: Page) => page.locator("[data-corner]");
 
+/** Below sm (every phone), zoom lives in the More map actions menu. */
+async function zoomIn(page: Page) {
+  const button = page.getByRole("button", { name: "Zoom in" });
+  if (await button.isVisible()) return button.click();
+  await page.getByRole("button", { name: "More map actions" }).click();
+  await page.getByRole("menuitem", { name: "Zoom in" }).click();
+}
+
 async function expectAllMarkersInViewport(page: Page) {
   const viewport = page.viewportSize()!;
   for (const box of await markers(page).evaluateAll((els) =>
@@ -103,7 +111,7 @@ test("zooming moves the map and reset view restores it", async ({ page }) => {
   const t10 = page.getByRole("button", { name: /^Turn 10,/ });
   const before = (await t10.boundingBox())!;
 
-  await page.getByRole("button", { name: "Zoom in" }).click();
+  await zoomIn(page);
   await expect.poll(async () => (await t10.boundingBox())!.x).not.toBeCloseTo(before.x, 0);
 
   await page.getByRole("button", { name: "More map actions" }).click();
@@ -174,7 +182,7 @@ test("racing line layer can be toggled where one exists", async ({ page }, testI
   const before = (await t3.boundingBox())!;
   if (testInfo.project.name === "mobile") {
     // Playwright can't emit wheel events under touch emulation; phones pinch.
-    for (let i = 0; i < 3; i++) await page.getByRole("button", { name: "Zoom in" }).click();
+    for (let i = 0; i < 3; i++) await zoomIn(page);
   } else {
     // Wheel over a marker must zoom the map (events bubble to the canvas).
     const t1 = (await page.getByRole("button", { name: /^Turn 1,/ }).boundingBox())!;
@@ -223,6 +231,9 @@ test("the map toolbar stays one row on a small phone", async ({ page }, testInfo
   expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
   const more = (await page.getByRole("button", { name: "More map actions" }).boundingBox())!;
   expect(more.x + more.width).toBeLessThanOrEqual(360);
+  // The car picker shows its label, not just the chevron.
+  const car = page.getByRole("combobox", { name: "Car" });
+  expect((await car.boundingBox())!.width).toBeGreaterThanOrEqual(96);
 });
 
 test("Escape closes the Layers menu and leaves the side panel open", async ({ page }, testInfo) => {

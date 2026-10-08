@@ -84,4 +84,23 @@ describe("BackupPanel", () => {
       "replace",
     );
   });
+
+  it("announces a finished export once, in the toast", async () => {
+    const { backup } = setup();
+    backup.exportAll.mockResolvedValue({ exportedAt: "2026-10-08T00:00:00.000Z", data: {} });
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi.fn(() => "blob:x"),
+      revokeObjectURL: vi.fn(),
+    });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    try {
+      await userEvent.click(screen.getByRole("button", { name: "Export backup" }));
+      expect(await screen.findByRole("status")).toHaveTextContent("Backup downloaded.");
+      expect(screen.getAllByText("Backup downloaded.")).toHaveLength(1);
+    } finally {
+      click.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
 });

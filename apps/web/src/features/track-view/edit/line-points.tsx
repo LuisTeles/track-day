@@ -1,6 +1,7 @@
 "use client";
 
 import type { CornerGuide } from "@track-day/schema";
+import { X } from "lucide-react";
 import { Button } from "@/shared/ui/button";
 import { useConfirm } from "@/shared/ui/confirm";
 import { checkLineOrder, lapDelta, type LinePoint } from "../geometry/nearest";
@@ -130,6 +131,7 @@ export function LinePoints({
             {set[p] !== null && (
               <Button
                 variant="outline"
+                size="icon"
                 aria-label={`Clear ${NAMES[p]}`}
                 onClick={() =>
                   save.mutate(
@@ -143,7 +145,7 @@ export function LinePoints({
                   )
                 }
               >
-                ×
+                <X aria-hidden />
               </Button>
             )}
           </span>

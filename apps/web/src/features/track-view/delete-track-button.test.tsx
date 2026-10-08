@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RepositoriesProvider } from "@/data/provider";
 import type { Repositories } from "@/data/repositories";
+import { ToastProvider } from "@/shared/ui/toast";
 import { DeleteTrackButton } from "./delete-track-button";
 
 const push = vi.fn();
@@ -14,7 +15,9 @@ function setup(deleteTrack = vi.fn().mockResolvedValue(undefined)) {
   render(
     <QueryClientProvider client={new QueryClient()}>
       <RepositoriesProvider repositories={repos}>
-        <DeleteTrackButton trackId="t1" trackName="Autódromo José Carlos Pace" />
+        <ToastProvider>
+          <DeleteTrackButton trackId="t1" trackName="Autódromo José Carlos Pace" />
+        </ToastProvider>
       </RepositoriesProvider>
     </QueryClientProvider>,
   );
@@ -47,6 +50,19 @@ describe("DeleteTrackButton", () => {
 
     expect(deleteTrack).toHaveBeenCalledWith("t1");
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith("/"));
+  });
+
+  it("confirms the deletion with a toast", async () => {
+    const { user } = setup();
+
+    await user.click(screen.getByRole("button", { name: "Delete track" }));
+    await user.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete track" }),
+    );
+
+    await vi.waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent("Deleted Autódromo José Carlos Pace."),
+    );
   });
 
   it("keeps the dialog open with the error when deleting fails", async () => {

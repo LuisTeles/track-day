@@ -41,7 +41,8 @@ export function BackupPanel() {
       `track-day-backup-${payload.exportedAt.slice(0, 10)}.json`,
       JSON.stringify(payload, null, 2),
     );
-    setStatus({ kind: "done", message: "Backup downloaded." });
+    // The toast announces it; an inline copy would be read out twice.
+    setStatus({ kind: "idle" });
     toast.show("Backup downloaded.", "success");
   }
 
@@ -60,7 +61,7 @@ export function BackupPanel() {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       <section className="flex flex-col gap-4 rounded-2xl border border-border p-6">
         <h2 className="flex items-center gap-2 text-lg font-semibold">
           <Download aria-hidden className="size-5" />
@@ -126,7 +127,7 @@ export function BackupPanel() {
             type="file"
             accept="application/json,.json"
             disabled={status.kind === "busy"}
-            className="text-sm file:mr-3 file:h-10 file:rounded-lg file:border file:border-border file:bg-background file:px-4 file:font-medium file:text-foreground pointer-coarse:file:h-11"
+            className="w-full max-w-full min-w-0 text-sm file:mr-3 file:h-10 file:rounded-lg file:border file:border-border file:bg-background file:px-4 file:font-medium file:text-foreground pointer-coarse:file:h-11"
             onChange={(e) => {
               const file = e.target.files?.[0];
               e.target.value = "";

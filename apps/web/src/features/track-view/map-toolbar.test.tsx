@@ -55,6 +55,23 @@ describe("MapToolbar", () => {
     expect(p.onReset).toHaveBeenCalled();
   });
 
+  it("moves zoom into the More menu below sm, so the car picker has room", async () => {
+    const p = props();
+    render(<MapToolbar {...p} />);
+    // One of each pair is display:none per breakpoint, so only one is ever exposed.
+    expect(screen.getByRole("button", { name: "Zoom in" })).toHaveClass("max-sm:hidden");
+    expect(screen.getByRole("button", { name: "Zoom out" })).toHaveClass("max-sm:hidden");
+    await userEvent.click(screen.getByRole("button", { name: "More map actions" }));
+    const zoomIn = screen.getByRole("menuitem", { name: "Zoom in" });
+    expect(zoomIn).toHaveClass("sm:hidden");
+    expect(screen.getByRole("menuitem", { name: "Zoom out" })).toHaveClass("sm:hidden");
+    await userEvent.click(zoomIn);
+    expect(p.onZoomIn).toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "More map actions" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Zoom out" }));
+    expect(p.onZoomOut).toHaveBeenCalled();
+  });
+
   it("opens the shortcuts help from the More menu", async () => {
     const p = props();
     render(<MapToolbar {...p} />);

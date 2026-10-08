@@ -7,6 +7,7 @@ const key = (k: string, extra: Partial<KeyboardEvent> = {}, target: Element = do
     ctrlKey: false,
     metaKey: false,
     altKey: false,
+    repeat: false,
     defaultPrevented: false,
     target,
     ...extra,
@@ -59,5 +60,29 @@ describe("shortcutFor", () => {
       layer.remove();
     }
     expect(shortcutFor(key("e", { defaultPrevented: true }))).toBeNull();
+  });
+
+  it("accepts [ and ] typed with AltGr or Option (PT, DE, FR layouts)", () => {
+    const altGr = {
+      ctrlKey: true,
+      altKey: true,
+      getModifierState: (k: string) => k === "AltGraph",
+    };
+    expect(shortcutFor(key("[", altGr))).toBe("prev-corner");
+    expect(shortcutFor(key("]", altGr))).toBe("next-corner");
+    // macOS: Option produces the symbol, with altKey set.
+    expect(shortcutFor(key("[", { altKey: true }))).toBe("prev-corner");
+  });
+
+  it("still ignores Ctrl and Cmd combinations without AltGr", () => {
+    const noAltGr = { getModifierState: () => false };
+    expect(shortcutFor(key("e", { ctrlKey: true, ...noAltGr }))).toBeNull();
+    expect(shortcutFor(key("[", { ctrlKey: true, ...noAltGr }))).toBeNull();
+    expect(shortcutFor(key("e", { metaKey: true }))).toBeNull();
+    expect(shortcutFor(key("[", { metaKey: true }))).toBeNull();
+  });
+
+  it("ignores auto-repeat from a held key", () => {
+    expect(shortcutFor(key("]", { repeat: true }))).toBeNull();
   });
 });

@@ -188,8 +188,14 @@ function TrackView({ trackId }: { trackId: string }) {
     if (!picking) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
-      // A dialog over the pick (discard, far point, Add car) owns this Escape.
-      if (document.querySelector("[role=alertdialog][data-state=open]")) return;
+      // A dialog or menu over the pick (discard, far point, Add car, Layers,
+      // More) owns this Escape; the next one cancels the pick.
+      if (
+        document.querySelector(
+          "[role=alertdialog][data-state=open], [role=dialog][data-state=open], [role=menu][data-state=open]",
+        )
+      )
+        return;
       // Capture phase + preventDefault: cancelling a pick must not also close the panel.
       e.preventDefault();
       setPicking(null);
@@ -333,7 +339,7 @@ function TrackView({ trackId }: { trackId: string }) {
         }
         leaveEdits(() => setParams({ guide: value }));
       }}
-      className="h-10 w-auto max-w-44 max-sm:max-w-28 pointer-coarse:h-11"
+      className="h-10 w-auto max-w-44 pointer-coarse:h-11 max-sm:w-28"
     >
       {guides.length === 0 && (
         <option value="__none__" disabled>
@@ -542,7 +548,7 @@ function TrackView({ trackId }: { trackId: string }) {
             )}
           />
           {layout.outlineSource === "osm" && (
-            <OsmAttribution className="absolute right-2 bottom-1 z-10 rounded bg-background/80 px-1.5 max-md:bottom-16" />
+            <OsmAttribution className="absolute right-2 bottom-1 z-10 rounded bg-background/80 px-1.5 max-md:bottom-[calc(4.5rem+env(safe-area-inset-bottom))]" />
           )}
         </>
       }

@@ -17,15 +17,18 @@ import {
 } from "@/shared/ui/alert-dialog";
 import { Button } from "@/shared/ui/button";
 import { IconButton } from "@/shared/ui/icon-button";
+import { useToast } from "@/shared/ui/toast";
 
 export function DeleteTrackButton({ trackId, trackName }: { trackId: string; trackName: string }) {
   const { trackDeletion } = useRepositories();
   const queryClient = useQueryClient();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const toast = useToast();
   const remove = useMutation({
     mutationFn: () => trackDeletion.deleteTrack(trackId),
     onSuccess: async () => {
+      toast.show(`Deleted ${trackName}.`, "success");
       // Leave first, so the open track view doesn't refetch a deleted track.
       router.push("/");
       await queryClient.invalidateQueries({ queryKey: queryKeys.all });

@@ -62,4 +62,16 @@ describe("SidePanel", () => {
       "true",
     );
   });
+
+  it("reopens collapsed after being closed while expanded", async () => {
+    render(<Harness />);
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    await userEvent.click(screen.getByRole("button", { name: "Expand panel" }));
+    await userEvent.click(screen.getByRole("button", { name: "Close panel" }));
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(screen.getByRole("button", { name: "Expand panel" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
 });

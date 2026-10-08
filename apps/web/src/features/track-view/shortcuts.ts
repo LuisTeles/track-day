@@ -37,9 +37,17 @@ const TYPING = "input, textarea, select, [contenteditable=''], [contenteditable=
 const LAYER = "[role=dialog], [role=alertdialog], [role=menu]";
 
 export function shortcutFor(
-  e: Pick<KeyboardEvent, "key" | "ctrlKey" | "metaKey" | "altKey" | "target" | "defaultPrevented">,
+  e: Pick<
+    KeyboardEvent,
+    "key" | "ctrlKey" | "metaKey" | "altKey" | "repeat" | "target" | "defaultPrevented"
+  > &
+    Partial<Pick<KeyboardEvent, "getModifierState">>,
 ): ShortcutAction | null {
-  if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return null;
+  if (e.defaultPrevented || e.repeat || e.metaKey) return null;
+  // AltGr reports Ctrl+Alt on Windows; it types `[` `]` on PT, DE and FR layouts.
+  if (e.ctrlKey && !e.getModifierState?.("AltGraph")) return null;
+  // Alt (Option on a Mac) also types symbols, but Alt+letter is a browser/OS combo.
+  if ((e.altKey || e.ctrlKey) && /^[a-z]$/i.test(e.key)) return null;
   const target = e.target instanceof Element ? e.target : null;
   if (target?.closest(TYPING) || target?.closest(LAYER)) return null;
   return MAP[e.key] ?? null;

@@ -11,7 +11,10 @@ export function useRovingFocus<T extends HTMLElement>() {
   const ref = useRef<T>(null);
   const onKeyDown = useCallback((e: KeyboardEvent) => {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key) || !ref.current) return;
-    const items = [...ref.current.querySelectorAll<HTMLElement>(FOCUSABLE)];
+    // Skip controls hidden at this breakpoint (display: none can't take focus).
+    const items = [...ref.current.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
+      (el) => getComputedStyle(el).display !== "none",
+    );
     const index = items.indexOf(document.activeElement as HTMLElement);
     if (index === -1) return;
     const next =

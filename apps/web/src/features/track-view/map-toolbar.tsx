@@ -54,10 +54,12 @@ export function MapToolbar(p: MapToolbarProps) {
     >
       {p.hasMap && (
         <>
-          <IconButton label="Zoom in" onClick={p.onZoomIn}>
+          {/* Below sm, zoom lives in the More menu (pinch and +/- still work)
+              so the car picker keeps room for its label. */}
+          <IconButton label="Zoom in" onClick={p.onZoomIn} className="max-sm:hidden">
             <Plus />
           </IconButton>
-          <IconButton label="Zoom out" onClick={p.onZoomOut}>
+          <IconButton label="Zoom out" onClick={p.onZoomOut} className="max-sm:hidden">
             <Minus />
           </IconButton>
           <DropdownMenu>
@@ -103,6 +105,14 @@ export function MapToolbar(p: MapToolbarProps) {
             </IconButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="end">
+            <DropdownMenuItem onSelect={p.onZoomIn} className="sm:hidden">
+              <Plus aria-hidden />
+              Zoom in
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={p.onZoomOut} className="sm:hidden">
+              <Minus aria-hidden />
+              Zoom out
+            </DropdownMenuItem>
             <DropdownMenuItem onSelect={p.onReset}>
               <RotateCcw aria-hidden />
               Reset view

@@ -20,6 +20,12 @@ interface SidePanelProps {
  */
 export function SidePanel({ open, title, onClose, children, headerActions }: SidePanelProps) {
   const [expanded, setExpanded] = useState(false);
+  // Reopen collapsed: reset while rendering the close, not in an effect.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (!open) setExpanded(false);
+  }
   const headingId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const returnFocus = useRef<Element | null>(null);

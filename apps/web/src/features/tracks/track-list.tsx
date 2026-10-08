@@ -30,7 +30,11 @@ export function TrackList() {
 
   if (isPending)
     return (
-      <ul aria-label="Loading tracks" aria-busy="true" className="grid gap-3 sm:grid-cols-2">
+      <ul
+        aria-label="Loading tracks"
+        aria-busy="true"
+        className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+      >
         {[0, 1, 2, 3].map((i) => (
           <li key={i}>
             <Skeleton className="h-20" />
@@ -85,9 +89,9 @@ export function TrackList() {
       {visible.length === 0 ? (
         <p className="text-sm break-words text-muted">No tracks match “{query.trim()}”.</p>
       ) : (
-        <ul className="grid gap-3 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {visible.map((track) => (
-            <li key={track.id}>
+            <li key={track.id} className="min-w-0">
               <Link
                 href={`/tracks/view/?track=${track.id}`}
                 className="focus-ring group flex min-h-20 items-center gap-4 rounded-xl border border-border bg-background p-4 transition-colors hover:border-foreground/20 hover:bg-surface"

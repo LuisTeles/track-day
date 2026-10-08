@@ -9,6 +9,7 @@ import type { Repositories } from "@/data/repositories";
 import { TrackDayDb } from "@/data/local/db";
 import { createLocalRepositories } from "@/data/local/local-repositories";
 import { ConfirmProvider } from "@/shared/ui/confirm";
+import { ToastProvider } from "@/shared/ui/toast";
 import { mockLayout } from "@/test/dom";
 import { emptyCornerGuide } from "./edit/corner-guide-draft";
 import { TrackViewPage } from "./track-view-page";
@@ -66,9 +67,11 @@ async function open(
   const ui = () => (
     <QueryClientProvider client={client}>
       <RepositoriesProvider repositories={repos}>
-        <ConfirmProvider>
-          <TrackViewPage />
-        </ConfirmProvider>
+        <ToastProvider>
+          <ConfirmProvider>
+            <TrackViewPage />
+          </ConfirmProvider>
+        </ToastProvider>
       </RepositoriesProvider>
     </QueryClientProvider>
   );
@@ -322,6 +325,25 @@ describe("TrackViewPage edit mode", () => {
     expect(screen.getByTestId("side-panel")).toBeInTheDocument();
     expect(search.get("corner")).toBe(t1.id);
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+  });
+
+  it("closes a menu opened over a pick on Escape before cancelling the pick", async () => {
+    const { t1, user } = await open({ edit: "1" });
+    search.set("corner", t1.id);
+    rerenderPage();
+    await user.click(await screen.findByRole("button", { name: /^Set apex/ }));
+    expect(screen.getByText(/Click or tap the track/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Layers" }));
+    expect(await screen.findByRole("menu")).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("menu")).not.toBeInTheDocument());
+    expect(screen.getByText(/Click or tap the track/)).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByText(/Click or tap the track/)).not.toBeInTheDocument();
+    expect(screen.getByTestId("side-panel")).toBeInTheDocument();
+    expect(search.get("corner")).toBe(t1.id);
   });
 
   it("shows the stored values after switching car with a corner open", async () => {

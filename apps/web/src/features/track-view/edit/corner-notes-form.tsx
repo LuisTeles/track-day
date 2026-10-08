@@ -1,6 +1,7 @@
 "use client";
 
 import type { Corner } from "@track-day/schema";
+import { X } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -89,10 +90,11 @@ export function CornerNotesForm({
             />
             <Button
               variant="outline"
+              size="icon"
               aria-label={`Remove mistake ${i + 1}`}
               onClick={() => setMistakes(mistakes.filter((_, j) => j !== i))}
             >
-              ×
+              <X aria-hidden />
             </Button>
           </div>
         ))}
