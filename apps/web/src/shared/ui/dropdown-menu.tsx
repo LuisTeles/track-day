@@ -5,7 +5,15 @@ import { Check } from "lucide-react";
 import type { ComponentProps } from "react";
 import { cn } from "@/shared/lib/utils";
 
-const DropdownMenu = Menu.Root;
+/**
+ * Non-modal by default. A modal menu sets `pointer-events: none` on <body>;
+ * when one of its items opens a modal dialog, the dialog records that "none"
+ * as the body's original value and puts it back on close, leaving the page
+ * unclickable. Outside clicks and Escape still close a non-modal menu.
+ */
+function DropdownMenu({ modal = false, ...props }: ComponentProps<typeof Menu.Root>) {
+  return <Menu.Root modal={modal} {...props} />;
+}
 const DropdownMenuTrigger = Menu.Trigger;
 
 function DropdownMenuContent({

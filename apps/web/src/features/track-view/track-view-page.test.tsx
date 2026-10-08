@@ -585,8 +585,7 @@ describe("TrackViewPage car setup", () => {
     await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
     expect(push).not.toHaveBeenCalled();
     expect(screen.getByLabelText("Setup notes")).toHaveValue("Soft springs");
-    // jsdom leaves Radix's menu→dialog scroll lock behind; don't leak it into later tests.
-    document.body.style.pointerEvents = "";
+    expect(document.body.style.pointerEvents).not.toBe("none");
   });
 
   it("selecting a corner closes setup", async () => {
