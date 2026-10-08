@@ -1,7 +1,8 @@
 "use client";
 
+import { AlertTriangle, ArrowRight } from "lucide-react";
 import type { CornerGuide } from "@track-day/schema";
-import { useState, type ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { isEstimate } from "@/features/guides/estimate";
 import { brakeAtText, pressureOf } from "./format";
 
@@ -52,7 +53,13 @@ export function PracticeCard({
       aria-live="polite"
       aria-label={[title, name, direction].filter(Boolean).join(", ")}
       data-testid="practice-card"
-      className="flex h-full min-w-0 flex-col gap-[calc(0.75rem*var(--practice-scale,1))]"
+      style={
+        {
+          "--gap": "calc(0.75rem * var(--practice-scale, 1))",
+          "--tile-pad": "calc(1rem * var(--practice-scale, 1))",
+        } as CSSProperties
+      }
+      className="flex h-full min-w-0 flex-col gap-(--gap)"
     >
       <header className="flex min-w-0 flex-wrap items-baseline gap-x-4 gap-y-1">
         <h1 className="text-[calc(clamp(2.5rem,9vmin,5.5rem)*var(--practice-scale,1))] leading-none font-bold tabular-nums">
@@ -67,23 +74,24 @@ export function PracticeCard({
           </p>
         </div>
         {estimate && (
-          <span className="ml-auto shrink-0 rounded-full border border-estimate px-3 py-1 text-sm font-semibold text-estimate">
+          <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full border border-estimate px-3 py-1.5 text-sm font-semibold text-estimate">
+            <AlertTriangle aria-hidden className="size-4" />
             Estimate{guide?.confidence ? ` · ${guide.confidence} confidence` : ""}
           </span>
         )}
       </header>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-[calc(0.75rem*var(--practice-scale,1))] landscape:flex-row">
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-[calc(0.75rem*var(--practice-scale,1))]">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-(--gap) landscape:flex-row">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-(--gap)">
           {guide === null ? (
-            <p className="grid flex-1 place-items-center rounded-2xl border border-dashed border-border p-6 text-center text-[calc(1.25rem*var(--practice-scale,1))] text-muted">
+            <p className="grid flex-1 place-items-center rounded-3xl border border-dashed border-border p-6 text-center text-[calc(1.25rem*var(--practice-scale,1))] text-muted">
               {guideLabel
                 ? `No guide for this corner in “${guideLabel}”.`
                 : "No guide for this layout yet."}
             </p>
           ) : (
             <>
-              <dl className="grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-[calc(0.75rem*var(--practice-scale,1))] landscape:grid-cols-4 landscape:grid-rows-1">
+              <dl className="grid min-h-0 flex-1 grid-cols-2 grid-rows-2 gap-(--gap) landscape:grid-cols-4 landscape:grid-rows-1">
                 <Tile
                   term="Brake at"
                   value={brakeAt ?? DASH}
@@ -95,7 +103,7 @@ export function PracticeCard({
                   small
                   extra={
                     <div
-                      className="mt-2 h-3 w-full overflow-hidden rounded-full bg-border"
+                      className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-foreground/10"
                       role="meter"
                       aria-label="Brake pressure"
                       aria-valuemin={0}
@@ -145,7 +153,8 @@ export function PracticeCard({
         )}
       </div>
 
-      <footer className="flex min-w-0 shrink-0 items-center gap-3 rounded-2xl bg-surface px-4 py-3 text-[calc(clamp(0.95rem,2.8vmin,1.4rem)*var(--practice-scale,1))]">
+      <footer className="flex min-w-0 shrink-0 items-center gap-3 rounded-3xl bg-surface px-5 py-3.5 text-[calc(clamp(0.95rem,2.8vmin,1.4rem)*var(--practice-scale,1))]">
+        <ArrowRight aria-hidden className="size-[1.1em] shrink-0 text-muted" />
         <span className="text-muted">Next</span>
         {next ? (
           <>
@@ -180,13 +189,13 @@ function Tile({
   return (
     // Each tile is a size container: values scale with the tile's own width
     // (cqi), so four narrow tiles beside the diagram still fit their values.
-    <div className="@container flex min-h-0 min-w-0 flex-col justify-between overflow-hidden rounded-2xl bg-surface p-[calc(0.9rem*var(--practice-scale,1))]">
-      <dt className="text-[calc(clamp(0.8rem,2.2vmin,1.1rem)*var(--practice-scale,1))] font-medium tracking-wide text-muted uppercase">
+    <div className="@container flex min-h-0 min-w-0 flex-col justify-between overflow-hidden rounded-3xl bg-surface p-(--tile-pad)">
+      <dt className="text-[calc(clamp(0.8rem,2.2vmin,1.1rem)*var(--practice-scale,1))] font-medium tracking-wider text-muted uppercase">
         {term}
       </dt>
       <dd>
         <span
-          className={`block leading-tight font-bold tabular-nums ${
+          className={`block leading-none font-bold tabular-nums ${
             small
               ? "line-clamp-2 text-[calc(min(clamp(1.1rem,4vmin,2.4rem),15cqi)*var(--practice-scale,1))]"
               : "truncate text-[calc(min(clamp(2.4rem,10vmin,6rem),30cqi)*var(--practice-scale,1))]"

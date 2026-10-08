@@ -198,3 +198,21 @@ test("controls fit a 360px phone without clipping", async ({ page }, testInfo) =
   const exit = (await page.getByRole("link", { name: "Exit" }).boundingBox())!;
   expect(exit.x + exit.width).toBeLessThanOrEqual(360);
 });
+
+test("practice card fits the viewport without clipping on a phone in both orientations", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile");
+  await openPractice(page);
+  for (const size of [
+    { width: 360, height: 740 },
+    { width: 740, height: 360 },
+  ]) {
+    await page.setViewportSize(size);
+    const card = (await page.getByTestId("practice-card").boundingBox())!;
+    expect(card.y + card.height).toBeLessThanOrEqual(size.height);
+    // The cue is never cut mid-line: its box fits inside the card.
+    const cue = (await page.getByTestId("practice-cue").boundingBox())!;
+    expect(cue.y + cue.height).toBeLessThanOrEqual(card.y + card.height);
+  }
+});
