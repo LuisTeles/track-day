@@ -1,7 +1,16 @@
 "use client";
 
 import { CheckCircle2, AlertCircle } from "lucide-react";
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { cn } from "@/shared/lib/utils";
 
 type Tone = "default" | "success" | "danger";
@@ -21,14 +30,17 @@ const DURATION = 4000;
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<Toast | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const nextId = useRef(0);
   const show = useCallback((message: string, tone: Tone = "default") => {
     clearTimeout(timer.current);
-    setToast({ id: Date.now(), message, tone });
+    setToast({ id: ++nextId.current, message, tone });
     timer.current = setTimeout(() => setToast(null), DURATION);
   }, []);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const value = useMemo(() => ({ show }), [show]);
 
   return (
-    <ToastContext.Provider value={{ show }}>
+    <ToastContext.Provider value={value}>
       {children}
       <div
         role="status"

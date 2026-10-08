@@ -1,4 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
+import { createElement } from "react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyTheme, THEME_KEY } from "./theme";
 import { useTheme } from "./use-theme";
@@ -36,13 +39,6 @@ describe("useTheme", () => {
     expect(document.documentElement.dataset.theme).toBe("light");
   });
 
-  it("does not touch the document on mount (the inline script already set it)", () => {
-    localStorage.setItem(THEME_KEY, "dark");
-    document.documentElement.dataset.theme = "dark";
-    renderHook(() => useTheme());
-    expect(document.documentElement.dataset.theme).toBe("dark");
-  });
-
   it("still switches when storage throws", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
       throw new Error("blocked");
@@ -50,5 +46,36 @@ describe("useTheme", () => {
     const { result } = renderHook(() => useTheme());
     act(() => result.current[1]("dark"));
     expect(document.documentElement.dataset.theme).toBe("dark");
+  });
+});
+
+describe("useTheme hydration", () => {
+  it("keeps the data-theme set by the inline script", async () => {
+    // Fresh module state so the in-memory choice cannot shadow localStorage.
+    vi.resetModules();
+    const { useTheme: freshUseTheme } = await import("./use-theme");
+    function Probe() {
+      return createElement("span", null, freshUseTheme()[0]);
+    }
+    // The server renders the default ("system"); the inline script already
+    // applied the stored "dark" before hydration.
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(createElement(Probe));
+    document.body.append(container);
+    localStorage.setItem(THEME_KEY, "dark");
+    document.documentElement.dataset.theme = "dark";
+    // Any attribute write during hydration would be a frame without the theme.
+    const writes: MutationRecord[] = [];
+    const observer = new MutationObserver((records) => writes.push(...records));
+    observer.observe(document.documentElement, { attributes: true });
+    await act(async () => {
+      hydrateRoot(container, createElement(Probe));
+    });
+    writes.push(...observer.takeRecords());
+    expect(writes).toEqual([]);
+    observer.disconnect();
+    expect(container.textContent).toBe("dark");
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    container.remove();
   });
 });
