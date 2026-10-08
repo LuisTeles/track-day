@@ -15,9 +15,9 @@ Controls had grown ad-hoc sizes (24-36 px), inputs triggered iOS zoom, the map t
 - **Primitives** live in `src/shared/ui`: Button sizes, IconButton, Select, Popover, DropdownMenu, Toast and Confirm. Features don't hand-roll them.
   - Toasts are `pointer-events-none`, so they never block the map.
   - Confirmation is `ConfirmProvider` / `useConfirm()`, replacing `window.confirm`. Leaving with unsaved edits takes a continuation (`leaveEdits(next)`).
-  - The map toolbar is one row with a roving tabindex; the shortcuts help lives in its More menu.
+  - The map toolbar is one row; arrow keys move focus between its controls, and every control stays a Tab stop. The shortcuts help lives in its More menu.
 - **Icons:** `lucide-react`, always `aria-hidden`, with a visible text or `aria-label` name.
-- **Accessibility:** axe (WCAG 2.2 AA) runs on every page in e2e, in light and dark where it applies, with no allowed violations.
+- **Accessibility:** axe (WCAG 2.2 AA) runs in e2e on every page in light, and on home and the track view in dark too, with no allowed violations.
 
 ## Consequences
 
