@@ -250,3 +250,22 @@ test("Escape closes the Layers menu and leaves the side panel open", async ({ pa
   await expect(page.getByRole("menuitemcheckbox", { name: "Racing line" })).toHaveCount(0);
   await expect(panel).toBeVisible();
 });
+
+test("elevation & camber layer adds terrain words and keeps labels in view", async ({ page }) => {
+  await loadSamples(page);
+  await page.getByRole("link", { name: /Interlagos/ }).click();
+  await expect(markers(page)).toHaveCount(15);
+  await expect(page.getByText("Downhill")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Layers" }).click();
+  const toggle = page.getByRole("menuitemcheckbox", { name: "Elevation & camber" });
+  await expect(toggle).toHaveAttribute("aria-checked", "false");
+  await toggle.click();
+  await page.keyboard.press("Escape");
+
+  // Interlagos has downhill corners; chips for speed & gear are still on.
+  await expect(page.locator("[data-corner]", { hasText: "Downhill" }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /downhill/ }).first()).toBeVisible();
+  await expect(page.locator("[data-corner]", { hasText: "km/h" }).first()).toBeVisible();
+  await expectAllMarkersInViewport(page);
+});

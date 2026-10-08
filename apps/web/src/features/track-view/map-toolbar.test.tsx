@@ -9,6 +9,7 @@ const props = () => ({
   onZoomOut: vi.fn(),
   onReset: vi.fn(),
   chips: { on: true, disabled: false, toggle: vi.fn() },
+  terrain: { on: false, disabled: false, toggle: vi.fn() },
   racingLine: { on: false, disabled: false, toggle: vi.fn() },
   editing: false,
   onToggleEdit: vi.fn(),
@@ -46,6 +47,21 @@ describe("MapToolbar", () => {
     );
     await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Racing line" }));
     expect(p.racingLine.toggle).toHaveBeenCalled();
+  });
+
+  it("has an Elevation & camber layer that can be disabled", async () => {
+    const p = props();
+    const { unmount } = render(<MapToolbar {...p} />);
+    await userEvent.click(screen.getByRole("button", { name: "Layers" }));
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Elevation & camber" }));
+    expect(p.terrain.toggle).toHaveBeenCalled();
+    unmount();
+    render(<MapToolbar {...p} terrain={{ ...p.terrain, disabled: true }} />);
+    await userEvent.click(screen.getByRole("button", { name: "Layers" }));
+    expect(screen.getByRole("menuitemcheckbox", { name: "Elevation & camber" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
   });
 
   it("puts Reset view and Redo map in the More menu", async () => {

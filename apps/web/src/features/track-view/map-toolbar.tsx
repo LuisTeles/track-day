@@ -30,6 +30,7 @@ export interface MapToolbarProps {
   onZoomOut(): void;
   onReset(): void;
   chips: { on: boolean; disabled: boolean; toggle(): void };
+  terrain: { on: boolean; disabled: boolean; toggle(): void };
   racingLine: { on: boolean; disabled: boolean; toggle(): void };
   editing: boolean;
   onToggleEdit(): void;
@@ -77,6 +78,13 @@ export function MapToolbar(p: MapToolbarProps) {
                 onCheckedChange={p.chips.toggle}
               >
                 Speed &amp; gear
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={p.terrain.on}
+                disabled={p.terrain.disabled}
+                onCheckedChange={p.terrain.toggle}
+              >
+                Elevation &amp; camber
               </DropdownMenuCheckboxItem>
               <DropdownMenuCheckboxItem
                 checked={p.racingLine.on}

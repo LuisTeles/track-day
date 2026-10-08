@@ -5,6 +5,7 @@ import { useMemo } from "react";
 import { cornerFraction } from "./geometry/anchors";
 import { outwardNormal, placeLabels, type LabelInput } from "./geometry/labels";
 import type { Point, Size } from "./geometry/types";
+import { terrainOf } from "./terrain";
 import type { CanvasContext } from "./track-canvas";
 
 /** Compact speed/gear info shown next to a badge. */
@@ -23,6 +24,8 @@ interface CornerMarkersProps {
   selectedId: string | null;
   onSelect(cornerId: string): void;
   chips?: ReadonlyMap<string, CornerChip> | null;
+  /** Show elevation and camber words after the speed chip. */
+  terrain?: boolean;
   /** Show corner names next to the badges from this zoom level up. */
   namesFromZoom?: number;
 }
@@ -32,10 +35,15 @@ const NAME_CHAR = 6.6;
 const CHIP_CHAR = 6.6;
 
 /** Label size from its content, without measuring the DOM (keeps placement pure and stable). */
-export function estimateLabelSize(name: string | null, chip: string | null): Size {
+export function estimateLabelSize(
+  name: string | null,
+  chip: string | null,
+  terrain: string | null = null,
+): Size {
   let width = BADGE;
   if (name) width += 8 + name.length * NAME_CHAR;
   if (chip) width += 8 + chip.length * CHIP_CHAR + 10;
+  if (terrain) width += 8 + terrain.length * CHIP_CHAR + 10;
   return { width: Math.ceil(width), height: BADGE };
 }
 
@@ -50,6 +58,7 @@ export function CornerMarkers({
   selectedId,
   onSelect,
   chips,
+  terrain = false,
   namesFromZoom = 1.75,
 }: CornerMarkersProps) {
   const { geometry, toScreen, zoom } = ctx;
@@ -72,16 +81,18 @@ export function CornerMarkers({
     const name = showNames || corner.id === selectedId ? corner.name : null;
     const chip = chips?.get(corner.id) ?? null;
     const chipText = chip ? chip.text + (chip.estimate ? " est." : "") : null;
+    const terrainInfo = terrain ? terrainOf(corner) : null;
     return {
       corner,
       name,
       chip,
       chipText,
+      terrainInfo,
       input: {
         id: corner.id,
         anchor: toScreen(point),
         outward,
-        size: estimateLabelSize(name, chipText),
+        size: estimateLabelSize(name, chipText, terrainInfo?.text ?? null),
         offset: corner.labelOffset,
       } satisfies LabelInput,
     };
@@ -129,7 +140,7 @@ export function CornerMarkers({
         })}
       </svg>
 
-      {labels.map(({ corner, name, chip, chipText, input }) => {
+      {labels.map(({ corner, name, chip, chipText, terrainInfo, input }) => {
         const p = placed.get(corner.id)!;
         const selected = corner.id === selectedId;
         const left: Point = {
@@ -146,6 +157,7 @@ export function CornerMarkers({
               `Turn ${corner.number}`,
               corner.name,
               chip && `${chip.description}${chip.estimate ? ", estimate" : ""}`,
+              terrainInfo?.description,
             ]
               .filter(Boolean)
               .join(", ")}
@@ -170,6 +182,11 @@ export function CornerMarkers({
             {chipText && (
               <span className="rounded-md border border-border bg-chip px-1.5 py-0.5 text-xs font-medium text-foreground tabular-nums shadow-sm">
                 {chipText}
+              </span>
+            )}
+            {terrainInfo && (
+              <span className="rounded-md border border-border bg-surface px-1.5 py-0.5 text-xs font-medium text-muted shadow-sm">
+                {terrainInfo.text}
               </span>
             )}
           </button>

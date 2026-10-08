@@ -31,6 +31,7 @@ import { useStoredToggle } from "@/shared/hooks/use-stored-toggle";
 import { OsmAttribution } from "@/shared/ui/osm-attribution";
 import { CornerGuideSection } from "./corner-guide-section";
 import { chipsFor, guideLabel } from "./guides";
+import { terrainOf } from "./terrain";
 import { useCornerGuides, useTrackView } from "./use-track-view";
 
 const DISCARD = {
@@ -56,6 +57,7 @@ function TrackView({ trackId }: { trackId: string }) {
   const canvas = useRef<TrackCanvasHandle>(null);
   const { data, isPending, error } = useTrackView(trackId, params.get("layout"));
   const [showChips, toggleChips] = useStoredToggle("track-view:chips", true);
+  const [showTerrain, toggleTerrain] = useStoredToggle("track-view:terrain", false);
   const [showRacingLine, toggleRacingLine] = useStoredToggle("track-view:racing-line", true);
   const [redoingMap, setRedoingMap] = useState(false);
   const editing = params.get("edit") === "1";
@@ -269,6 +271,7 @@ function TrackView({ trackId }: { trackId: string }) {
 
   const { track, layouts, layout, corners, complexes, guides } = data;
   const racingLine = layout ? getRacingLine(layout) : null;
+  const hasTerrain = corners.some((c) => terrainOf(c) !== null);
   const currentGuideLabel = guide
     ? guideLabel(guide, data.carClasses ?? [], data.cars ?? [])
     : null;
@@ -372,6 +375,7 @@ function TrackView({ trackId }: { trackId: string }) {
       onZoomOut={() => canvas.current?.zoomBy(1 / 1.5)}
       onReset={() => canvas.current?.reset()}
       chips={{ on: showChips, disabled: !guide, toggle: toggleChips }}
+      terrain={{ on: showTerrain, disabled: !hasTerrain, toggle: toggleTerrain }}
       racingLine={{
         on: showRacingLine && (racingLine !== null || lines.length > 0),
         disabled: !racingLine && lines.length === 0,
@@ -569,6 +573,7 @@ function TrackView({ trackId }: { trackId: string }) {
                 selectedId={selected?.id ?? null}
                 onSelect={selectCorner}
                 chips={showChips ? chips : null}
+                terrain={showTerrain}
               />
             )}
           />

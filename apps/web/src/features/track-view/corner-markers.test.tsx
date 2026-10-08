@@ -30,7 +30,7 @@ const corner = (number: number, extra: Partial<Corner> = {}): Corner => ({
 
 function renderMarkers(
   corners: Corner[],
-  props: { selectedId?: string; chips?: Map<string, CornerChip> } = {},
+  props: { selectedId?: string; chips?: Map<string, CornerChip>; terrain?: boolean } = {},
 ) {
   const onSelect = vi.fn();
   render(
@@ -45,6 +45,7 @@ function renderMarkers(
           selectedId={props.selectedId ?? null}
           onSelect={onSelect}
           chips={props.chips}
+          terrain={props.terrain}
         />
       )}
     />,
@@ -84,6 +85,21 @@ describe("CornerMarkers", () => {
     expect(marker).toHaveTextContent("70 km/h · 2 est.");
   });
 
+  it("shows a terrain chip after the speed chip when the layer is on", () => {
+    const chips = new Map([
+      ["c1", { text: "70 km/h · 2", description: "70 km/h, gear 2", estimate: false }],
+    ]);
+    renderMarkers([corner(1, { pathPosition: 0.2, elevation: "crest" })], { chips, terrain: true });
+    const marker = screen.getByRole("button", { name: "Turn 1, 70 km/h, gear 2, crest" });
+    expect(marker).toHaveTextContent("70 km/h · 2Crest");
+  });
+
+  it("shows no terrain chip when the layer is off", () => {
+    renderMarkers([corner(1, { pathPosition: 0.2, elevation: "crest" })]);
+    const marker = screen.getByRole("button", { name: "Turn 1" });
+    expect(marker).not.toHaveTextContent("Crest");
+  });
+
   it("draws a leader line when labels collide", () => {
     renderMarkers([corner(1, { pathPosition: 0.2 }), corner(2, { pathPosition: 0.201 })]);
     expect(screen.getByTestId("corner-markers").querySelectorAll("line")).toHaveLength(1);
@@ -102,6 +118,9 @@ describe("estimateLabelSize", () => {
     const badge = estimateLabelSize(null, null);
     expect(badge).toEqual({ width: 28, height: 28 });
     expect(estimateLabelSize("S do Senna", null).width).toBeGreaterThan(badge.width);
+    expect(estimateLabelSize("S do Senna", null, "Crest").width).toBeGreaterThan(
+      estimateLabelSize("S do Senna", null).width,
+    );
     expect(estimateLabelSize("S do Senna", "70 km/h · 2").width).toBeGreaterThan(
       estimateLabelSize("S do Senna", null).width,
     );
