@@ -184,3 +184,17 @@ test("a bound wheel button advances the corner (simulated gamepad)", async ({ pa
   await press(7); // unbound
   await expect(card(page)).toHaveAttribute("aria-label", /^T3,/);
 });
+
+test("controls fit a 360px phone without clipping", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile", "phone layout");
+  await page.setViewportSize({ width: 360, height: 740 });
+  await openPractice(page);
+  const row = page.locator("[data-no-nav]");
+  const { scrollWidth, clientWidth } = await row.evaluate((el) => ({
+    scrollWidth: el.scrollWidth,
+    clientWidth: el.clientWidth,
+  }));
+  expect(scrollWidth).toBeLessThanOrEqual(clientWidth);
+  const exit = (await page.getByRole("link", { name: "Exit" }).boundingBox())!;
+  expect(exit.x + exit.width).toBeLessThanOrEqual(360);
+});

@@ -238,7 +238,7 @@ function Practice({ trackId }: { trackId: string }) {
           </span>
           <ControlButton onClick={() => setNoting(true)}>
             <NotebookPen aria-hidden className="size-4" />
-            Note
+            <span className="max-sm:sr-only">Note</span>
           </ControlButton>
           <ControlButton onClick={navigator.prev} aria-label="Previous corner">
             <ChevronLeft aria-hidden className="size-4" />
@@ -278,7 +278,7 @@ function Practice({ trackId }: { trackId: string }) {
           <ControlButton asChild>
             <Link href={exitHref}>
               <X aria-hidden className="size-4" />
-              Exit
+              <span className="max-sm:sr-only">Exit</span>
             </Link>
           </ControlButton>
         </>
@@ -354,7 +354,7 @@ export function PracticeOptions({
       <PopoverTrigger asChild>
         <ControlButton>
           <Settings2 aria-hidden className="size-4" />
-          Options
+          <span className="max-sm:sr-only">Options</span>
         </ControlButton>
       </PopoverTrigger>
       {/* Portaled to <body>, outside the practice shell: carry the theme along. */}
@@ -446,7 +446,7 @@ function ControlButton({ className, ...props }: ComponentProps<typeof Button>) {
     <Button
       variant="ghost"
       className={cn(
-        "h-11 gap-2 rounded-xl px-4 pointer-coarse:h-11 aria-pressed:bg-foreground aria-pressed:text-background",
+        "h-11 gap-2 rounded-xl px-4 aria-pressed:bg-foreground aria-pressed:text-background",
         className,
       )}
       {...props}
