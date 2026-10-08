@@ -1,47 +1,39 @@
 @import "tailwindcss";
 
+/* One definition per token: light-dark() picks by color-scheme, which follows
+   the OS unless the theme toggle sets data-theme on <html>. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --muted: #6b7280;
-  --border: #e5e7eb;
-  --surface: #f9fafb;
-  --accent: #dc2626;
-  --accent-foreground: #ffffff;
-  --danger: #b91c1c;
-  --canvas: #eef0f3;
-  --track: #3f444d;
-  --track-edge: #c9ced6;
-  --track-line: #f5f5f5;
-  --racing-line: #2563eb;
-  --marker: #111827;
-  --marker-foreground: #ffffff;
-  --chip: #ffffff;
+  color-scheme: light dark;
+  --background: light-dark(#ffffff, #0a0a0a);
+  --foreground: light-dark(#171717, #ededed);
+  --muted: light-dark(#5f6672, #a1a1aa);
+  --border: light-dark(#e5e7eb, #27272a);
+  --surface: light-dark(#f6f7f9, #141416);
+  --accent: light-dark(#dc2626, #ef4444);
+  --accent-foreground: light-dark(#ffffff, #0a0a0a);
+  --danger: light-dark(#b91c1c, #f87171);
+  --success: light-dark(#15803d, #4ade80);
+  --estimate: light-dark(#854d0e, #fbbf24);
+  --canvas: light-dark(#eef0f3, #0d0f12);
+  --track: light-dark(#3f444d, #4a505a);
+  --track-edge: light-dark(#c9ced6, #22262c);
+  --track-line: light-dark(#f5f5f5, #9aa1ab);
+  --racing-line: light-dark(#2563eb, #60a5fa);
+  --marker: light-dark(#111827, #f3f4f6);
+  --marker-foreground: light-dark(#ffffff, #0a0a0a);
+  --chip: light-dark(#ffffff, #1c1f24);
+  --pressure: light-dark(#dc2626, #ef4444);
 }
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --muted: #9ca3af;
-    --border: #27272a;
-    --surface: #141416;
-    --accent: #ef4444;
-    --accent-foreground: #0a0a0a;
-    --danger: #f87171;
-    --canvas: #0d0f12;
-    --track: #4a505a;
-    --track-edge: #22262c;
-    --track-line: #9aa1ab;
-    --racing-line: #60a5fa;
-    --marker: #f3f4f6;
-    --marker-foreground: #0a0a0a;
-    --chip: #1c1f24;
-  }
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 /* Practice mode: dark, high contrast, readable at a glance from the rig. */
 [data-theme="practice"] {
+  color-scheme: dark;
   --background: #000000;
   --foreground: #ffffff;
   --muted: #a3a3a3;
@@ -49,13 +41,13 @@
   --surface: #121212;
   --accent: #f43f5e;
   --accent-foreground: #ffffff;
+  --success: #4ade80;
   --track: #3a3d42;
   --track-edge: #1c1d20;
   --track-line: #8b8f96;
   --racing-line: #38bdf8;
   --pressure: #ef4444;
   --estimate: #fbbf24;
-  color-scheme: dark;
 }
 
 @theme inline {
@@ -67,6 +59,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-danger: var(--danger);
+  --color-success: var(--success);
   --color-canvas: var(--canvas);
   --color-track: var(--track);
   --color-track-edge: var(--track-edge);
@@ -84,13 +77,56 @@
   --color-destructive: var(--danger);
   --color-input: var(--border);
   --color-ring: var(--accent);
-  --color-pressure: var(--pressure, #dc2626);
-  --color-estimate: var(--estimate, #b45309);
+  --color-pressure: var(--pressure);
+  --color-estimate: var(--estimate);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
+@layer base {
+  body {
+    background: var(--background);
+    color: var(--foreground);
+  }
+  /* Rows and buttons never flash the iOS tap highlight over our own states. */
+  a,
+  button,
+  summary,
+  select,
+  input {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* The one focus style. Every interactive element uses this. */
+@utility focus-ring {
+  &:focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+}
+
+/* Spacing that also clears the notch / home indicator (needs viewport-fit=cover). */
+@utility pt-safe-* {
+  padding-top: calc(env(safe-area-inset-top) + var(--spacing) * --value(integer));
+}
+@utility pb-safe-* {
+  padding-bottom: calc(env(safe-area-inset-bottom) + var(--spacing) * --value(integer));
+}
+@utility pl-safe-* {
+  padding-left: calc(env(safe-area-inset-left) + var(--spacing) * --value(integer));
+}
+@utility pr-safe-* {
+  padding-right: calc(env(safe-area-inset-right) + var(--spacing) * --value(integer));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -352,7 +352,7 @@ function WakeLockIndicator({ status }: { status: WakeLockStatus }) {
         : undefined;
   return (
     <span className="px-3 text-muted" title={hint} data-testid="wake-lock" data-status={status}>
-      <span aria-hidden className={status === "active" ? "text-emerald-400" : "text-estimate"}>
+      <span aria-hidden className={status === "active" ? "text-success" : "text-estimate"}>
         ●
       </span>{" "}
       {text}

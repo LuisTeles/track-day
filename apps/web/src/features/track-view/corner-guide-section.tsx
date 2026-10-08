@@ -23,7 +23,7 @@ export function CornerGuideSection({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-medium">{label}</h3>
         {isEstimate(guide) && (
-          <span className="rounded-full border border-amber-500/50 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
+          <span className="rounded-full border border-estimate/50 bg-estimate/10 px-2.5 py-1 text-xs font-medium text-estimate">
             {guide.source === "ai" ? "AI estimate" : "Estimate"}
             {guide.confidence ? ` · ${guide.confidence} confidence` : ""}
           </span>
