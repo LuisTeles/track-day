@@ -258,9 +258,9 @@ One corner per screen for a phone/tablet/second monitor next to the rig.
 
 ### M6 — Learning the track ([feasibility study](ideas/2026-10-08-track-learning.md))
 
-- [ ] Setup screen for a car's baseline setup (`Guide.setupNotes`) — S
-- [ ] Elevation and camber markers on the map — S
-- [ ] Printable cheat sheet — S
+- [x] Setup screen for a car's baseline setup (`Guide.setupNotes`) — S
+- [x] Elevation and camber markers on the map — S
+- [x] Printable cheat sheet — S
 - [ ] Onboard video synced to the map (YouTube or local file, hand-marked corner times) — L
 - [ ] Audio lap (Web Speech API, timed from video marks) — M
 - [ ] Quiz, flashcards, spaced repetition, corner order — L
