@@ -542,3 +542,62 @@ describe("TrackViewPage shortcuts", () => {
     ).toBeInTheDocument();
   });
 });
+
+describe("TrackViewPage car setup", () => {
+  const openSetup = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(await screen.findByRole("button", { name: "More map actions" }));
+    await user.click(screen.getByRole("menuitem", { name: "Car setup" }));
+  };
+
+  it("opens the car's setup from the More menu", async () => {
+    const { user } = await open({}, async ({ guideId }) => {
+      await repos.guides.update(guideId, { setupNotes: "Front 5\nRear 3" });
+    });
+    await openSetup(user);
+    expect(search.get("panel")).toBe("setup");
+    expect(await screen.findByRole("heading", { name: "Setup · GT3 · any sim" })).toBeVisible();
+    expect(await screen.findByText(/Front 5/)).toHaveClass("whitespace-pre-line");
+  });
+
+  it("opens setup in edit mode as a form", async () => {
+    await open({ edit: "1", panel: "setup" });
+    expect(await screen.findByLabelText("Setup notes")).toBeInTheDocument();
+  });
+
+  it("asks before a marker click drops unsaved setup edits", async () => {
+    const { user } = await open({ edit: "1", panel: "setup" });
+    await user.type(await screen.findByLabelText("Setup notes"), "Soft springs");
+    fireEvent.click(screen.getByRole("button", { name: /^Turn 2,/ }));
+    await screen.findByRole("alertdialog", { name: "Discard unsaved changes?" });
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(search.get("panel")).toBe("setup");
+    expect(screen.getByLabelText("Setup notes")).toHaveValue("Soft springs");
+  });
+
+  it("selecting a corner closes setup", async () => {
+    const { t2 } = await open({ panel: "setup" });
+    fireEvent.click(await screen.findByRole("button", { name: /^Turn 2,/ }));
+    await waitFor(() => expect(search.get("corner")).toBe(t2.id));
+    expect(search.get("panel")).toBeNull();
+  });
+
+  it("opening setup clears the selected corner", async () => {
+    const { t1, user } = await open({});
+    search.set("corner", t1.id);
+    rerenderPage();
+    await openSetup(user);
+    expect(search.get("corner")).toBeNull();
+    expect(search.get("panel")).toBe("setup");
+  });
+
+  it("disables Car setup without a car", async () => {
+    const { user } = await open({}, async ({ guideId }) => {
+      await repos.guides.remove(guideId);
+    });
+    await user.click(await screen.findByRole("button", { name: "More map actions" }));
+    expect(screen.getByRole("menuitem", { name: "Car setup" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+  });
+});

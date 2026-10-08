@@ -22,6 +22,17 @@ export function useSaveCorner(trackId: string) {
   });
 }
 
+/** A car's baseline setup notes (the guide's `setupNotes`). */
+export function useSaveGuideSetup(trackId: string) {
+  const repos = useRepositories();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ guideId, setupNotes }: { guideId: string; setupNotes: string }) =>
+      repos.guides.update(guideId, { setupNotes }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.track(trackId) }),
+  });
+}
+
 interface SaveGuideInput {
   guideId: string;
   cornerId: string;

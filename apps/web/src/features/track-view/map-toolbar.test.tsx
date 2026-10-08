@@ -20,6 +20,7 @@ const props = () => ({
   listOpen: false,
   onToggleList: vi.fn(),
   redoMap: { available: true, active: false, open: vi.fn() },
+  carSetup: { available: true, open: vi.fn() },
   onShowShortcuts: vi.fn(),
 });
 
@@ -85,5 +86,31 @@ describe("MapToolbar", () => {
     expect(screen.queryByRole("button", { name: "Zoom in" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Layers" })).toBeNull();
     expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+  });
+
+  it("opens Car setup from the More menu", async () => {
+    const p = props();
+    render(<MapToolbar {...p} />);
+    await userEvent.click(screen.getByRole("button", { name: "More map actions" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Car setup" }));
+    expect(p.carSetup.open).toHaveBeenCalled();
+  });
+
+  it("disables Car setup with a reason when there is no car", async () => {
+    const p = props();
+    render(<MapToolbar {...p} carSetup={{ available: false, open: p.carSetup.open }} />);
+    await userEvent.click(screen.getByRole("button", { name: "More map actions" }));
+    const item = screen.getByRole("menuitem", { name: "Car setup" });
+    expect(item).toHaveAttribute("aria-disabled", "true");
+    expect(item).toHaveAttribute("title", "Add a car first");
+  });
+
+  it("keeps the More menu without a map, minus the map-only items", async () => {
+    render(<MapToolbar {...props()} hasMap={false} />);
+    await userEvent.click(screen.getByRole("button", { name: "More map actions" }));
+    expect(screen.getByRole("menuitem", { name: "Car setup" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Keyboard shortcuts" })).toBeInTheDocument();
+    for (const name of ["Reset view", "Redo map", "Zoom in", "Zoom out"])
+      expect(screen.queryByRole("menuitem", { name })).toBeNull();
   });
 });

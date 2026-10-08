@@ -9,6 +9,7 @@ import {
   Pencil,
   Plus,
   RotateCcw,
+  Wrench,
   Map as MapIcon,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -24,7 +25,7 @@ import { IconButton } from "@/shared/ui/icon-button";
 import { ToolButton } from "./track-view-shell";
 
 export interface MapToolbarProps {
-  hasMap: boolean; // false for NoOutline layouts: only Edit, car, Corners
+  hasMap: boolean; // false for NoOutline layouts: no zoom, Layers or map items
   onZoomIn(): void;
   onZoomOut(): void;
   onReset(): void;
@@ -36,6 +37,7 @@ export interface MapToolbarProps {
   listOpen: boolean;
   onToggleList(): void;
   redoMap: { available: boolean; active: boolean; open(): void };
+  carSetup: { available: boolean; open(): void };
   onShowShortcuts(): void;
 }
 
@@ -97,39 +99,49 @@ export function MapToolbar(p: MapToolbarProps) {
         <List aria-hidden className="size-4" />
         <span className="max-sm:sr-only">Corners</span>
       </ToolButton>
-      {p.hasMap && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <IconButton label="More map actions">
-              <MoreHorizontal />
-            </IconButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="end">
-            <DropdownMenuItem onSelect={p.onZoomIn} className="sm:hidden">
-              <Plus aria-hidden />
-              Zoom in
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={p.onZoomOut} className="sm:hidden">
-              <Minus aria-hidden />
-              Zoom out
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={p.onReset}>
-              <RotateCcw aria-hidden />
-              Reset view
-            </DropdownMenuItem>
-            {p.redoMap.available && (
-              <DropdownMenuItem onSelect={p.redoMap.open}>
-                <MapIcon aria-hidden />
-                Redo map
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <IconButton label="More map actions">
+            <MoreHorizontal />
+          </IconButton>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent side="top" align="end">
+          {p.hasMap && (
+            <>
+              <DropdownMenuItem onSelect={p.onZoomIn} className="sm:hidden">
+                <Plus aria-hidden />
+                Zoom in
               </DropdownMenuItem>
-            )}
-            <DropdownMenuItem onSelect={p.onShowShortcuts}>
-              <Keyboard aria-hidden />
-              Keyboard shortcuts
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+              <DropdownMenuItem onSelect={p.onZoomOut} className="sm:hidden">
+                <Minus aria-hidden />
+                Zoom out
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={p.onReset}>
+                <RotateCcw aria-hidden />
+                Reset view
+              </DropdownMenuItem>
+              {p.redoMap.available && (
+                <DropdownMenuItem onSelect={p.redoMap.open}>
+                  <MapIcon aria-hidden />
+                  Redo map
+                </DropdownMenuItem>
+              )}
+            </>
+          )}
+          <DropdownMenuItem
+            onSelect={p.carSetup.open}
+            disabled={!p.carSetup.available}
+            title={p.carSetup.available ? undefined : "Add a car first"}
+          >
+            <Wrench aria-hidden />
+            Car setup
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={p.onShowShortcuts}>
+            <Keyboard aria-hidden />
+            Keyboard shortcuts
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

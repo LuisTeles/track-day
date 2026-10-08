@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CornerDetails, CornerList, cornerTitle } from "./corner-details";
+import { CarSetup } from "./car-setup";
 import { CornerMarkers } from "./corner-markers";
 import { DeleteTrackButton } from "./delete-track-button";
 import { AddMapPanel } from "@/features/osm-map/add-map-panel";
@@ -75,6 +76,10 @@ function TrackView({ trackId }: { trackId: string }) {
     (value: boolean) => setDirty((d) => (d.guide === value ? d : { ...d, guide: value })),
     [setDirty],
   );
+  const onSetupDirty = useCallback(
+    (value: boolean) => setDirty((d) => (d.setup === value ? d : { ...d, setup: value })),
+    [setDirty],
+  );
   const confirm = useConfirm();
   const isDirty = () => Object.values(dirtyRef.current).some(Boolean);
   const clearEdits = () => {
@@ -116,6 +121,7 @@ function TrackView({ trackId }: { trackId: string }) {
 
   const cornerId = params.get("corner");
   const listOpen = params.get("panel") === "corners";
+  const setupOpen = params.get("panel") === "setup" && guide !== null;
 
   const setParams = useCallback(
     (changes: Record<string, string | null>) => {
@@ -133,6 +139,9 @@ function TrackView({ trackId }: { trackId: string }) {
   };
   const closePanel = () => {
     leaveEdits(() => setParams({ corner: null, panel: null }));
+  };
+  const openSetup = () => {
+    leaveEdits(() => setParams({ panel: "setup", corner: null }));
   };
   const toggleEdit = () => {
     leaveEdits(() => setParams({ edit: editing ? null : "1" }));
@@ -263,7 +272,8 @@ function TrackView({ trackId }: { trackId: string }) {
   const currentGuideLabel = guide
     ? guideLabel(guide, data.carClasses ?? [], data.cars ?? [])
     : null;
-  const selected = corners.find((c) => c.id === cornerId) ?? null;
+  // The setup panel and a selected corner share the one panel: setup wins.
+  const selected = setupOpen ? null : (corners.find((c) => c.id === cornerId) ?? null);
   const topPracticeHref = layout
     ? practiceHref(track.id, layout.id, params.get("guide"), selectedCorner?.number ?? null)
     : null;
@@ -379,6 +389,7 @@ function TrackView({ trackId }: { trackId: string }) {
           leaveEdits(() => setRedoingMap(true));
         },
       }}
+      carSetup={{ available: guide !== null, open: openSetup }}
       onShowShortcuts={() => setHelpOpen(true)}
     />
   );
@@ -396,11 +407,25 @@ function TrackView({ trackId }: { trackId: string }) {
   const panel = (
     <>
       <SidePanel
-        open={selected !== null || listOpen}
-        title={selected ? cornerTitle(selected) : "Corners"}
+        open={selected !== null || listOpen || setupOpen}
+        title={
+          setupOpen && currentGuideLabel
+            ? `Setup · ${currentGuideLabel}`
+            : selected
+              ? cornerTitle(selected)
+              : "Corners"
+        }
         onClose={closePanel}
       >
-        {selected ? (
+        {setupOpen && guide && currentGuideLabel ? (
+          <CarSetup
+            guide={guide}
+            label={currentGuideLabel}
+            editing={editing}
+            trackId={track.id}
+            onDirtyChange={onSetupDirty}
+          />
+        ) : selected ? (
           <CornerDetails
             corner={selected}
             complexes={complexes}

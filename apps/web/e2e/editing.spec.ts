@@ -109,3 +109,49 @@ test("asks in a dialog before dropping unsaved edits", async ({ page }) => {
   await addCar.getByRole("button", { name: "Cancel" }).click();
   await expect(addCar).toBeHidden();
 });
+
+test("saves a car's setup notes and finds them after a reload", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Load sample tracks" }).click();
+  await page.getByRole("link", { name: /Interlagos/ }).click();
+
+  await page.getByLabel("Car", { exact: true }).selectOption("__add__");
+  await page.getByLabel("Car name", { exact: true }).fill("Mazda MX-5");
+  await page.getByLabel("Sim").selectOption("assetto-corsa");
+  await page.getByRole("button", { name: "Add car", exact: true }).click();
+  await expect(page.getByLabel("Car", { exact: true }).locator("option:checked")).toHaveText(
+    /Mazda MX-5/,
+  );
+
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("button", { name: "More map actions" }).click();
+  await page.getByRole("menuitem", { name: "Car setup" }).click();
+  await page.getByLabel("Setup notes").fill("Front 5\nRear 3");
+  await page.getByRole("button", { name: "Save setup" }).click();
+  await expect(page.getByRole("form", { name: /^Setup for/ }).getByText("Saved")).toBeVisible();
+
+  // Reloading in the same tick as the click can beat IndexedDB's commit to disk,
+  // so wait until the stored guide really has the text.
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          new Promise<string[]>((resolve, reject) => {
+            const open = indexedDB.open("track-day");
+            open.onerror = () => reject(open.error);
+            open.onsuccess = () => {
+              const all = open.result.transaction("guides").objectStore("guides").getAll();
+              all.onerror = () => reject(all.error);
+              all.onsuccess = () => {
+                open.result.close();
+                resolve(all.result.map((g: { setupNotes: string }) => g.setupNotes));
+              };
+            };
+          }),
+      ),
+    )
+    .toContain("Front 5\nRear 3");
+  await page.reload();
+  await expect(page.getByTestId("side-panel")).toContainText("Setup · Mazda MX-5");
+  await expect(page.getByLabel("Setup notes")).toHaveValue("Front 5\nRear 3");
+});
