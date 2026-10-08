@@ -21,6 +21,7 @@ describe("cheatSheetRows", () => {
   it("fills dashes when the car has no guide for the corner", () => {
     expect(cheatSheetRows([corner()], () => null)).toEqual([
       {
+        id: expect.any(String),
         number: "T1",
         name: "—",
         direction: "—",

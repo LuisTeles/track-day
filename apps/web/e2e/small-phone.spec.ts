@@ -19,6 +19,13 @@ test("no page scrolls sideways at 360px", async ({ page }) => {
   await page.getByRole("button", { name: "Load sample tracks" }).click();
   await expect(page.getByRole("link", { name: /Interlagos/ })).toBeVisible();
   expect(await pageScrollWidth(page), "/ with tracks").toBeLessThanOrEqual(360);
+  // The cheat sheet's seven-column table must scroll inside itself, not the page.
+  await page.getByRole("link", { name: /Interlagos/ }).click();
+  await expect(page.locator("[data-corner]").first()).toBeVisible();
+  await page.getByRole("button", { name: "More map actions" }).click();
+  await page.getByRole("menuitem", { name: "Cheat sheet" }).click();
+  await expect(page.getByTestId("cheat-sheet")).toBeVisible();
+  expect(await pageScrollWidth(page), "cheat sheet").toBeLessThanOrEqual(360);
 });
 
 async function openInterlagos(page: Page) {

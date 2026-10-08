@@ -568,10 +568,25 @@ describe("TrackViewPage car setup", () => {
     const { user } = await open({ edit: "1", panel: "setup" });
     await user.type(await screen.findByLabelText("Setup notes"), "Soft springs");
     fireEvent.click(screen.getByRole("button", { name: /^Turn 2,/ }));
-    await screen.findByRole("alertdialog", { name: "Discard unsaved changes?" });
+    const dialog = await screen.findByRole("alertdialog", { name: "Discard unsaved changes?" });
+    expect(within(dialog).getByText("Your setup notes haven’t been saved.")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Keep editing" }));
     expect(search.get("panel")).toBe("setup");
     expect(screen.getByLabelText("Setup notes")).toHaveValue("Soft springs");
+  });
+
+  it("asks before the cheat sheet link drops unsaved setup edits", async () => {
+    const { user } = await open({ edit: "1", panel: "setup" });
+    await user.type(await screen.findByLabelText("Setup notes"), "Soft springs");
+    await user.click(screen.getByRole("button", { name: "More map actions" }));
+    await user.click(screen.getByRole("menuitem", { name: "Cheat sheet" }));
+    await screen.findByRole("alertdialog", { name: "Discard unsaved changes?" });
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    expect(push).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Setup notes")).toHaveValue("Soft springs");
+    // jsdom leaves Radix's menu→dialog scroll lock behind; don't leak it into later tests.
+    document.body.style.pointerEvents = "";
   });
 
   it("selecting a corner closes setup", async () => {

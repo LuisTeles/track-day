@@ -1,12 +1,17 @@
 import type { Corner } from "@track-day/schema";
 
-const ELEVATION: Record<string, string> = {
+const ELEVATION: Record<NonNullable<Corner["elevation"]>, string | null> = {
   uphill: "Uphill",
   downhill: "Downhill",
+  flat: null,
   crest: "Crest",
   compression: "Compression",
 };
-const CAMBER: Record<string, string> = { "off-camber": "Off-camber", positive: "Banked" };
+const CAMBER: Record<NonNullable<Corner["camber"]>, string | null> = {
+  "off-camber": "Off-camber",
+  flat: null,
+  positive: "Banked",
+};
 
 /** Short elevation/camber words for a corner; flat or unset shows nothing. */
 export function terrainOf(

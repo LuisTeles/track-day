@@ -3,6 +3,7 @@ import { isEstimate } from "@/features/guides/estimate";
 import { brakeAtText } from "@/features/practice/format";
 
 export interface CheatSheetRow {
+  id: string;
   number: string;
   name: string;
   direction: string;
@@ -30,6 +31,7 @@ export function cheatSheetRows(
       .filter(Boolean)
       .join(" ");
     return {
+      id: corner.id,
       number: `T${corner.number}`,
       name: corner.name ?? EMPTY,
       direction: corner.direction ? (corner.direction === "left" ? "Left" : "Right") : EMPTY,

@@ -36,7 +36,6 @@ import { useCornerGuides, useTrackView } from "./use-track-view";
 
 const DISCARD = {
   title: "Discard unsaved changes?",
-  description: "Your edits to this corner haven’t been saved.",
   confirmLabel: "Discard changes",
   cancelLabel: "Keep editing",
   destructive: true,
@@ -96,7 +95,10 @@ function TrackView({ trackId }: { trackId: string }) {
    */
   const confirmDiscard = (then: () => void) => {
     if (!isDirty()) return then();
-    void confirm(DISCARD).then((ok) => ok && then());
+    const description = dirtyRef.current.setup
+      ? "Your setup notes haven’t been saved."
+      : "Your edits to this corner haven’t been saved.";
+    void confirm({ ...DISCARD, description }).then((ok) => ok && then());
   };
   /** Asks before dropping unsaved edits; on yes, clears the edit state first. */
   const leaveEdits = (then: () => void) =>
@@ -376,7 +378,7 @@ function TrackView({ trackId }: { trackId: string }) {
       onZoomOut={() => canvas.current?.zoomBy(1 / 1.5)}
       onReset={() => canvas.current?.reset()}
       chips={{ on: showChips, disabled: !guide, toggle: toggleChips }}
-      terrain={{ on: showTerrain, disabled: !hasTerrain, toggle: toggleTerrain }}
+      terrain={{ on: showTerrain && hasTerrain, disabled: !hasTerrain, toggle: toggleTerrain }}
       racingLine={{
         on: showRacingLine && (racingLine !== null || lines.length > 0),
         disabled: !racingLine && lines.length === 0,

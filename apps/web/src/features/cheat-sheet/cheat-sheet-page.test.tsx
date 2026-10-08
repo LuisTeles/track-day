@@ -59,7 +59,7 @@ describe("CheatSheetPage", () => {
     expect(screen.getByText(/GT3 · any sim/)).toBeInTheDocument();
     const table = screen.getByRole("table");
     expect(within(table).getAllByRole("row")).toHaveLength(1 + 15);
-    expect(within(table).getByRole("cell", { name: "T1" })).toBeInTheDocument();
+    expect(within(table).getByRole("rowheader", { name: "T1" })).toBeInTheDocument();
     expect(screen.getByRole("img", { name: /^Map of .*Interlagos/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Back to track" })).toHaveAttribute(
       "href",

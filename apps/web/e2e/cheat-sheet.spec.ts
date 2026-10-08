@@ -16,7 +16,7 @@ test("print the Interlagos cheat sheet, black on white even in dark mode", async
   await page.getByRole("menuitem", { name: "Cheat sheet" }).click();
 
   await expect(page).toHaveURL(/\/tracks\/print\/?\?/);
-  await expect(page.getByRole("cell", { name: "T1", exact: true })).toBeVisible();
+  await expect(page.getByRole("rowheader", { name: "T1", exact: true })).toBeVisible();
   await expect(page.getByRole("img", { name: /^Map of .*Interlagos/ })).toBeVisible();
 
   await page.emulateMedia({ media: "print", colorScheme: "dark" });

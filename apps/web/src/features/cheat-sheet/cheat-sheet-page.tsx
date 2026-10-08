@@ -58,7 +58,7 @@ function Sheet({
   const mapLabel = `Map of ${title}, ${layout.name}`;
 
   return (
-    <div className="min-h-dvh bg-surface print:bg-transparent">
+    <main className="min-h-dvh bg-surface print:bg-transparent">
       <div className="mx-auto print:hidden flex max-w-3xl items-center justify-between gap-2 p-3">
         <Button asChild variant="ghost">
           <Link href={`/tracks/view/?${query}`}>
@@ -95,33 +95,45 @@ function Sheet({
             />
           </div>
         )}
-        <table className="w-full border-collapse text-left text-sm tabular-nums">
-          <thead>
-            <tr className="border-b border-border">
-              {COLUMNS.map((c) => (
-                <th key={c} scope="col" className="px-1.5 py-1 font-semibold">
-                  {c}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.number} className="border-b border-border [break-inside:avoid]">
-                <td className="px-1.5 py-1 font-semibold">{r.number}</td>
-                <td className="px-1.5 py-1">{r.name}</td>
-                <td className="px-1.5 py-1">{r.direction}</td>
-                <td className="px-1.5 py-1">{r.gear}</td>
-                <td className="px-1.5 py-1">{r.brake}</td>
-                <td className="px-1.5 py-1">
-                  {r.minSpeed}
-                  {r.estimate && r.minSpeed !== "—" && <span className="text-muted"> est.</span>}
-                </td>
-                <td className="px-1.5 py-1">{r.cue}</td>
+        <div
+          tabIndex={0}
+          role="region"
+          aria-label="Corner table"
+          className="overflow-x-auto print:overflow-visible"
+        >
+          <table className="w-full border-collapse text-left text-sm tabular-nums">
+            <thead>
+              <tr className="border-b border-border print:border-foreground/30">
+                {COLUMNS.map((c) => (
+                  <th key={c} scope="col" className="px-1.5 py-1 font-semibold">
+                    {c}
+                  </th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr
+                  key={r.id}
+                  className="border-b border-border [break-inside:avoid] print:border-foreground/30"
+                >
+                  <th scope="row" className="px-1.5 py-1 font-semibold">
+                    {r.number}
+                  </th>
+                  <td className="px-1.5 py-1">{r.name}</td>
+                  <td className="px-1.5 py-1">{r.direction}</td>
+                  <td className="px-1.5 py-1">{r.gear}</td>
+                  <td className="px-1.5 py-1">{r.brake}</td>
+                  <td className="px-1.5 py-1">
+                    {r.minSpeed}
+                    {r.estimate && r.minSpeed !== "—" && <span className="text-muted"> est.</span>}
+                  </td>
+                  <td className="px-1.5 py-1">{r.cue}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {guide?.setupNotes.trim() && (
           <section className="mt-4 [break-inside:avoid]">
             <h2 className="text-base font-semibold">Setup notes</h2>
@@ -130,6 +142,6 @@ function Sheet({
         )}
         {layout.outlineSource === "osm" && <OsmAttribution className="mt-3" />}
       </article>
-    </div>
+    </main>
   );
 }
