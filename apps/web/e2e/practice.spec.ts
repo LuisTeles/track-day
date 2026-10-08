@@ -76,9 +76,10 @@ test("tap zones and buttons navigate", async ({ page }) => {
 
 test("complex mode drives the Senna S as one step", async ({ page }) => {
   await openPractice(page);
-  await page.getByText("Options").click();
-  await page.getByRole("button", { name: "By complex" }).click();
+  await page.getByRole("button", { name: "Options" }).click();
+  await page.getByRole("button", { name: "Step by complex" }).click();
   await expect(page).toHaveURL(/step=complex/);
+  await page.keyboard.press("Escape"); // keys step corners only with the popover closed
   await expect(card(page)).toHaveAttribute("aria-label", "T1–T2, S do Senna, Left → Right");
   await page.keyboard.press("ArrowRight");
   await expect(card(page)).toHaveAttribute("aria-label", /^T3, Curva do Sol/);
@@ -89,7 +90,7 @@ test("complex mode drives the Senna S as one step", async ({ page }) => {
 test("rig controls: text size, screen status, resume where you left off", async ({ page }) => {
   await openPractice(page);
 
-  await page.getByText("Options").click();
+  await page.getByRole("button", { name: "Options" }).click();
   // Screen wake lock reports a state (support varies by browser/headless mode).
   await expect(page.getByTestId("wake-lock")).toHaveAttribute(
     "data-status",
@@ -98,10 +99,11 @@ test("rig controls: text size, screen status, resume where you left off", async 
 
   const title = page.getByRole("heading", { level: 1 });
   const before = await title.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
-  await page.getByRole("combobox", { name: "Text size" }).selectOption("L");
+  await page.getByRole("radio", { name: "L" }).check({ force: true });
   await expect
     .poll(() => title.evaluate((el) => parseFloat(getComputedStyle(el).fontSize)))
     .toBeGreaterThan(before);
+  await page.keyboard.press("Escape");
 
   // Leave at T5, come back through "Practice" (no corner in the link): resumes at T5.
   for (let i = 0; i < 4; i++) await page.keyboard.press("ArrowRight");
@@ -109,8 +111,9 @@ test("rig controls: text size, screen status, resume where you left off", async 
   await page.getByRole("link", { name: "Exit" }).click();
   await page.getByRole("link", { name: "Practice" }).click();
   await expect(card(page)).toHaveAttribute("aria-label", /^T5,/);
-  await page.getByText("Options").click();
-  await expect(page.getByRole("combobox", { name: "Text size" })).toHaveValue("L");
+  await page.getByRole("button", { name: "Options" }).click();
+  await expect(page.getByRole("radiogroup", { name: "Text size" })).toBeVisible();
+  await expect(page.getByRole("radio", { name: "L" })).toBeChecked();
 });
 
 test("corner diagram shows the real corner with brake and apex markers", async ({
@@ -130,8 +133,9 @@ test("corner diagram shows the real corner with brake and apex markers", async (
   await page.screenshot({ path: testInfo.outputPath("diagram-t10.png") });
 
   await page.keyboard.press("Home");
-  await page.getByText("Options").click();
-  await page.getByRole("button", { name: "By complex" }).click();
+  await page.getByRole("button", { name: "Options" }).click();
+  await page.getByRole("button", { name: "Step by complex" }).click();
+  await page.keyboard.press("Escape");
   await expect(diagram.locator('[data-marker="apex"]')).toHaveCount(2);
   await page.screenshot({ path: testInfo.outputPath("diagram-senna.png") });
 });
@@ -165,14 +169,14 @@ test("a bound wheel button advances the corner (simulated gamepad)", async ({ pa
   };
 
   await openPractice(page);
-  await page.getByText("Options").click();
+  await page.getByRole("button", { name: "Options" }).click();
   const settings = page.getByTestId("wheel-buttons");
   await settings.getByRole("button", { name: "Set" }).first().click();
   await expect(settings).toContainText("Press the button for next corner");
   await press(4);
   await expect(settings).toContainText("Next: Test Wheel · button 5");
 
-  await page.getByText("Options").click(); // close the menu
+  await page.getByRole("button", { name: "Options" }).click(); // close the menu
   await press(4);
   await expect(card(page)).toHaveAttribute("aria-label", /^T2,/);
   await press(4);

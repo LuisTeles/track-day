@@ -1,6 +1,7 @@
 "use client";
 
 import { cornerLine } from "@/features/track-view/geometry/corner-line";
+import { ChevronLeft, ChevronRight, NotebookPen, Settings2, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -8,6 +9,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  type ComponentProps,
   type CSSProperties,
   type HTMLAttributes,
   type ReactNode,
@@ -29,7 +31,10 @@ import {
 } from "./navigation/steps";
 import { createTrackPath } from "@/features/track-view/geometry/path";
 import { cornerFraction } from "@/features/track-view/geometry/anchors";
+import { Button } from "@/shared/ui/button";
 import { OsmAttribution } from "@/shared/ui/osm-attribution";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
+import { cn } from "@/shared/lib/utils";
 import { CornerDiagram } from "./corner-diagram";
 import { cornerDiagram, schematicDiagram, type CornerPositions } from "./diagram-geometry";
 import { brakeAtText, directionText, titleOf } from "./format";
@@ -58,6 +63,7 @@ function Practice({ trackId }: { trackId: string }) {
     params.get("guide") ?? remembered?.guide ?? null,
   );
   const [noting, setNoting] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const wakeLock = useWakeLock();
   const fullscreen = useFullscreen();
   const [fontSize, setFontSize] = useStoredChoice("practice:font-size", FONT_SIZES, "M");
@@ -125,7 +131,7 @@ function Practice({ trackId }: { trackId: string }) {
     current,
     onChange: goToStep,
     onExit: exit,
-    paused: noting,
+    paused: noting || optionsOpen,
   });
 
   // Optional wheel/gamepad button (experimental, desktop second monitor).
@@ -223,63 +229,42 @@ function Practice({ trackId }: { trackId: string }) {
       scale={FONT_SCALE[fontSize]}
       controls={
         <>
-          <span className="mr-auto truncate text-muted max-sm:hidden">
+          <span className="mr-auto min-w-0 truncate text-muted max-md:hidden">
             {track.aliases[0] ?? track.name} · {layout.name}
             {session.guideLabel && ` · ${session.guideLabel}`}
           </span>
-          <span className="text-muted tabular-nums max-sm:mr-auto">
+          <span className="rounded-full bg-surface px-3 py-1 tabular-nums max-md:mr-auto">
             {current + 1}/{steps.length}
           </span>
-          <ControlButton onClick={() => setNoting(true)}>Note</ControlButton>
+          <ControlButton onClick={() => setNoting(true)}>
+            <NotebookPen aria-hidden className="size-4" />
+            Note
+          </ControlButton>
           <ControlButton onClick={navigator.prev} aria-label="Previous corner">
-            ‹ Prev
+            <ChevronLeft aria-hidden className="size-4" />
+            <span className="max-sm:sr-only">Prev</span>
           </ControlButton>
           <ControlButton onClick={navigator.next} aria-label="Next corner">
-            Next ›
+            <span className="max-sm:sr-only">Next</span>
+            <ChevronRight aria-hidden className="size-4" />
           </ControlButton>
-          <details className="relative">
-            <summary className="cursor-pointer list-none rounded-lg px-3 py-1.5 font-medium hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent [&::-webkit-details-marker]:hidden">
-              Options
-            </summary>
-            <div className="absolute top-full right-0 z-10 mt-1 flex w-64 flex-col items-start gap-2 rounded-xl border border-border bg-surface p-3 shadow-xl">
-              {hasComplexes && (
-                <ControlButton
-                  aria-pressed={mode === "complex"}
-                  onClick={() =>
-                    setParams({
-                      step: mode === "complex" ? null : "complex",
-                      corner: String(step.corners[0]!.number),
-                    })
-                  }
-                >
-                  By complex
-                </ControlButton>
-              )}
-              <label className="flex items-center gap-2 px-3 text-muted">
-                Text size
-                <select
-                  aria-label="Text size"
-                  value={fontSize}
-                  onChange={(e) => setFontSize(e.target.value as FontSize)}
-                  className="rounded-md border border-border bg-background px-1 py-1 text-foreground"
-                >
-                  {FONT_SIZES.map((size) => (
-                    <option key={size} value={size}>
-                      {size}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {fullscreen.enabled && (
-                <ControlButton
-                  aria-pressed={fullscreen.active}
-                  onClick={() => void fullscreen.toggle()}
-                >
-                  Fullscreen
-                </ControlButton>
-              )}
-              <WakeLockIndicator status={wakeLock} />
-              {gamepadSupported && (
+          <PracticeOptions
+            open={optionsOpen}
+            onOpenChange={setOptionsOpen}
+            hasComplexes={hasComplexes}
+            mode={mode}
+            onToggleMode={() =>
+              setParams({
+                step: mode === "complex" ? null : "complex",
+                corner: String(step.corners[0]!.number),
+              })
+            }
+            fontSize={fontSize}
+            onFontSize={setFontSize}
+            fullscreen={fullscreen}
+            wakeLock={wakeLock}
+            wheel={
+              gamepadSupported ? (
                 <WheelButtonSettings
                   bindings={bindings}
                   capturing={capturing}
@@ -287,12 +272,15 @@ function Practice({ trackId }: { trackId: string }) {
                   onCancel={() => setCapturing(null)}
                   onClear={() => updateBindings({ next: null, prev: null })}
                 />
-              )}
-            </div>
-          </details>
-          <Link href={exitHref} className="rounded-lg px-3 py-1.5 font-medium hover:bg-surface">
-            Exit
-          </Link>
+              ) : null
+            }
+          />
+          <ControlButton asChild>
+            <Link href={exitHref}>
+              <X aria-hidden className="size-4" />
+              Exit
+            </Link>
+          </ControlButton>
         </>
       }
     >
@@ -334,8 +322,99 @@ function Practice({ trackId }: { trackId: string }) {
 }
 
 const FONT_SIZES = ["S", "M", "L"] as const;
-type FontSize = (typeof FONT_SIZES)[number];
+export type FontSize = (typeof FONT_SIZES)[number];
 const FONT_SCALE: Record<FontSize, number> = { S: 0.85, M: 1, L: 1.2 };
+
+export function PracticeOptions({
+  open,
+  onOpenChange,
+  hasComplexes,
+  mode,
+  onToggleMode,
+  fontSize,
+  onFontSize,
+  fullscreen,
+  wakeLock,
+  wheel,
+}: {
+  open: boolean;
+  onOpenChange(open: boolean): void;
+  hasComplexes: boolean;
+  mode: StepMode;
+  onToggleMode(): void;
+  fontSize: FontSize;
+  onFontSize(size: FontSize): void;
+  fullscreen: { enabled: boolean; active: boolean; toggle(): void | Promise<void> };
+  wakeLock: WakeLockStatus;
+  /** Wheel button settings, or null when no gamepad API. */
+  wheel: ReactNode | null;
+}) {
+  return (
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverTrigger asChild>
+        <ControlButton>
+          <Settings2 aria-hidden className="size-4" />
+          Options
+        </ControlButton>
+      </PopoverTrigger>
+      {/* Portaled to <body>, outside the practice shell: carry the theme along. */}
+      <PopoverContent
+        aria-label="Practice options"
+        data-theme="practice"
+        className="w-72 space-y-4"
+      >
+        {hasComplexes && (
+          <ControlButton
+            className="w-full justify-start"
+            aria-pressed={mode === "complex"}
+            onClick={onToggleMode}
+          >
+            Step by complex
+          </ControlButton>
+        )}
+        <div className="flex items-center justify-between gap-3">
+          <span id="practice-text-size" className="text-muted">
+            Text size
+          </span>
+          <div
+            role="radiogroup"
+            aria-labelledby="practice-text-size"
+            className="flex rounded-lg border border-border p-0.5"
+          >
+            {FONT_SIZES.map((size) => (
+              <label
+                key={size}
+                className="relative grid size-11 cursor-pointer place-items-center rounded-md font-medium text-muted has-checked:bg-surface has-checked:text-foreground has-focus-visible:outline-2 has-focus-visible:outline-ring"
+              >
+                <input
+                  type="radio"
+                  name="practice-font-size"
+                  value={size}
+                  checked={fontSize === size}
+                  onChange={() => onFontSize(size)}
+                  aria-label={size}
+                  className="sr-only"
+                />
+                <span aria-hidden>{size}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        {fullscreen.enabled && (
+          <ControlButton
+            className="w-full justify-start"
+            aria-pressed={fullscreen.active}
+            onClick={() => void fullscreen.toggle()}
+          >
+            Fullscreen
+          </ControlButton>
+        )}
+        <WakeLockIndicator status={wakeLock} />
+        {wheel}
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 function WakeLockIndicator({ status }: { status: WakeLockStatus }) {
   const text = {
@@ -351,20 +430,25 @@ function WakeLockIndicator({ status }: { status: WakeLockStatus }) {
         ? "The browser refused to keep the screen on (e.g. battery saver)."
         : undefined;
   return (
-    <span className="px-3 text-muted" title={hint} data-testid="wake-lock" data-status={status}>
+    <div className="text-muted" data-testid="wake-lock" data-status={status}>
       <span aria-hidden className={status === "active" ? "text-success" : "text-estimate"}>
         ●
       </span>{" "}
       {text}
-    </span>
+      {hint && <p className="text-xs text-muted">{hint}</p>}
+    </div>
   );
 }
 
-function ControlButton(props: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+/** 44px everywhere in practice: it is used on a rig at arm's length. */
+function ControlButton({ className, ...props }: ComponentProps<typeof Button>) {
   return (
-    <button
-      type="button"
-      className="rounded-lg px-3 py-1.5 font-medium hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent aria-pressed:bg-foreground aria-pressed:text-background"
+    <Button
+      variant="ghost"
+      className={cn(
+        "h-11 gap-2 rounded-xl px-4 pointer-coarse:h-11 aria-pressed:bg-foreground aria-pressed:text-background",
+        className,
+      )}
       {...props}
     />
   );
@@ -389,10 +473,13 @@ export function PracticeShell({
       className="fixed inset-0 flex flex-col bg-background text-foreground"
       style={{ "--practice-scale": scale } as CSSProperties}
     >
-      <div data-no-nav className="flex flex-wrap items-center gap-1 px-4 pt-3 text-sm">
+      <div data-no-nav className="flex items-center gap-2 pt-safe-3 pr-safe-4 pl-safe-4 text-sm">
         {controls}
       </div>
-      <main {...surfaceProps} className="min-h-0 flex-1 touch-pan-y p-4 pt-2 select-none">
+      <main
+        {...surfaceProps}
+        className="min-h-0 flex-1 touch-pan-y pt-2 pr-safe-4 pb-safe-4 pl-safe-4 select-none"
+      >
         {children}
       </main>
     </div>

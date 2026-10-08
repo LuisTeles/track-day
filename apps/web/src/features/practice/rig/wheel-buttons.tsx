@@ -1,3 +1,4 @@
+import { Button } from "@/shared/ui/button";
 import { shortPadName, type Bindings, type ButtonBinding, type NavAction } from "./gamepad";
 
 const KEY = "practice:wheel-buttons";
@@ -47,10 +48,7 @@ export function WheelButtonSettings({
   onClear(): void;
 }) {
   return (
-    <section
-      className="w-full space-y-1 border-t border-border px-3 pt-2"
-      data-testid="wheel-buttons"
-    >
+    <section className="w-full space-y-2 border-t border-border pt-3" data-testid="wheel-buttons">
       <h3 className="text-xs font-semibold tracking-wide text-muted uppercase">
         Wheel button · experimental
       </h3>
@@ -58,9 +56,9 @@ export function WheelButtonSettings({
         <p role="status" className="text-sm">
           Press the button for{" "}
           <strong>{capturing === "next" ? "next corner" : "previous corner"}</strong>…{" "}
-          <button type="button" className="underline" onClick={onCancel}>
+          <Button variant="ghost" size="sm" className="underline" onClick={onCancel}>
             Cancel
-          </button>
+          </Button>
         </p>
       ) : (
         <>
@@ -70,19 +68,20 @@ export function WheelButtonSettings({
                 {action === "next" ? "Next" : "Previous"}:{" "}
                 <span className="text-muted">{describe(bindings[action])}</span>
               </span>
-              <button
-                type="button"
-                className="shrink-0 rounded-md px-2 py-0.5 hover:bg-background"
+              <Button
+                variant="outline"
+                size="sm"
+                className="px-2.5 py-1 text-xs"
                 onClick={() => onCapture(action)}
               >
                 Set
-              </button>
+              </Button>
             </div>
           ))}
           {(bindings.next || bindings.prev) && (
-            <button type="button" className="text-sm text-muted underline" onClick={onClear}>
+            <Button variant="ghost" size="sm" className="text-muted underline" onClick={onClear}>
               Clear buttons
-            </button>
+            </Button>
           )}
           <p className="text-xs text-muted">
             Works when the wheel is connected to this device (e.g. a second monitor on the sim PC).

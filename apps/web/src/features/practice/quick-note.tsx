@@ -58,7 +58,7 @@ export function QuickNote({
             autoFocus
             value={text}
             onChange={(e) => setText(e.target.value)}
-            className="h-24 text-base"
+            className="min-h-32 text-base"
           />
         </div>
         {append.error && (
@@ -68,11 +68,12 @@ export function QuickNote({
         )}
         <AlertDialogFooter>
           <AlertDialogCancel asChild>
-            <Button variant="outline" disabled={append.isPending}>
+            <Button variant="outline" size="lg" disabled={append.isPending}>
               Cancel
             </Button>
           </AlertDialogCancel>
           <Button
+            size="lg"
             aria-label="Save note"
             disabled={append.isPending || text.trim() === ""}
             onClick={() =>
