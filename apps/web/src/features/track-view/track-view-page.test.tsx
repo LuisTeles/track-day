@@ -480,3 +480,43 @@ describe("TrackViewPage edit mode", () => {
     expect(search.get("edit")).toBe("1");
   });
 });
+
+describe("TrackViewPage shortcuts", () => {
+  it("moves between corners with ] and [", async () => {
+    const { t1, t2, user } = await open({});
+    search.set("corner", t1.id);
+    rerenderPage();
+    await screen.findByTestId("side-panel");
+    document.body.focus();
+    await user.keyboard("]");
+    expect(search.get("corner")).toBe(t2.id);
+    await user.keyboard("[["); // "[[" is the literal "[" in user-event syntax
+    expect(search.get("corner")).toBe(t1.id);
+  });
+
+  it("toggles edit mode with e, but not while typing in a field", async () => {
+    const { t1, user } = await open({});
+    search.set("corner", t1.id);
+    rerenderPage();
+    await screen.findByTestId("side-panel");
+    document.body.focus();
+    await user.keyboard("e");
+    expect(search.get("edit")).toBe("1");
+
+    const notes = await screen.findByLabelText("Corner notes");
+    await user.click(notes);
+    await user.keyboard("e");
+    expect(search.get("edit")).toBe("1");
+    expect((notes as HTMLTextAreaElement).value).toMatch(/e$/);
+  });
+
+  it("opens the shortcuts help with ?", async () => {
+    await open({});
+    await screen.findByRole("toolbar", { name: "Map controls" });
+    document.body.focus();
+    await userEvent.keyboard("?");
+    expect(
+      await screen.findByRole("alertdialog", { name: "Keyboard shortcuts" }),
+    ).toBeInTheDocument();
+  });
+});

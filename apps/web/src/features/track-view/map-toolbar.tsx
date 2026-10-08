@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Keyboard,
   Layers,
   List,
   Minus,
@@ -35,6 +36,7 @@ export interface MapToolbarProps {
   listOpen: boolean;
   onToggleList(): void;
   redoMap: { available: boolean; active: boolean; open(): void };
+  onShowShortcuts(): void;
 }
 
 const Divider = () => <span aria-hidden className="mx-0.5 h-6 w-px shrink-0 bg-border" />;
@@ -111,6 +113,10 @@ export function MapToolbar(p: MapToolbarProps) {
                 Redo map
               </DropdownMenuItem>
             )}
+            <DropdownMenuItem onSelect={p.onShowShortcuts}>
+              <Keyboard aria-hidden />
+              Keyboard shortcuts
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )}

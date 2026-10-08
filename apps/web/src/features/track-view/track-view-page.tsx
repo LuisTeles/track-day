@@ -22,6 +22,8 @@ import { useConfirm } from "@/shared/ui/confirm";
 import { Select } from "@/shared/ui/select";
 import { MapToolbar } from "./map-toolbar";
 import { SidePanel } from "./side-panel";
+import { shortcutFor, type ShortcutAction } from "./shortcuts";
+import { ShortcutsDialog } from "./shortcuts-dialog";
 import { TrackCanvas, type TrackCanvasHandle } from "./track-canvas";
 import { TrackViewShell } from "./track-view-shell";
 import { useStoredToggle } from "@/shared/hooks/use-stored-toggle";
@@ -59,6 +61,7 @@ function TrackView({ trackId }: { trackId: string }) {
   const [picking, setPicking] = useState<LinePoint | null>(null);
   const [addingCar, setAddingCar] = useState(false);
   const [pickError, setPickError] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [dirty, setDirty] = useState<Record<string, boolean>>({});
   const dirtyRef = useRef(dirty);
   useEffect(() => {
@@ -134,6 +137,52 @@ function TrackView({ trackId }: { trackId: string }) {
   const toggleEdit = () => {
     leaveEdits(() => setParams({ edit: editing ? null : "1" }));
   };
+  const toggleList = () => {
+    leaveEdits(() => setParams({ panel: listOpen ? null : "corners", corner: null }));
+  };
+
+  // Shortcuts go through the same handlers as the buttons, so unsaved-edit
+  // protection applies. Bubble phase: the Escape handlers are unaffected.
+  const runShortcut = (action: ShortcutAction) => {
+    const all = data?.corners ?? [];
+    const step = (delta: 1 | -1) => {
+      if (all.length === 0) return;
+      const index = all.findIndex((c) => c.id === cornerId);
+      const target =
+        index < 0
+          ? all[delta === 1 ? 0 : all.length - 1]
+          : all[(index + delta + all.length) % all.length];
+      if (target) selectCorner(target.id);
+    };
+    switch (action) {
+      case "prev-corner":
+        return step(-1);
+      case "next-corner":
+        return step(1);
+      case "zoom-in":
+        return canvas.current?.zoomBy(1.5);
+      case "zoom-out":
+        return canvas.current?.zoomBy(1 / 1.5);
+      case "reset-view":
+        return canvas.current?.reset();
+      case "toggle-list":
+        return toggleList();
+      case "toggle-edit":
+        return toggleEdit();
+      case "help":
+        return setHelpOpen(true);
+    }
+  };
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const action = shortcutFor(e);
+      if (!action) return;
+      e.preventDefault();
+      runShortcut(action);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  });
 
   useEffect(() => {
     if (!picking) return;
@@ -300,9 +349,6 @@ function TrackView({ trackId }: { trackId: string }) {
     </Select>
   );
 
-  const toggleList = () => {
-    leaveEdits(() => setParams({ panel: listOpen ? null : "corners", corner: null }));
-  };
   const toolbar = (
     <MapToolbar
       hasMap={layout.outlinePath !== null}
@@ -327,7 +373,15 @@ function TrackView({ trackId }: { trackId: string }) {
           leaveEdits(() => setRedoingMap(true));
         },
       }}
+      onShowShortcuts={() => setHelpOpen(true)}
     />
+  );
+
+  const controls = (
+    <>
+      {toolbar}
+      <ShortcutsDialog open={helpOpen} onOpenChange={setHelpOpen} />
+    </>
   );
 
   const cornerPracticeHref = selected
@@ -445,7 +499,7 @@ function TrackView({ trackId }: { trackId: string }) {
         canvas={
           <NoOutline track={track} layout={layout} corners={corners} onSelect={selectCorner} />
         }
-        controls={toolbar}
+        controls={controls}
         panel={panel}
       />
     );
@@ -492,7 +546,7 @@ function TrackView({ trackId }: { trackId: string }) {
           )}
         </>
       }
-      controls={toolbar}
+      controls={controls}
       panel={
         redoingMap ? (
           <SidePanel open title="Redo map from OpenStreetMap" onClose={() => setRedoingMap(false)}>

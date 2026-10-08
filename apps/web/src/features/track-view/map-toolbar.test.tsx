@@ -20,6 +20,7 @@ const props = () => ({
   listOpen: false,
   onToggleList: vi.fn(),
   redoMap: { available: true, active: false, open: vi.fn() },
+  onShowShortcuts: vi.fn(),
 });
 
 describe("MapToolbar", () => {
@@ -52,6 +53,14 @@ describe("MapToolbar", () => {
     await userEvent.click(screen.getByRole("button", { name: "More map actions" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "Reset view" }));
     expect(p.onReset).toHaveBeenCalled();
+  });
+
+  it("opens the shortcuts help from the More menu", async () => {
+    const p = props();
+    render(<MapToolbar {...p} />);
+    await userEvent.click(screen.getByRole("button", { name: "More map actions" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Keyboard shortcuts" }));
+    expect(p.onShowShortcuts).toHaveBeenCalled();
   });
 
   it("shows only Edit, car and Corners without a map", () => {
