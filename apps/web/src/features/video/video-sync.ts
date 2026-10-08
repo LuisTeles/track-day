@@ -19,12 +19,11 @@ export function videoAnchors(
     const fraction = corner ? cornerFraction(corner, layout) : null;
     if (fraction != null) anchors.push({ sec: mark.sec, fraction });
   }
-  anchors.sort((a, b) => a.sec - b.sec);
-  if (video.lapStartSec != null) anchors.unshift({ sec: video.lapStartSec, fraction: 0 });
-  return anchors;
+  if (video.lapStartSec != null) anchors.push({ sec: video.lapStartSec, fraction: 0 });
+  return anchors.sort((a, b) => a.sec - b.sec);
 }
 
-/** Lap fraction (0–1) at `sec`, linearly between neighbouring anchors; fractions are unwrapped so the lap only moves forward; `lapEndSec` closes the lap at start + 1. Null before the first anchor, after the last, or with fewer than 2 anchors. */
+/** Lap fraction (0–1) at `sec`, linearly between neighbouring anchors; fractions are unwrapped so the lap only moves forward; `lapEndSec` closes the lap at the next pass of the start line. Null before the first anchor, after the last, or with fewer than 2 anchors. */
 export function lapFractionAt(
   sec: number,
   anchors: Anchor[],
@@ -40,7 +39,10 @@ export function lapFractionAt(
   }
   const last = pts[pts.length - 1]!;
   if (lapEndSec != null && lapEndSec > last.sec) {
-    pts.push({ sec: lapEndSec, fraction: pts[0]!.fraction + 1 });
+    // The lap closes at the next whole fraction: the start/finish line.
+    const lastFraction = pts[pts.length - 1]!.fraction;
+    const close = Math.ceil(lastFraction);
+    pts.push({ sec: lapEndSec, fraction: close > lastFraction ? close : close + 1 });
   }
   const end = pts[pts.length - 1]!;
   if (sec < pts[0]!.sec || sec > end.sec) return null;
@@ -97,4 +99,22 @@ export function formatVideoTime(sec: number): string {
   const m = Math.floor(tenths / 600);
   const s = (tenths % 600) / 10;
   return `${m}:${s.toFixed(1).padStart(4, "0")}`;
+}
+
+/** User-facing reasons the marks cannot be saved; empty when valid. */
+export function markOrderProblems(video: ReferenceVideo, corners: Corner[]): string[] {
+  const problems = outOfOrder(video, corners).map(
+    (n) => `T${n} is marked before the corner ahead of it.`,
+  );
+  const secs = new Map(video.marks.map((m) => [m.cornerId, m.sec]));
+  const marked = inLapOrder(corners).filter((c) => secs.has(c.id));
+  const first = marked[0];
+  const last = marked[marked.length - 1];
+  if (first && video.lapStartSec != null && video.lapStartSec > secs.get(first.id)!) {
+    problems.push(`The start line is marked after T${first.number}.`);
+  }
+  if (last && video.lapEndSec != null && video.lapEndSec < secs.get(last.id)!) {
+    problems.push(`The finish line is marked before T${last.number}.`);
+  }
+  return problems;
 }

@@ -33,5 +33,7 @@ export function parseYouTubeId(input: string): string | null {
 
 export function youtubeWatchUrl(id: string, atSec?: number): string {
   const base = `https://www.youtube.com/watch?v=${id}`;
-  return atSec == null ? base : `${base}&t=${Math.max(0, Math.floor(atSec))}s`;
+  return atSec == null || !Number.isFinite(atSec)
+    ? base
+    : `${base}&t=${Math.max(0, Math.floor(atSec))}s`;
 }

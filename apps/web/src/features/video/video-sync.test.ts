@@ -5,6 +5,7 @@ import {
   formatVideoTime,
   lapFractionAt,
   nextToMark,
+  markOrderProblems,
   outOfOrder,
   videoAnchors,
 } from "./video-sync";
@@ -47,6 +48,13 @@ describe("videoAnchors", () => {
       { sec: 20, fraction: 0.3 },
     ]);
   });
+  it("sorts a start mark by time, not first", () => {
+    const v = video([{ cornerId: "c1", sec: 10 }], 15);
+    expect(videoAnchors(v, corners, layout)).toEqual([
+      { sec: 10, fraction: 0.1 },
+      { sec: 15, fraction: 0 },
+    ]);
+  });
   it("skips unknown corners and corners without a fraction", () => {
     const cs = [...corners, corner("c5", 5, 5, null)];
     const v = video([
@@ -82,10 +90,13 @@ describe("lapFractionAt", () => {
     expect(lapFractionAt(20, anchors, 20)).toBeCloseTo(0);
     expect(lapFractionAt(20.5, anchors, 20)).toBeNull();
   });
-  it("closes at start + 1 when the first anchor is not the line", () => {
-    const anchors = [a(10, 0.2), a(20, 0.6)];
-    expect(lapFractionAt(30, anchors, 40)).toBeCloseTo(0.9);
-    expect(lapFractionAt(40, anchors, 40)).toBeCloseTo(0.2);
+  it("closes the lap at the line even when the start is unmarked", () => {
+    const anchors = [a(20, 0.5), a(30, 0.8)];
+    expect(lapFractionAt(35, anchors, 40)).toBeCloseTo(0.9);
+    expect(lapFractionAt(40, anchors, 40)).toBeCloseTo(0);
+    const past = [a(10, 0.9), a(20, 0.1)];
+    expect(lapFractionAt(25, past, 30)).toBeCloseTo(0.55);
+    expect(lapFractionAt(30, past, 30)).toBeCloseTo(0);
   });
   it("never returns NaN for equal times", () => {
     const r = lapFractionAt(10, [a(10, 0.2), a(10, 0.4), a(20, 0.6)], null);
@@ -159,5 +170,30 @@ describe("formatVideoTime", () => {
     expect(formatVideoTime(0)).toBe("0:00.0");
     expect(formatVideoTime(59.96)).toBe("1:00.0");
     expect(formatVideoTime(-3)).toBe("0:00.0");
+  });
+});
+
+describe("markOrderProblems", () => {
+  const ordered = corners.map((c, i) => ({ cornerId: c.id, sec: 10 + i * 5 }));
+  it("is empty when valid or unmarked", () => {
+    expect(markOrderProblems(video([]), corners)).toEqual([]);
+    expect(markOrderProblems(video(ordered, 5, 40), corners)).toEqual([]);
+  });
+  it("names out-of-order corners", () => {
+    const v = video([
+      { cornerId: "c3", sec: 40 },
+      { cornerId: "c4", sec: 35 },
+    ]);
+    expect(markOrderProblems(v, corners)).toEqual(["T4 is marked before the corner ahead of it."]);
+  });
+  it("flags a start line marked after the first corner", () => {
+    expect(markOrderProblems(video(ordered, 12), corners)).toEqual([
+      "The start line is marked after T1.",
+    ]);
+  });
+  it("flags a finish line marked before the last corner", () => {
+    expect(markOrderProblems(video(ordered, 5, 20), corners)).toEqual([
+      "The finish line is marked before T4.",
+    ]);
   });
 });
