@@ -83,7 +83,7 @@ export function TrackList() {
         </div>
       )}
       {visible.length === 0 ? (
-        <p className="text-sm text-muted">No tracks match “{query.trim()}”.</p>
+        <p className="text-sm break-words text-muted">No tracks match “{query.trim()}”.</p>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2">
           {visible.map((track) => (

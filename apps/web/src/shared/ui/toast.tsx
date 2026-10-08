@@ -51,7 +51,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
           <p
             key={toast.id}
             className={cn(
-              "pointer-events-auto flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-3 text-sm shadow-lg",
+              "pointer-events-none flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-3 text-sm shadow-lg",
               toast.tone === "danger" && "border-danger/40",
             )}
           >
