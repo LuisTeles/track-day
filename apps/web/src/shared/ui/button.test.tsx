@@ -30,4 +30,16 @@ describe("Button", () => {
     expect(link).toHaveAttribute("href", "/tracks/import/");
     expect(link).not.toHaveAttribute("type");
   });
+
+  it("is 40px tall by default and 44px on coarse pointers", () => {
+    render(<Button>Save</Button>);
+    const button = screen.getByRole("button", { name: "Save" });
+    expect(button).toHaveClass("h-10");
+    expect(button).toHaveClass("pointer-coarse:h-11");
+  });
+
+  it("renders the ghost variant", () => {
+    render(<Button variant="ghost">More</Button>);
+    expect(screen.getByRole("button", { name: "More" })).toHaveClass("hover:bg-surface");
+  });
 });

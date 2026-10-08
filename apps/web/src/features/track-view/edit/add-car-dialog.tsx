@@ -28,6 +28,7 @@ import { Label } from "@/shared/ui/label";
 import { Textarea } from "@/shared/ui/textarea";
 import { missingCorners, trackPayloadFor } from "./guide-payload";
 import { useAddCar } from "./use-edit-mutations";
+import { Select } from "@/shared/ui/select";
 
 export function AddCarDialog({
   open,
@@ -123,11 +124,10 @@ export function AddCarDialog({
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label htmlFor={`${id}-sim`}>Sim</Label>
-              <select
+              <Select
                 id={`${id}-sim`}
                 value={sim}
                 onChange={(e) => setSim(e.target.value as SimId | "")}
-                className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
               >
                 <option value="">Any sim</option>
                 {SIMS.map((s) => (
@@ -135,7 +135,7 @@ export function AddCarDialog({
                     {s.label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div className="space-y-1">
               <Label htmlFor={`${id}-class`}>Class</Label>

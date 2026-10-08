@@ -5,9 +5,7 @@ import { useId } from "react";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { parseLapLength, type FactsDraft } from "./known-facts";
-
-const selectClass =
-  "h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+import { Select } from "@/shared/ui/select";
 
 /** Optional facts the prompt treats as ground truth. Lap length helps most. */
 export function KnownFactsForm({
@@ -72,22 +70,20 @@ export function KnownFactsForm({
       </div>
       <div className="space-y-1">
         <Label htmlFor={`${id}-direction`}>Direction</Label>
-        <select
+        <Select
           id={`${id}-direction`}
-          className={selectClass}
           value={value.direction}
           onChange={(e) => set("direction", e.target.value as FactsDraft["direction"])}
         >
           <option value="">Not sure</option>
           <option value="clockwise">Clockwise</option>
           <option value="anticlockwise">Anticlockwise</option>
-        </select>
+        </Select>
       </div>
       <div className="space-y-1">
         <Label htmlFor={`${id}-sim`}>Sim</Label>
-        <select
+        <Select
           id={`${id}-sim`}
-          className={selectClass}
           value={value.sim}
           onChange={(e) => set("sim", e.target.value as FactsDraft["sim"])}
         >
@@ -97,7 +93,7 @@ export function KnownFactsForm({
               {s.label}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
     </fieldset>
   );

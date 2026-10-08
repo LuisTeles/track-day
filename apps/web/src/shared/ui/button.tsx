@@ -4,22 +4,31 @@ import type { ComponentProps } from "react";
 import { cn } from "@/shared/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50",
+  "focus-ring inline-flex shrink-0 items-center justify-center gap-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:opacity-90",
-        outline: "border border-input hover:bg-surface",
-        destructive: "bg-destructive text-background hover:opacity-90",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        secondary: "bg-foreground text-background hover:bg-foreground/90",
+        outline: "border border-input bg-background hover:bg-surface",
+        ghost: "hover:bg-surface",
+        destructive: "bg-destructive text-background hover:bg-destructive/90",
+      },
+      size: {
+        sm: "h-8 px-3 pointer-coarse:h-10",
+        default: "h-10 px-4 pointer-coarse:h-11",
+        lg: "h-11 px-5 text-base pointer-coarse:h-12",
+        icon: "size-10 pointer-coarse:size-11",
       },
     },
-    defaultVariants: { variant: "default" },
+    defaultVariants: { variant: "default", size: "default" },
   },
 );
 
 function Button({
   className,
   variant,
+  size,
   asChild = false,
   type,
   ...props
@@ -29,7 +38,7 @@ function Button({
     <Comp
       data-slot="button"
       type={asChild ? type : (type ?? "button")}
-      className={cn(buttonVariants({ variant, className }))}
+      className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
   );

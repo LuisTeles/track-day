@@ -15,6 +15,7 @@ import { MapPreview } from "./map-preview";
 import { cornerPositionsToSave, matchCorners, type PositionSource } from "./match-corners";
 import { OsmError, osmClient, type OsmClient, type Place } from "./osm-client";
 import { useSaveMap } from "./use-save-map";
+import { Select } from "@/shared/ui/select";
 
 const SOURCE_LABEL: Record<PositionSource, string> = {
   osm: "Position from OpenStreetMap",
@@ -305,21 +306,20 @@ export function AddMapPanel({
           {preview.loops.length > 1 && (
             <div className="space-y-1">
               <Label htmlFor={`${id}-loop`}>Loop</Label>
-              <select
+              <Select
                 id={`${id}-loop`}
                 value={loopIndex}
                 onChange={(e) => {
                   setLoopIndex(Number(e.target.value));
                   setStartAt(null);
                 }}
-                className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
               >
                 {preview.loops.map((l, i) => (
                   <option key={i} value={i}>
                     {meters(l.lengthMeters)} · {l.taggedCorners} tagged corners
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           )}
           {lengthOff && (

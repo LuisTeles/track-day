@@ -8,6 +8,7 @@ import { Label } from "@/shared/ui/label";
 import { Textarea } from "@/shared/ui/textarea";
 import { draftFrom, parseDraft, type GuideDraft } from "./corner-guide-draft";
 import { useSaveCornerGuide } from "./use-edit-mutations";
+import { Select } from "@/shared/ui/select";
 
 type Errors = Partial<Record<keyof GuideDraft, string>>;
 
@@ -110,11 +111,10 @@ export function CornerGuideForm({
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
           <Label htmlFor={`${id}-brakePressure`}>Brake pressure</Label>
-          <select
+          <Select
             id={`${id}-brakePressure`}
             value={draft.brakePressure}
             onChange={(e) => set("brakePressure")(e.target.value)}
-            className="h-9 w-full rounded-md border border-input bg-transparent px-2 text-sm"
           >
             <option value="">—</option>
             {BrakePressure.options.map((p) => (
@@ -122,7 +122,7 @@ export function CornerGuideForm({
                 {p}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
         {field("brakePressurePct", "Pressure (%)")}
       </div>

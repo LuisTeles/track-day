@@ -15,11 +15,11 @@ function AlertDialogContent({
 }: ComponentProps<typeof AlertDialogPrimitive.Content>) {
   return (
     <AlertDialogPrimitive.Portal>
-      <AlertDialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50" />
+      <AlertDialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
       <AlertDialogPrimitive.Content
         data-slot="alert-dialog-content"
         className={cn(
-          "fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 space-y-4 rounded-xl border border-border bg-background p-5 text-foreground shadow-lg",
+          "fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 space-y-4 rounded-2xl border border-border bg-background p-6 text-foreground shadow-lg",
           className,
         )}
         {...props}
@@ -51,7 +51,7 @@ function AlertDialogDescription({
 function AlertDialogFooter({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
-      className={cn("flex flex-col-reverse gap-2 sm:flex-row sm:justify-end", className)}
+      className={cn("flex flex-col-reverse gap-3 sm:flex-row sm:justify-end", className)}
       {...props}
     />
   );
