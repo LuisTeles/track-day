@@ -40,6 +40,7 @@ export function CornerNotesForm({
   }
 
   function submit() {
+    if (save.isPending) return;
     const commonMistakes = mistakes.map((m) => m.trim()).filter(Boolean);
     save.mutate(
       { id: corner.id, patch: { notes, commonMistakes } },
@@ -104,7 +105,7 @@ export function CornerNotesForm({
           Could not save: {save.error.message}
         </p>
       )}
-      <div className="sticky bottom-0 -mx-4 flex items-center gap-3 border-t border-border bg-background/95 px-4 py-3 backdrop-blur">
+      <div className="sticky bottom-0 -mx-3 flex items-center gap-3 border-t border-border bg-background/95 px-3 py-3 backdrop-blur">
         {dirty && <span className="text-sm text-muted">Unsaved changes</span>}
         <p aria-live="polite" className="text-sm text-muted">
           {save.isSuccess && !dirty && "Saved"}

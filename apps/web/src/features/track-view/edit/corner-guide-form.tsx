@@ -46,6 +46,7 @@ export function CornerGuideForm({
     setDraft((d) => ({ ...d, [field]: value }));
 
   function submit() {
+    if (save.isPending) return;
     const result = parseDraft(draft);
     if (!result.ok) {
       setErrors(result.errors);
@@ -162,29 +163,26 @@ export function CornerGuideForm({
           {children}
         </fieldset>
       )}
-      <fieldset className="space-y-3">
-        <legend className={legend}>Cue</legend>
-        <div className="space-y-1">
-          <div className="flex justify-between">
-            <Label htmlFor={`${id}-cue`}>Cue</Label>
-            <span className="text-xs text-muted tabular-nums">
-              {draft.cue.trim().length}/{CUE_MAX_LENGTH}
-            </span>
-          </div>
-          <Input
-            id={`${id}-cue`}
-            value={draft.cue}
-            onChange={(e) => set("cue")(e.target.value)}
-            aria-invalid={errors.cue ? true : undefined}
-            aria-describedby={errors.cue ? `${id}-cue-error` : undefined}
-          />
-          {errors.cue && (
-            <p id={`${id}-cue-error`} className="text-xs text-danger">
-              {errors.cue}
-            </p>
-          )}
+      <div className="space-y-1">
+        <div className="flex justify-between">
+          <Label htmlFor={`${id}-cue`}>Cue</Label>
+          <span className="text-xs text-muted tabular-nums">
+            {draft.cue.trim().length}/{CUE_MAX_LENGTH}
+          </span>
         </div>
-      </fieldset>
+        <Input
+          id={`${id}-cue`}
+          value={draft.cue}
+          onChange={(e) => set("cue")(e.target.value)}
+          aria-invalid={errors.cue ? true : undefined}
+          aria-describedby={errors.cue ? `${id}-cue-error` : undefined}
+        />
+        {errors.cue && (
+          <p id={`${id}-cue-error`} className="text-xs text-danger">
+            {errors.cue}
+          </p>
+        )}
+      </div>
       <fieldset className="space-y-3">
         <legend className={legend}>Notes</legend>
         {notes("throttleNotes", "Throttle notes")}
@@ -196,7 +194,7 @@ export function CornerGuideForm({
           Could not save: {save.error.message}
         </p>
       )}
-      <div className="sticky bottom-0 -mx-4 flex items-center gap-3 border-t border-border bg-background/95 px-4 py-3 backdrop-blur">
+      <div className="sticky bottom-0 -mx-3 flex items-center gap-3 border-t border-border bg-background/95 px-3 py-3 backdrop-blur">
         {dirty && <span className="text-sm text-muted">Unsaved changes</span>}
         <p aria-live="polite" className="text-sm text-muted">
           {save.isSuccess && !dirty && "Saved"}

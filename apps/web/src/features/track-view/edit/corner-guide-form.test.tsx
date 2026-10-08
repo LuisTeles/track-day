@@ -8,8 +8,8 @@ import type { Repositories } from "@/data/repositories";
 import { emptyCornerGuide } from "./corner-guide-draft";
 import { CornerGuideForm } from "./corner-guide-form";
 
-function setup(guide?: CornerGuide) {
-  const create = vi.fn().mockImplementation(async (v) => ({ id: "cg1", ...v }));
+function setup(guide?: CornerGuide, createImpl?: ReturnType<typeof vi.fn>) {
+  const create = createImpl ?? vi.fn().mockImplementation(async (v) => ({ id: "cg1", ...v }));
   const update = vi.fn().mockImplementation(async (id, patch) => ({ ...guide, id, ...patch }));
   const onDirtyChange = vi.fn();
   const view = render(
@@ -130,5 +130,27 @@ describe("CornerGuideForm", () => {
     expect(screen.queryByText("Unsaved changes")).toBeNull();
     await user.type(screen.getByLabelText("Gear"), "3");
     expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
+  });
+
+  it("ignores Ctrl+Enter while a save is in flight", async () => {
+    const pending = vi.fn().mockReturnValue(new Promise(() => {}));
+    const { user } = setup(undefined, pending);
+    await user.type(screen.getByLabelText("Gear"), "3");
+    await user.keyboard("{Control>}{Enter}{Enter}{/Control}");
+    expect(pending).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves with Meta+Enter", async () => {
+    const { create, user } = setup();
+    await user.type(screen.getByLabelText("Gear"), "3");
+    await user.keyboard("{Meta>}{Enter}{/Meta}");
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not submit on plain Enter in a textarea", async () => {
+    const { create, user } = setup();
+    await user.type(screen.getByLabelText("Car notes"), "a{Enter}b");
+    expect(create).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Car notes")).toHaveValue("a\nb");
   });
 });

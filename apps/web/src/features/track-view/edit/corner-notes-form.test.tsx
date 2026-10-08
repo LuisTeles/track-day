@@ -76,4 +76,12 @@ describe("CornerNotesForm", () => {
     await user.keyboard("{Control>}{Enter}{/Control}");
     expect(update).toHaveBeenCalledWith("c1", expect.objectContaining({ notes: "Bumpy!" }));
   });
+
+  it("ignores Ctrl+Enter while a save is in flight", async () => {
+    const pending = vi.fn().mockReturnValue(new Promise(() => {}));
+    const { user } = setup(pending);
+    await user.type(screen.getByLabelText("Corner notes"), "!");
+    await user.keyboard("{Control>}{Enter}{Enter}{/Control}");
+    expect(pending).toHaveBeenCalledTimes(1);
+  });
 });
