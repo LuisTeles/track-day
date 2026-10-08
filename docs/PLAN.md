@@ -38,12 +38,13 @@ The architecture must make adding those later a matter of _adding_ code, not rew
 | Server/async state | TanStack Query                                 | Same hooks work against IndexedDB now and HTTP later                            |
 | Validation         | **Zod 4**                                      | Single source of truth for types + runtime validation; native JSON Schema       |
 | Local storage      | **Dexie (IndexedDB)**                          | Structured, queryable, stores images as Blobs ([ADR-002])                       |
-| UI                 | Tailwind + shadcn/ui (Radix)                   | Accessible primitives, no heavy component lib                                   |
+| UI                 | Tailwind + shadcn/ui (Radix)                   | Accessible primitives, no heavy component lib. Design system: [ADR-008]         |
 | Forms              | React Hook Form + Zod resolver                 | Reuses the same schemas                                                         |
 | Tests              | Vitest + Testing Library, Playwright (e2e)     | Unit / component / flow                                                         |
 | Hosting            | Cloudflare Pages                               | Free, preview per PR, deploy from CI                                            |
 
 [ADR-002]: adr/002-indexeddb-via-dexie.md
+[ADR-008]: adr/008-design-system.md
 [ADR-003]: adr/003-nextjs-static-export.md
 
 ### 2.2 Repository layout (pnpm monorepo)

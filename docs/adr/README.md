@@ -11,5 +11,6 @@ One file per significant decision: context, decision, consequences. Never rewrit
 | [005](005-track-geometry.md)                   | Track geometry and coordinate conventions | Accepted |
 | [006](006-practice-mode.md)                    | Practice mode                             | Accepted |
 | [007](007-line-from-points.md)                 | A car's racing line from points           | Accepted |
+| [008](008-design-system.md)                    | Design system: tokens, sizes and themes   | Accepted |
 
 Template: copy [000-template.md](000-template.md).

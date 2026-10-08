@@ -17,6 +17,10 @@ const KNOWN_VIOLATIONS: Record<PageKey, string[]> = {
   practice: [],
 };
 
+test("no page has known violations left", () => {
+  expect(Object.values(KNOWN_VIOLATIONS).flat()).toEqual([]);
+});
+
 async function scan(page: Page, key: PageKey) {
   const { violations } = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
@@ -39,10 +43,13 @@ test("home (empty) is accessible", async ({ page }) => {
   await scan(page, "home-empty");
 });
 
-test("home (with tracks) is accessible", async ({ page }) => {
-  await loadSamples(page);
-  await scan(page, "home");
-});
+for (const scheme of ["light", "dark"] as const) {
+  test(`home (with tracks) is accessible (${scheme})`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    await loadSamples(page);
+    await scan(page, "home");
+  });
+}
 
 test("backup is accessible", async ({ page }) => {
   await page.goto("/backup/");
@@ -54,15 +61,18 @@ test("import is accessible", async ({ page }) => {
   await scan(page, "import");
 });
 
-test("track view is accessible", async ({ page }) => {
-  await loadSamples(page);
-  await page.getByRole("link", { name: /Interlagos/ }).click();
-  await expect(page.locator("[data-corner]").first()).toBeVisible();
-  await scan(page, "track");
-  await page.getByRole("button", { name: /^Turn 1,/ }).click();
-  await expect(page.getByRole("complementary")).toBeVisible();
-  await scan(page, "track-panel");
-});
+for (const scheme of ["light", "dark"] as const) {
+  test(`track view is accessible (${scheme})`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    await loadSamples(page);
+    await page.getByRole("link", { name: /Interlagos/ }).click();
+    await expect(page.locator("[data-corner]").first()).toBeVisible();
+    await scan(page, "track");
+    await page.getByRole("button", { name: /^Turn 1,/ }).click();
+    await expect(page.getByRole("complementary")).toBeVisible();
+    await scan(page, "track-panel");
+  });
+}
 
 test("practice is accessible", async ({ page }) => {
   await loadSamples(page);
