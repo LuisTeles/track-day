@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { ChevronDown, ChevronUp, X } from "lucide-react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { IconButton } from "@/shared/ui/icon-button";
 
 interface SidePanelProps {
   open: boolean;
   title: ReactNode;
   onClose(): void;
   children: ReactNode;
+  /** Extra controls between the title and the close button. */
+  headerActions?: ReactNode;
 }
 
 /**
@@ -14,7 +18,8 @@ interface SidePanelProps {
  * sheet below. Escape closes it; focus moves into it on open and returns to
  * whatever was focused before (usually a marker) on close.
  */
-export function SidePanel({ open, title, onClose, children }: SidePanelProps) {
+export function SidePanel({ open, title, onClose, children, headerActions }: SidePanelProps) {
+  const [expanded, setExpanded] = useState(false);
   const headingId = useId();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const returnFocus = useRef<Element | null>(null);
@@ -44,28 +49,32 @@ export function SidePanel({ open, title, onClose, children }: SidePanelProps) {
     <aside
       aria-labelledby={headingId}
       data-testid="side-panel"
-      className="fixed inset-x-0 bottom-0 z-30 flex max-h-[60dvh] flex-col rounded-t-2xl border border-border bg-background shadow-2xl md:inset-x-auto md:top-16 md:right-3 md:bottom-3 md:max-h-none md:w-96 md:rounded-2xl"
+      className={`fixed inset-x-0 bottom-0 z-30 flex flex-col rounded-t-2xl border border-border bg-background pb-safe-0 shadow-2xl md:inset-x-auto md:top-20 md:right-3 md:bottom-3 md:max-h-none md:w-[400px] md:rounded-2xl ${expanded ? "max-h-[85dvh]" : "max-h-[45dvh]"}`}
     >
       <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-border md:hidden" aria-hidden />
-      <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
+      <div className="sticky top-0 flex items-center gap-2 border-b border-border px-4 py-2">
         <h2
           id={headingId}
           ref={headingRef}
           tabIndex={-1}
-          className="text-base font-semibold outline-none"
+          className="flex-1 truncate text-base font-semibold outline-none"
         >
           {title}
         </h2>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close panel"
-          className="-m-1 rounded-md p-1 text-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent"
+        {headerActions}
+        <IconButton
+          label={expanded ? "Collapse panel" : "Expand panel"}
+          aria-expanded={expanded}
+          onClick={() => setExpanded((v) => !v)}
+          className="md:hidden"
         >
-          ✕
-        </button>
+          {expanded ? <ChevronDown /> : <ChevronUp />}
+        </IconButton>
+        <IconButton label="Close panel" onClick={onClose}>
+          <X />
+        </IconButton>
       </div>
-      <div className="flex-1 overflow-y-auto px-4 py-3">{children}</div>
+      <div className="flex-1 overflow-y-auto px-4 py-4 pb-safe-4">{children}</div>
     </aside>
   );
 }

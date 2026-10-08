@@ -29,7 +29,7 @@ export function CornerGuideSection({
           </span>
         )}
       </div>
-      <dl className="grid grid-cols-3 gap-x-3 gap-y-2">
+      <dl className="grid grid-cols-3 gap-x-4 gap-y-3">
         <Value term="Entry" value={speed(guide.entrySpeedKmh)} />
         <Value term="Minimum" value={speed(guide.minSpeedKmh)} />
         <Value term="Exit" value={speed(guide.exitSpeedKmh)} />
@@ -62,7 +62,7 @@ function Value({ term, value, wide }: { term: string; value: string; wide?: bool
   return (
     <div className={wide ? "col-span-2" : undefined}>
       <dt className="text-xs text-muted">{term}</dt>
-      <dd className="tabular-nums">{value}</dd>
+      <dd className="text-base font-semibold tabular-nums">{value}</dd>
     </div>
   );
 }

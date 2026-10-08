@@ -1,5 +1,7 @@
 import type { Corner, CornerComplex } from "@track-day/schema";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
+import { Button } from "@/shared/ui/button";
 
 const label = (value: string | null) => (value ? value.replace(/-/g, " ") : "—");
 
@@ -37,7 +39,7 @@ export function CornerDetails({
   return (
     <div className="space-y-5 text-sm">
       {actions}
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
         <Fact term="Direction" value={label(corner.direction)} capitalize />
         <Fact term="Type" value={label(corner.type)} capitalize />
         <Fact term="Elevation" value={label(corner.elevation)} capitalize />
@@ -50,30 +52,30 @@ export function CornerDetails({
       {guide}
 
       {memberOf.map((complex) => (
-        <section key={complex.id} className="rounded-lg bg-surface p-3">
-          <h3 className="font-medium">Part of {complex.name}</h3>
-          <p className="mt-1 text-muted">
+        <section key={complex.id} className="space-y-2 rounded-lg bg-surface p-3">
+          <h3 className="text-sm font-semibold">Part of {complex.name}</h3>
+          <p className="text-muted">
             {complex.cornerIds
               .map((id) => allCorners.find((c) => c.id === id))
               .filter(Boolean)
               .map((c) => `T${c!.number}`)
               .join(" + ")}
           </p>
-          {complex.notes && <p className="mt-2">{complex.notes}</p>}
+          {complex.notes && <p>{complex.notes}</p>}
         </section>
       ))}
 
       {!hideNotes && corner.notes && (
-        <section>
-          <h3 className="font-medium">Notes</h3>
-          <p className="mt-1 whitespace-pre-line">{corner.notes}</p>
+        <section className="space-y-2">
+          <h3 className="text-sm font-semibold">Notes</h3>
+          <p className="whitespace-pre-line">{corner.notes}</p>
         </section>
       )}
 
       {!hideNotes && corner.commonMistakes.length > 0 && (
-        <section>
-          <h3 className="font-medium">Common mistakes</h3>
-          <ul className="mt-1 list-disc space-y-1 pl-5">
+        <section className="space-y-2">
+          <h3 className="text-sm font-semibold">Common mistakes</h3>
+          <ul className="list-disc space-y-1 pl-5">
             {corner.commonMistakes.map((m, i) => (
               <li key={i}>{m}</li>
             ))}
@@ -82,24 +84,24 @@ export function CornerDetails({
       )}
 
       {allCorners.length > 1 && prev && next && (
-        <nav
-          aria-label="Other corners"
-          className="flex justify-between border-t border-border pt-3"
-        >
-          <button
-            type="button"
-            className="text-muted hover:text-foreground"
+        <nav aria-label="Other corners" className="flex gap-2 border-t border-border pt-3">
+          <Button
+            variant="outline"
+            className="flex-1"
+            aria-label={`Previous corner, T${prev.number}`}
             onClick={() => onSelect(prev.id)}
           >
-            ← T{prev.number}
-          </button>
-          <button
-            type="button"
-            className="text-muted hover:text-foreground"
+            <ChevronLeft aria-hidden />T{prev.number}
+          </Button>
+          <Button
+            variant="outline"
+            className="flex-1"
+            aria-label={`Next corner, T${next.number}`}
             onClick={() => onSelect(next.id)}
           >
-            T{next.number} →
-          </button>
+            T{next.number}
+            <ChevronRight aria-hidden />
+          </Button>
         </nav>
       )}
     </div>
@@ -109,8 +111,8 @@ export function CornerDetails({
 function Fact({ term, value, capitalize }: { term: string; value: string; capitalize?: boolean }) {
   return (
     <div>
-      <dt className="text-xs text-muted">{term}</dt>
-      <dd className={capitalize ? "capitalize" : undefined}>{value}</dd>
+      <dt className="text-xs font-medium tracking-wide text-muted uppercase">{term}</dt>
+      <dd className={`mt-0.5 font-medium${capitalize ? " capitalize" : ""}`}>{value}</dd>
     </div>
   );
 }
@@ -131,9 +133,9 @@ export function CornerList({
           <button
             type="button"
             onClick={() => onSelect(corner.id)}
-            className="flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left hover:bg-surface focus-visible:outline-2 focus-visible:outline-accent"
+            className="flex w-full items-center gap-3 h-11 rounded-lg px-2 text-left hover:bg-surface focus-ring"
           >
-            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-marker text-xs font-semibold text-marker-foreground tabular-nums">
+            <span className="grid size-7 shrink-0 place-items-center rounded-full bg-marker text-xs font-semibold text-marker-foreground tabular-nums">
               {corner.number}
             </span>
             <span className="flex-1">

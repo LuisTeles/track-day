@@ -88,12 +88,19 @@ describe("CornerMarkers", () => {
     renderMarkers([corner(1, { pathPosition: 0.2 }), corner(2, { pathPosition: 0.201 })]);
     expect(screen.getByTestId("corner-markers").querySelectorAll("line")).toHaveLength(1);
   });
+
+  it("gives each marker a 44px hit area around a 28px badge", () => {
+    renderMarkers([corner(1, { pathPosition: 0.2 })]);
+    const marker = screen.getByRole("button", { name: /^Turn 1/ });
+    expect(marker).toHaveClass("before:size-11");
+    expect(marker.querySelector("span")).toHaveClass("size-7");
+  });
 });
 
 describe("estimateLabelSize", () => {
   it("grows with the name and chip", () => {
     const badge = estimateLabelSize(null, null);
-    expect(badge).toEqual({ width: 26, height: 26 });
+    expect(badge).toEqual({ width: 28, height: 28 });
     expect(estimateLabelSize("S do Senna", null).width).toBeGreaterThan(badge.width);
     expect(estimateLabelSize("S do Senna", "70 km/h · 2").width).toBeGreaterThan(
       estimateLabelSize("S do Senna", null).width,

@@ -27,9 +27,9 @@ interface CornerMarkersProps {
   namesFromZoom?: number;
 }
 
-const BADGE = 26;
+const BADGE = 28;
 const NAME_CHAR = 6.6;
-const CHIP_CHAR = 6.1;
+const CHIP_CHAR = 6.6;
 
 /** Label size from its content, without measuring the DOM (keeps placement pure and stable). */
 export function estimateLabelSize(name: string | null, chip: string | null): Size {
@@ -151,12 +151,12 @@ export function CornerMarkers({
               .join(", ")}
             onClick={() => onSelect(corner.id)}
             style={{ transform: `translate(${left.x}px, ${left.y}px)`, height: input.size.height }}
-            className="group pointer-events-auto absolute top-0 left-0 flex items-center gap-1 rounded-full whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="group pointer-events-auto absolute before:absolute before:top-1/2 before:left-[14px] before:size-11 before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:content-[''] top-0 left-0 flex items-center gap-1 rounded-full whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             <span
-              className={`grid size-[26px] shrink-0 place-items-center rounded-full text-xs font-semibold tabular-nums shadow-md ring-2 transition-transform group-hover:scale-110 ${
+              className={`grid size-7 shrink-0 place-items-center rounded-full text-xs font-semibold tabular-nums shadow-md ring-2 motion-safe:transition-transform motion-safe:group-hover:scale-110 ${
                 selected
-                  ? "scale-110 bg-accent text-accent-foreground ring-background"
+                  ? "bg-accent motion-safe:scale-110 text-accent-foreground ring-background"
                   : "bg-marker text-marker-foreground ring-background/80"
               }`}
             >
@@ -168,7 +168,7 @@ export function CornerMarkers({
               </span>
             )}
             {chipText && (
-              <span className="rounded-md border border-border bg-chip px-1.5 py-0.5 text-[11px] font-medium text-foreground tabular-nums shadow-sm">
+              <span className="rounded-md border border-border bg-chip px-1.5 py-0.5 text-xs font-medium text-foreground tabular-nums shadow-sm">
                 {chipText}
               </span>
             )}

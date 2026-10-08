@@ -311,13 +311,15 @@ function TrackView({ trackId }: { trackId: string }) {
             allCorners={corners}
             onSelect={selectCorner}
             actions={
-              <Link
-                href={practiceHref(track.id, layout.id, params.get("guide"), selected.number)}
-                onClick={guardLink}
-                className="inline-block rounded-lg bg-foreground px-3 py-1.5 text-sm font-medium text-background hover:opacity-90"
-              >
-                Practice from T{selected.number}
-              </Link>
+              <Button asChild variant="secondary" className="w-full">
+                <Link
+                  href={practiceHref(track.id, layout.id, params.get("guide"), selected.number)}
+                  onClick={guardLink}
+                >
+                  <Play aria-hidden />
+                  Practice from T{selected.number}
+                </Link>
+              </Button>
             }
             hideNotes={editing}
             guide={

@@ -36,4 +36,30 @@ describe("SidePanel", () => {
     await userEvent.click(screen.getByRole("button", { name: "Close panel" }));
     expect(screen.queryByRole("complementary")).not.toBeInTheDocument();
   });
+
+  it("has a 40px close button with an icon", () => {
+    render(
+      <SidePanel open title="Corners" onClose={() => {}}>
+        x
+      </SidePanel>,
+    );
+    const close = screen.getByRole("button", { name: "Close panel" });
+    expect(close).toHaveClass("size-10");
+    expect(close.querySelector("svg")).not.toBeNull();
+  });
+
+  it("expands and collapses the sheet", async () => {
+    render(
+      <SidePanel open title="Corners" onClose={() => {}}>
+        x
+      </SidePanel>,
+    );
+    const toggle = screen.getByRole("button", { name: "Expand panel" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(toggle);
+    expect(screen.getByRole("button", { name: "Collapse panel" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+  });
 });
