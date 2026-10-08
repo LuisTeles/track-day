@@ -11,14 +11,22 @@ import { PromptStep } from "./prompt-step";
 import { TrackPreview } from "./track-preview";
 import { useImportTrack } from "./use-import-track";
 
-function Step({ title, children }: { title: string; children: ReactNode }) {
+function Step({ n, title, children }: { n: number; title: string; children: ReactNode }) {
   const id = useId();
   return (
-    <section aria-labelledby={id} className="space-y-4">
-      <h2 id={id} className="text-lg font-medium">
-        {title}
-      </h2>
-      {children}
+    <section aria-labelledby={id} className="flex flex-col gap-4">
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden
+          className="grid size-8 shrink-0 place-items-center rounded-full bg-foreground text-sm font-semibold text-background"
+        >
+          {n}
+        </span>
+        <h2 id={id} aria-label={`Step ${n}: ${title}`} className="text-lg font-semibold">
+          {title}
+        </h2>
+      </div>
+      <div className="ml-4 flex flex-col gap-4 border-l border-border pl-8">{children}</div>
     </section>
   );
 }
@@ -31,13 +39,13 @@ export function TrackImportPage() {
   const save = useImportTrack();
 
   return (
-    <div className="space-y-10">
-      <Step title="1. Get the prompt">
+    <div className="flex flex-col gap-10">
+      <Step n={1} title="Get the prompt">
         <KnownFactsForm value={draft} onChange={setDraft} />
         <PromptStep facts={facts} />
       </Step>
 
-      <Step title="2. Paste the AI’s answer">
+      <Step n={2} title="Paste the AI’s answer">
         <PasteStep
           disabled={save.isPending || save.isSuccess}
           onResult={(p) => {
@@ -48,7 +56,7 @@ export function TrackImportPage() {
       </Step>
 
       {payload && (
-        <Step title="3. Check and save">
+        <Step n={3} title="Check and save">
           <TrackPreview payload={payload} existingNames={(tracks ?? []).map((t) => t.name)} />
           <div className="space-y-2">
             <Button

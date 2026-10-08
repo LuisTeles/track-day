@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { RepositoriesProvider } from "@/data/provider";
 import type { Repositories } from "@/data/repositories";
+import { ToastProvider } from "@/shared/ui/toast";
 import { BackupPanel } from "./backup-panel";
 
 function setup() {
@@ -11,7 +12,9 @@ function setup() {
   render(
     <QueryClientProvider client={new QueryClient()}>
       <RepositoriesProvider repositories={{ backup } as unknown as Repositories}>
-        <BackupPanel />
+        <ToastProvider>
+          <BackupPanel />
+        </ToastProvider>
       </RepositoriesProvider>
     </QueryClientProvider>,
   );
@@ -25,6 +28,19 @@ const upload = (content: string) =>
   );
 
 describe("BackupPanel", () => {
+  it("offers import modes as large radio cards inside a named group", () => {
+    setup();
+    const group = screen.getByRole("radiogroup", { name: "Import mode" });
+    expect(within(group).getByRole("radio", { name: /Merge/ })).toBeChecked();
+    expect(within(group).getByRole("radio", { name: /Replace/ })).not.toBeChecked();
+  });
+
+  it("warns before a replace import with a visible note", async () => {
+    setup();
+    await userEvent.click(screen.getByRole("radio", { name: /Replace/ }));
+    expect(screen.getByText(/deletes everything in this browser first/)).toBeInTheDocument();
+  });
+
   it("shows validation errors by field path and does not import", async () => {
     const { backup } = setup();
     await upload(

@@ -31,7 +31,7 @@ test("imports a track pasted from an AI chat", async ({ page }) => {
 
   await page.getByLabel("AI answer").fill(aiAnswer());
   await page.getByRole("button", { name: "Check JSON" }).click();
-  const preview = page.getByRole("region", { name: "3. Check and save" });
+  const preview = page.getByRole("region", { name: "Step 3: Check and save" });
   await expect(preview.getByText("S do Senna").first()).toBeVisible();
 
   await page.getByRole("button", { name: "Save track" }).click();
@@ -55,7 +55,7 @@ test("shows errors by field path for an invalid answer", async ({ page }) => {
   // Next.js adds its own (empty) role="alert" route announcer, so narrow to ours.
   const issues = page.getByRole("alert").filter({ hasText: "doesn’t match the track format" });
   await expect(issues).toContainText("layout.direction");
-  await expect(page.getByRole("region", { name: "3. Check and save" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Step 3: Check and save" })).toHaveCount(0);
 });
 
 test("deletes an imported track after confirmation", async ({ page }) => {

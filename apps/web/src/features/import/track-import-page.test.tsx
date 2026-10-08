@@ -37,11 +37,13 @@ describe("TrackImportPage", () => {
   it("shows the preview only after a valid check", async () => {
     const user = userEvent.setup();
     setup();
-    expect(screen.queryByRole("region", { name: "3. Check and save" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("region", { name: "Step 3: Check and save" }),
+    ).not.toBeInTheDocument();
 
     await pasteValid(user);
 
-    expect(screen.getByRole("region", { name: "3. Check and save" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Step 3: Check and save" })).toBeInTheDocument();
   });
 
   it("saves once and opens the new track", async () => {
