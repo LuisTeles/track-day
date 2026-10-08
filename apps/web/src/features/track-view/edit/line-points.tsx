@@ -2,6 +2,7 @@
 
 import type { CornerGuide } from "@track-day/schema";
 import { Button } from "@/shared/ui/button";
+import { useConfirm } from "@/shared/ui/confirm";
 import { checkLineOrder, lapDelta, type LinePoint } from "../geometry/nearest";
 import { useSaveCornerGuide } from "./use-edit-mutations";
 
@@ -51,6 +52,7 @@ export function useLinePointPick({
   onError,
 }: PickOptions) {
   const save = useSaveCornerGuide();
+  const confirm = useConfirm();
   return async (fraction: number) => {
     if (!checkLineOrder({ ...positions(guide), [point]: fraction })) {
       onError?.(
@@ -66,9 +68,12 @@ export function useLinePointPick({
       const meters = Math.round(Math.abs(lapDelta(cornerFraction, fraction)) * lengthMeters);
       if (
         meters > FAR_METERS &&
-        !window.confirm(
-          `This is ${meters} m from the corner — place the ${NAMES[point]} here anyway?`,
-        )
+        !(await confirm({
+          title: `Place the ${NAMES[point]} ${meters} m from the corner?`,
+          description: "That’s far from where this corner is on the map.",
+          confirmLabel: "Place it here",
+          cancelLabel: "Cancel",
+        }))
       ) {
         return;
       }

@@ -1,11 +1,12 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { CornerGuide } from "@track-day/schema";
-import { act, render, renderHook, screen } from "@testing-library/react";
+import { act, render, renderHook, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { RepositoriesProvider } from "@/data/provider";
 import type { Repositories } from "@/data/repositories";
+import { ConfirmProvider } from "@/shared/ui/confirm";
 import { emptyCornerGuide } from "./corner-guide-draft";
 import { LinePoints, useLinePointPick } from "./line-points";
 
@@ -29,7 +30,9 @@ function wrap(repos: Partial<Repositories>) {
   function Wrapper({ children }: { children: ReactNode }) {
     return (
       <QueryClientProvider client={client}>
-        <RepositoriesProvider repositories={repos as Repositories}>{children}</RepositoriesProvider>
+        <RepositoriesProvider repositories={repos as Repositories}>
+          <ConfirmProvider>{children}</ConfirmProvider>
+        </RepositoriesProvider>
       </QueryClientProvider>
     );
   }
@@ -69,15 +72,33 @@ describe("useLinePointPick", () => {
 
   it("asks before saving a point far from the corner", async () => {
     const update = vi.fn().mockResolvedValue(guide());
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const onDone = vi.fn();
     const { result } = renderHook(
-      () => useLinePointPick({ ...base, guide: guide(), point: "exit", onDone: vi.fn() }),
+      () => useLinePointPick({ ...base, guide: guide(), point: "exit", onDone }),
       { wrapper: wrap({ cornerGuides: { update } as never }) },
     );
-    await act(async () => result.current(0.6)); // 400 m after the corner
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("400 m"));
+    const farPick = async (answer: string) => {
+      let done!: Promise<void>;
+      act(() => {
+        done = result.current(0.6); // 400 m after the corner
+      });
+      const dialog = await screen.findByRole("alertdialog", {
+        name: "Place the exit 400 m from the corner?",
+      });
+      await userEvent.click(within(dialog).getByRole("button", { name: answer }));
+      await act(() => done);
+    };
+
+    await farPick("Cancel");
     expect(update).not.toHaveBeenCalled();
-    confirm.mockRestore();
+    expect(onDone).not.toHaveBeenCalled();
+
+    await farPick("Place it here");
+    expect(update).toHaveBeenCalledWith(
+      "cg1",
+      expect.objectContaining({ line: expect.objectContaining({ exitAt: 0.6 }) }),
+    );
+    expect(onDone).toHaveBeenCalled();
   });
 });
 

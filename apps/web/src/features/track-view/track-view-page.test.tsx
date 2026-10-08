@@ -8,6 +8,7 @@ import { RepositoriesProvider } from "@/data/provider";
 import type { Repositories } from "@/data/repositories";
 import { TrackDayDb } from "@/data/local/db";
 import { createLocalRepositories } from "@/data/local/local-repositories";
+import { ConfirmProvider } from "@/shared/ui/confirm";
 import { mockLayout } from "@/test/dom";
 import { emptyCornerGuide } from "./edit/corner-guide-draft";
 import { TrackViewPage } from "./track-view-page";
@@ -17,9 +18,10 @@ const replace = vi.fn((url: string) => {
   search = new URLSearchParams(url.split("?")[1]);
   rerenderPage();
 });
+const push = vi.fn();
 vi.mock("next/navigation", () => ({
   useSearchParams: () => search,
-  useRouter: () => ({ replace, push: vi.fn() }),
+  useRouter: () => ({ replace, push }),
   usePathname: () => "/tracks/view/",
 }));
 
@@ -29,6 +31,7 @@ let rerenderPage = () => {};
 
 beforeEach(() => {
   mockLayout();
+  push.mockClear();
   db = new TrackDayDb(`test-${crypto.randomUUID()}`);
   repos = createLocalRepositories(db);
 });
@@ -63,7 +66,9 @@ async function open(
   const ui = () => (
     <QueryClientProvider client={client}>
       <RepositoriesProvider repositories={repos}>
-        <TrackViewPage />
+        <ConfirmProvider>
+          <TrackViewPage />
+        </ConfirmProvider>
       </RepositoriesProvider>
     </QueryClientProvider>
   );
@@ -114,40 +119,102 @@ describe("TrackViewPage edit mode", () => {
     expect(await screen.findByRole("form", { name: /GT3 · any sim/ })).toBeInTheDocument();
   });
 
-  it("asks before leaving a corner with unsaved edits, and not otherwise", async () => {
-    const { t1, t2, user } = await open({ edit: "1" });
+  const discardDialog = () =>
+    screen.findByRole("alertdialog", { name: "Discard unsaved changes?" });
+
+  it("does not ask when nothing is dirty", async () => {
+    const { t1, t2 } = await open({ edit: "1" });
     search.set("corner", t1.id);
     rerenderPage();
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
-
     // fireEvent: user-event's mousedown has no `view`, which d3-zoom chokes on.
     fireEvent.click(await screen.findByRole("button", { name: /^Turn 2,/ }));
-    expect(confirm).not.toHaveBeenCalled();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     expect(search.get("corner")).toBe(t2.id);
+  });
 
+  it("keeps the edits and the corner on Keep editing", async () => {
+    const { t1, user } = await open({ edit: "1" });
     search.set("corner", t1.id);
     rerenderPage();
     await user.type(await screen.findByLabelText("Corner notes"), "x");
     fireEvent.click(screen.getByRole("button", { name: /^Turn 2,/ }));
-    expect(confirm).toHaveBeenCalledWith("Discard unsaved changes?");
+    await discardDialog();
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     expect(search.get("corner")).toBe(t1.id);
-    confirm.mockRestore();
+    expect((screen.getByLabelText("Corner notes") as HTMLTextAreaElement).value).toMatch(/x$/);
+  });
+
+  it("moves on after Discard changes", async () => {
+    const { t1, t2, user } = await open({ edit: "1" });
+    search.set("corner", t1.id);
+    rerenderPage();
+    await user.type(await screen.findByLabelText("Corner notes"), "x");
+    fireEvent.click(screen.getByRole("button", { name: /^Turn 2,/ }));
+    await user.click(
+      within(await discardDialog()).getByRole("button", { name: "Discard changes" }),
+    );
+    await waitFor(() => expect(search.get("corner")).toBe(t2.id));
   });
 
   it("asks before opening Add car over unsaved edits", async () => {
     const { t1, user } = await open({ edit: "1" });
     search.set("corner", t1.id);
     rerenderPage();
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     await user.type(await screen.findByLabelText("Corner notes"), "x");
     await user.selectOptions(screen.getByLabelText("Car"), "__add__");
-    expect(confirm).toHaveBeenCalledWith("Discard unsaved changes?");
+    await user.click(within(await discardDialog()).getByRole("button", { name: "Keep editing" }));
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
 
-    confirm.mockReturnValue(true);
     await user.selectOptions(screen.getByLabelText("Car"), "__add__");
-    expect(await screen.findByRole("alertdialog")).toBeInTheDocument();
-    confirm.mockRestore();
+    await user.click(
+      within(await discardDialog()).getByRole("button", { name: "Discard changes" }),
+    );
+    const addCar = await screen.findByRole("alertdialog", { name: "Add a car" });
+    // The second dialog is usable: focus is inside it and it takes pointer input.
+    await waitFor(() => expect(addCar).toContainElement(document.activeElement as HTMLElement));
+    await user.click(within(addCar).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+  });
+
+  it("asks before following the back link, and navigates only on Discard changes", async () => {
+    const { t1, user } = await open({ edit: "1" });
+    search.set("corner", t1.id);
+    rerenderPage();
+    await user.type(await screen.findByLabelText("Corner notes"), "x");
+    await user.click(screen.getByRole("link", { name: "Back to tracks" }));
+    await discardDialog();
+    expect(push).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Discard changes" }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/"));
+  });
+
+  it("closes only the dialog on Escape, leaving the panel open", async () => {
+    const { t1, user } = await open({ edit: "1" });
+    search.set("corner", t1.id);
+    rerenderPage();
+    await user.type(await screen.findByLabelText("Corner notes"), "x");
+    fireEvent.click(screen.getByRole("button", { name: /^Turn 2,/ }));
+    await discardDialog();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(screen.getByTestId("side-panel")).toBeInTheDocument();
+    expect(search.get("corner")).toBe(t1.id);
+  });
+
+  it("closes only the far-point dialog on Escape, keeping the pick", async () => {
+    const { t1, user } = await open({ edit: "1" });
+    search.set("corner", t1.id);
+    rerenderPage();
+    await user.click(await screen.findByRole("button", { name: /^Set apex/ }));
+    // A click on the map far from Turn 1 asks first.
+    fireEvent.click(screen.getByRole("img", { name: /^Map of / }).parentElement!);
+    await screen.findByRole("alertdialog", { name: /^Place the apex \d+ m from the corner\?$/ });
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(screen.getByText(/Click or tap the track/)).toBeInTheDocument();
+    expect(screen.getByTestId("side-panel")).toBeInTheDocument();
+    expect(search.get("corner")).toBe(t1.id);
   });
 
   it("keeps focus and every keystroke while typing in the notes", async () => {
@@ -165,7 +232,6 @@ describe("TrackViewPage edit mode", () => {
     const { t1, user } = await open({ edit: "1" });
     search.set("corner", t1.id);
     rerenderPage();
-    const confirm = vi.spyOn(window, "confirm");
     const apex = await screen.findByRole("button", { name: /^Set apex/ });
     await user.click(apex);
     expect(screen.getByText(/Click or tap the track/)).toBeInTheDocument();
@@ -173,8 +239,7 @@ describe("TrackViewPage edit mode", () => {
     expect(screen.queryByText(/Click or tap the track/)).not.toBeInTheDocument();
     expect(screen.getByTestId("side-panel")).toBeInTheDocument();
     expect(search.get("corner")).toBe(t1.id);
-    expect(confirm).not.toHaveBeenCalled();
-    confirm.mockRestore();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
   it("shows the stored values after switching car with a corner open", async () => {
@@ -216,27 +281,23 @@ describe("TrackViewPage edit mode", () => {
     const { t1, user } = await open({ edit: "1" });
     search.set("corner", t1.id);
     rerenderPage();
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     const corners = await screen.findByRole("button", { name: "Corners" });
 
     await user.type(await screen.findByLabelText("Corner notes"), "x");
     await user.click(corners);
-    expect(confirm).toHaveBeenCalledWith("Discard unsaved changes?");
+    await user.click(within(await discardDialog()).getByRole("button", { name: "Keep editing" }));
     expect(search.get("corner")).toBe(t1.id);
 
-    confirm.mockClear();
     fireEvent.change(screen.getByLabelText("Corner notes"), { target: { value: t1.notes } });
     await user.click(corners);
-    expect(confirm).not.toHaveBeenCalled();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
     expect(search.get("panel")).toBe("corners");
-    confirm.mockRestore();
   });
 
   it("asks before Practice from T# drops unsaved edits, and not otherwise", async () => {
     const { t1, user } = await open({ edit: "1" });
     search.set("corner", t1.id);
     rerenderPage();
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     const link = await screen.findByRole("link", { name: "Practice from T1" });
     // Stop jsdom from navigating; fireEvent's return value says whether the
     // page's own handler cancelled the click.
@@ -244,30 +305,55 @@ describe("TrackViewPage edit mode", () => {
 
     await user.type(await screen.findByLabelText("Corner notes"), "x");
     expect(fireEvent.click(link)).toBe(false);
-    expect(confirm).toHaveBeenCalledWith("Discard unsaved changes?");
+    await user.click(within(await discardDialog()).getByRole("button", { name: "Keep editing" }));
+    expect(push).not.toHaveBeenCalled();
 
-    confirm.mockClear();
+    expect(fireEvent.click(link)).toBe(false);
+    await user.click(
+      within(await discardDialog()).getByRole("button", { name: "Discard changes" }),
+    );
+    await waitFor(() =>
+      expect(push).toHaveBeenCalledWith(expect.stringMatching(/^\/tracks\/practice\/\?.*corner=1/)),
+    );
+    push.mockClear();
+
     fireEvent.change(screen.getByLabelText("Corner notes"), { target: { value: t1.notes } });
     document.addEventListener("click", block);
     fireEvent.click(link);
     document.removeEventListener("click", block);
-    expect(confirm).not.toHaveBeenCalled();
-    confirm.mockRestore();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled(); // the link navigates by itself
+  });
+
+  it("leaves modified clicks on Practice from T# to the browser", async () => {
+    const { t1, user } = await open({ edit: "1" });
+    search.set("corner", t1.id);
+    rerenderPage();
+    const link = await screen.findByRole("link", { name: "Practice from T1" });
+    const block = (e: Event) => e.preventDefault();
+    await user.type(await screen.findByLabelText("Corner notes"), "x");
+    document.addEventListener("click", block);
+    fireEvent.click(link, { ctrlKey: true }); // new tab: these edits stay put
+    document.removeEventListener("click", block);
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(push).not.toHaveBeenCalled();
+    expect((screen.getByLabelText("Corner notes") as HTMLTextAreaElement).value).toMatch(/x$/);
   });
 
   it("forgets a discarded draft once its form is gone", async () => {
     const { t1, t2, user } = await open({ edit: "1" });
     search.set("corner", t1.id);
     rerenderPage();
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
     await user.type(await screen.findByLabelText("Corner notes"), "x");
     await user.click(screen.getByRole("button", { name: "Corners" }));
-    expect(confirm).toHaveBeenCalledTimes(1);
+    await user.click(
+      within(await discardDialog()).getByRole("button", { name: "Discard changes" }),
+    );
+    await waitFor(() => expect(search.get("panel")).toBe("corners"));
 
     fireEvent.click(screen.getByRole("button", { name: /^Turn 2,/ }));
     expect(search.get("corner")).toBe(t2.id);
-    expect(confirm).toHaveBeenCalledTimes(1);
-    confirm.mockRestore();
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
   it("re-measures the panel to keep the corner in view when a pick starts", async () => {

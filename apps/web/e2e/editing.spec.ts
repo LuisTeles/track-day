@@ -72,3 +72,40 @@ test("edit a car's corner, place its apex, and see it in practice", async ({ pag
   await expect(panel).toContainText("Brake before the bridge shadow");
   await expect(panel).toContainText("Turn in later");
 });
+
+test("asks in a dialog before dropping unsaved edits", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Load sample tracks" }).click();
+  await page.getByRole("link", { name: /Interlagos/ }).click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("button", { name: /^Turn 1,/ }).click();
+  const notes = page.getByLabel("Corner notes", { exact: true });
+  await notes.fill("Unsaved thought");
+  const panel = page.getByTestId("side-panel");
+  const dialog = page.getByRole("alertdialog", { name: "Discard unsaved changes?" });
+
+  // Escape closes only the dialog: the panel, the corner and the draft stay.
+  await panel.getByRole("button", { name: "Close panel" }).click();
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Keep editing" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(panel).toBeVisible();
+  await expect(page).toHaveURL(/corner=/);
+  await expect(notes).toHaveValue("Unsaved thought");
+
+  // Keep editing changes nothing.
+  await panel.getByRole("button", { name: "Close panel" }).click();
+  await dialog.getByRole("button", { name: "Keep editing" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(notes).toHaveValue("Unsaved thought");
+
+  // Discard changes, then Add car opens and takes input.
+  await page.getByLabel("Car", { exact: true }).selectOption("__add__");
+  await dialog.getByRole("button", { name: "Discard changes" }).click();
+  const addCar = page.getByRole("alertdialog", { name: "Add a car" });
+  await expect(addCar).toBeVisible();
+  await addCar.getByLabel("Car name", { exact: true }).fill("Mazda MX-5");
+  await addCar.getByRole("button", { name: "Cancel" }).click();
+  await expect(addCar).toBeHidden();
+});

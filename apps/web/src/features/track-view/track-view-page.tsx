@@ -18,6 +18,7 @@ import { getRacingLine, RacingLineLayer } from "./racing-line";
 import { cornerFraction } from "./geometry/anchors";
 import { ArrowLeft, Play } from "lucide-react";
 import { Button } from "@/shared/ui/button";
+import { useConfirm } from "@/shared/ui/confirm";
 import { Select } from "@/shared/ui/select";
 import { MapToolbar } from "./map-toolbar";
 import { SidePanel } from "./side-panel";
@@ -28,6 +29,14 @@ import { OsmAttribution } from "@/shared/ui/osm-attribution";
 import { CornerGuideSection } from "./corner-guide-section";
 import { chipsFor, guideLabel } from "./guides";
 import { useCornerGuides, useTrackView } from "./use-track-view";
+
+const DISCARD = {
+  title: "Discard unsaved changes?",
+  description: "Your edits to this corner haven’t been saved.",
+  confirmLabel: "Discard changes",
+  cancelLabel: "Keep editing",
+  destructive: true,
+} as const;
 
 /** `?track=<id>&layout=<id>&corner=<id>`; `panel=corners` opens the list. */
 export function TrackViewPage() {
@@ -63,19 +72,38 @@ function TrackView({ trackId }: { trackId: string }) {
     (value: boolean) => setDirty((d) => (d.guide === value ? d : { ...d, guide: value })),
     [setDirty],
   );
-  const confirmDiscard = () =>
-    !Object.values(dirtyRef.current).some(Boolean) || window.confirm("Discard unsaved changes?");
-  /** Asks before dropping unsaved edits; on yes, clears the edit state. */
-  const leaveEdits = () => {
-    if (!confirmDiscard()) return false;
+  const confirm = useConfirm();
+  const isDirty = () => Object.values(dirtyRef.current).some(Boolean);
+  const clearEdits = () => {
     setDirty({});
     setPicking(null);
     setPickError(null);
-    return true;
   };
-  /** For links: cancels the navigation when the user keeps their edits. */
-  const guardLink = (e: React.MouseEvent) => {
-    if (!leaveEdits()) e.preventDefault();
+  /**
+   * Runs `then` once dropping unsaved edits is fine: right away when there are
+   * none (so a clean click acts in the same event, as before), otherwise only
+   * after the user picks "Discard changes".
+   */
+  const confirmDiscard = (then: () => void) => {
+    if (!isDirty()) return then();
+    void confirm(DISCARD).then((ok) => ok && then());
+  };
+  /** Asks before dropping unsaved edits; on yes, clears the edit state first. */
+  const leaveEdits = (then: () => void) =>
+    confirmDiscard(() => {
+      clearEdits();
+      then();
+    });
+  /**
+   * For links: a clean click navigates as usual. A dirty one is held back while
+   * the dialog asks, then navigates on "Discard changes". Modified clicks open
+   * a new tab or window, which leaves this page and its edits alone.
+   */
+  const guardLink = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (!isDirty()) return clearEdits();
+    e.preventDefault();
+    leaveEdits(() => router.push(href));
   };
 
   // Until the global car picker exists (M4), the layout's guides are picked here.
@@ -98,19 +126,21 @@ function TrackView({ trackId }: { trackId: string }) {
     [params, pathname, router],
   );
   const selectCorner = (id: string) => {
-    if (leaveEdits()) setParams({ corner: id, panel: null });
+    leaveEdits(() => setParams({ corner: id, panel: null }));
   };
   const closePanel = () => {
-    if (leaveEdits()) setParams({ corner: null, panel: null });
+    leaveEdits(() => setParams({ corner: null, panel: null }));
   };
   const toggleEdit = () => {
-    if (leaveEdits()) setParams({ edit: editing ? null : "1" });
+    leaveEdits(() => setParams({ edit: editing ? null : "1" }));
   };
 
   useEffect(() => {
     if (!picking) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      // A dialog over the pick (discard, far point, Add car) owns this Escape.
+      if (document.querySelector("[role=alertdialog]")) return;
       // Capture phase + preventDefault: cancelling a pick must not also close the panel.
       e.preventDefault();
       setPicking(null);
@@ -179,11 +209,19 @@ function TrackView({ trackId }: { trackId: string }) {
     ? guideLabel(guide, data.carClasses ?? [], data.cars ?? [])
     : null;
   const selected = corners.find((c) => c.id === cornerId) ?? null;
+  const topPracticeHref = layout
+    ? practiceHref(track.id, layout.id, params.get("guide"), selectedCorner?.number ?? null)
+    : null;
 
   const topBar = (
     <>
       <Button asChild size="icon" variant="ghost">
-        <Link href="/" onClick={guardLink} aria-label="Back to tracks" title="Back to tracks">
+        <Link
+          href="/"
+          onClick={(e) => guardLink(e, "/")}
+          aria-label="Back to tracks"
+          title="Back to tracks"
+        >
           <ArrowLeft aria-hidden />
         </Link>
       </Button>
@@ -198,7 +236,8 @@ function TrackView({ trackId }: { trackId: string }) {
           aria-label="Layout"
           value={layout?.id}
           onChange={(e) => {
-            if (leaveEdits()) setParams({ layout: e.target.value, corner: null });
+            const layoutId = e.target.value;
+            leaveEdits(() => setParams({ layout: layoutId, corner: null }));
           }}
           className="h-9 w-auto"
         >
@@ -209,17 +248,9 @@ function TrackView({ trackId }: { trackId: string }) {
           ))}
         </Select>
       )}
-      {layout && (
+      {topPracticeHref && (
         <Button asChild size="sm" variant="secondary">
-          <Link
-            href={practiceHref(
-              track.id,
-              layout.id,
-              params.get("guide"),
-              selectedCorner?.number ?? null,
-            )}
-            onClick={guardLink}
-          >
+          <Link href={topPracticeHref} onClick={(e) => guardLink(e, topPracticeHref)}>
             <Play aria-hidden />
             Practice
           </Link>
@@ -245,11 +276,13 @@ function TrackView({ trackId }: { trackId: string }) {
       aria-label="Car"
       value={guide?.id ?? "__none__"}
       onChange={(e) => {
-        if (e.target.value === "__add__") {
-          if (confirmDiscard()) setAddingCar(true);
+        const value = e.target.value;
+        if (value === "__add__") {
+          // Opens after the discard dialog has closed, so the two never overlap.
+          confirmDiscard(() => setAddingCar(true));
           return;
         }
-        if (leaveEdits()) setParams({ guide: e.target.value });
+        leaveEdits(() => setParams({ guide: value }));
       }}
       className="h-10 w-auto max-w-44 max-sm:max-w-28 pointer-coarse:h-11"
     >
@@ -268,7 +301,7 @@ function TrackView({ trackId }: { trackId: string }) {
   );
 
   const toggleList = () => {
-    if (leaveEdits()) setParams({ panel: listOpen ? null : "corners", corner: null });
+    leaveEdits(() => setParams({ panel: listOpen ? null : "corners", corner: null }));
   };
   const toolbar = (
     <MapToolbar
@@ -291,12 +324,15 @@ function TrackView({ trackId }: { trackId: string }) {
         available: layout.outlineSource === "osm",
         active: redoingMap,
         open: () => {
-          if (leaveEdits()) setRedoingMap(true);
+          leaveEdits(() => setRedoingMap(true));
         },
       }}
     />
   );
 
+  const cornerPracticeHref = selected
+    ? practiceHref(track.id, layout.id, params.get("guide"), selected.number)
+    : "";
   const panel = (
     <>
       <SidePanel
@@ -312,10 +348,7 @@ function TrackView({ trackId }: { trackId: string }) {
             onSelect={selectCorner}
             actions={
               <Button asChild variant="secondary" className="w-full">
-                <Link
-                  href={practiceHref(track.id, layout.id, params.get("guide"), selected.number)}
-                  onClick={guardLink}
-                >
+                <Link href={cornerPracticeHref} onClick={(e) => guardLink(e, cornerPracticeHref)}>
                   <Play aria-hidden />
                   Practice from T{selected.number}
                 </Link>
