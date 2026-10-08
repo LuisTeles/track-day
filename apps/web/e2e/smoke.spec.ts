@@ -9,7 +9,7 @@ test("shows the empty track list", async ({ page }) => {
 test("restores a backup and lists its tracks after a reload", async ({ page }) => {
   const now = "2026-10-04T00:00:00.000Z";
   const backup = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     kind: "backup",
     exportedAt: now,
     data: {

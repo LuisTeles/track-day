@@ -2,8 +2,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parseImport } from "./issues";
-import { CornerGuide } from "./entities";
-import { GuideImportPayload, TrackImportPayload } from "./payloads";
+import { CornerGuide, Guide, ReferenceVideo } from "./entities";
+import { CURRENT_SCHEMA_VERSION, GuideImportPayload, TrackImportPayload } from "./payloads";
 import { trackImportJsonSchema } from "./json-schema";
 
 const interlagos = readFileSync(
@@ -44,7 +44,7 @@ describe("TrackImportPayload", () => {
   });
 
   const minimal = () => ({
-    schemaVersion: 1,
+    schemaVersion: CURRENT_SCHEMA_VERSION,
     kind: "track",
     track: { name: "Somewhere", country: null },
     layout: { name: "Full", lengthMeters: 3000, direction: "clockwise" },
@@ -130,7 +130,7 @@ describe("TrackImportPayload", () => {
 });
 
 describe("GuideImportPayload practice fields", () => {
-  const base = { schemaVersion: 1, kind: "guide", guide: {} };
+  const base = { schemaVersion: CURRENT_SCHEMA_VERSION, kind: "guide", guide: {} };
 
   it("accepts brake pressure, cue and downshift", () => {
     const result = GuideImportPayload.safeParse({
@@ -239,7 +239,7 @@ describe("CornerGuide defaults", () => {
 describe("GuideImportPayload notes", () => {
   it("accepts per-corner notes", () => {
     const parsed = GuideImportPayload.parse({
-      schemaVersion: 1,
+      schemaVersion: CURRENT_SCHEMA_VERSION,
       kind: "guide",
       guide: {},
       corners: [{ cornerNumber: 1, notes: "Bumpy under braking" }],
@@ -251,7 +251,7 @@ describe("GuideImportPayload notes", () => {
 describe("outlineSource", () => {
   it("accepts a track payload layout with outlineSource osm", () => {
     const parsed = TrackImportPayload.parse({
-      schemaVersion: 1,
+      schemaVersion: CURRENT_SCHEMA_VERSION,
       kind: "track",
       track: { name: "Test" },
       layout: { name: "GP", lengthMeters: 1000, direction: "clockwise", outlineSource: "osm" },
@@ -263,12 +263,75 @@ describe("outlineSource", () => {
   it("rejects an unknown outline source", () => {
     expect(() =>
       TrackImportPayload.parse({
-        schemaVersion: 1,
+        schemaVersion: CURRENT_SCHEMA_VERSION,
         kind: "track",
         track: { name: "Test" },
         layout: { name: "GP", lengthMeters: 1000, direction: "clockwise", outlineSource: "ai" },
         corners: [{ number: 1, direction: "left" }],
       }),
     ).toThrow();
+  });
+});
+
+describe("Guide.video", () => {
+  const stamp = {
+    id: "00000000-0000-4000-8000-000000000001",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    deletedAt: null,
+  };
+  const guide = {
+    ...stamp,
+    layoutId: "00000000-0000-4000-8000-000000000002",
+    target: { carId: "00000000-0000-4000-8000-000000000003" },
+    sim: null,
+    referenceLapTime: null,
+    setupNotes: "",
+    source: "manual",
+  };
+  const cornerId = "00000000-0000-4000-8000-000000000004";
+  const yt = {
+    source: "youtube",
+    youtubeId: "dQw4w9WgXcQ",
+    lapStartSec: 3,
+    lapEndSec: 95.5,
+    marks: [{ cornerId, sec: 12 }],
+  };
+
+  it("defaults to null when missing", () => {
+    expect(Guide.parse(guide).video).toBeNull();
+  });
+
+  it("accepts a YouTube video with marks", () => {
+    expect(Guide.parse({ ...guide, video: yt }).video).toEqual(yt);
+  });
+
+  it("accepts a file video", () => {
+    const file = {
+      source: "file",
+      file: { name: "lap.mp4", sizeBytes: 10, durationSec: 90 },
+      lapStartSec: null,
+      lapEndSec: null,
+      marks: [],
+    };
+    expect(ReferenceVideo.parse(file)).toEqual(file);
+  });
+
+  it.each([
+    ["8-char id", { ...yt, youtubeId: "dQw4w9Wg" }],
+    ["full URL", { ...yt, youtubeId: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }],
+    ["negative sec", { ...yt, marks: [{ cornerId, sec: -1 }] }],
+    [
+      "file without durationSec",
+      {
+        source: "file",
+        file: { name: "lap.mp4", sizeBytes: 10 },
+        lapStartSec: null,
+        lapEndSec: null,
+        marks: [],
+      },
+    ],
+  ])("rejects %s", (_name, video) => {
+    expect(Guide.safeParse({ ...guide, video }).success).toBe(false);
   });
 });

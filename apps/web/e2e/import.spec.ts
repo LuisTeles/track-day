@@ -43,7 +43,7 @@ test("shows errors by field path for an invalid answer", async ({ page }) => {
   await page.goto("/tracks/import/");
   await page.getByLabel("AI answer").fill(
     JSON.stringify({
-      schemaVersion: 1,
+      schemaVersion: 2,
       kind: "track",
       track: { name: "Test" },
       layout: { name: "GP", lengthMeters: 1000, direction: "sideways" },

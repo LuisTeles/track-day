@@ -6,7 +6,18 @@ type JsonObject = Record<string, unknown>;
  * `migrations[n]` upgrades a payload from version `n` to `n + 1`. Add an entry
  * here whenever `CURRENT_SCHEMA_VERSION` is bumped.
  */
-export const migrations: Record<number, (payload: JsonObject) => JsonObject> = {};
+export const migrations: Record<number, (payload: JsonObject) => JsonObject> = {
+  /** v2: `Guide.video` (reference onboard lap). Only backups hold full guides. */
+  1: (payload) => {
+    if (payload.kind !== "backup") return payload;
+    const data = payload.data as JsonObject | undefined;
+    if (typeof data !== "object" || data === null || !Array.isArray(data.guides)) return payload;
+    const guides = data.guides.map((g: unknown) =>
+      typeof g === "object" && g !== null && !("video" in g) ? { ...g, video: null } : g,
+    );
+    return { ...payload, data: { ...data, guides } };
+  },
+};
 
 export class MigrationError extends Error {
   override name = "MigrationError";

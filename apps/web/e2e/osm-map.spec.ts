@@ -91,7 +91,7 @@ test("adds Monza, whose start line isn't tagged, after the user taps it", async 
   await page.route("https://overpass-api.de/**", (route) => route.fulfill({ json: monzaOsm }));
 
   const monza = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     kind: "track",
     track: { name: "Autodromo Nazionale di Monza", city: "Monza", country: "IT" },
     layout: { name: "GP", lengthMeters: 5793, direction: "clockwise" },

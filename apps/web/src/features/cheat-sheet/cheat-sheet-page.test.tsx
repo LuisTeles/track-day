@@ -39,6 +39,7 @@ async function open(opts: { setupNotes?: string; noOutline?: boolean } = {}) {
     referenceLapTime: null,
     setupNotes: opts.setupNotes ?? "",
     source: "manual",
+    video: null,
   });
   if (opts.noOutline)
     await repos.layouts.update(layoutId, { outlinePath: null, outlineSource: null });

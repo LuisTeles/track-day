@@ -43,7 +43,7 @@ describe("trackPayloadFor", () => {
 describe("missingCorners", () => {
   it("lists corner numbers the layout doesn't have", () => {
     const payload = GuideImportPayload.parse({
-      schemaVersion: 1,
+      schemaVersion: 2,
       kind: "guide",
       guide: {},
       corners: [{ cornerNumber: 1 }, { cornerNumber: 99 }],

@@ -18,7 +18,7 @@ const suzuka = TrackImportPayload.parse(
   ),
 );
 const guide = GuideImportPayload.parse({
-  schemaVersion: 1,
+  schemaVersion: 2,
   kind: "guide",
   guide: {},
   corners: [{ cornerNumber: 1, gear: 2 }],

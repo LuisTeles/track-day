@@ -85,7 +85,7 @@ describe("AddCarDialog", () => {
     await user.click(screen.getByLabelText("AI answer"));
     await user.paste(
       JSON.stringify({
-        schemaVersion: 1,
+        schemaVersion: 2,
         kind: "guide",
         guide: {},
         corners: [{ cornerNumber: 1, gear: 2 }],
@@ -106,7 +106,7 @@ describe("AddCarDialog", () => {
     await user.click(screen.getByLabelText("AI answer"));
     await user.paste(
       JSON.stringify({
-        schemaVersion: 1,
+        schemaVersion: 2,
         kind: "guide",
         guide: {},
         corners: [{ cornerNumber: 99 }],

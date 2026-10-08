@@ -45,6 +45,7 @@ async function seed() {
     referenceLapTime: null,
     setupNotes: "",
     source: "manual",
+    video: null,
   });
   return { trackId, corner, guideId: guide.id };
 }

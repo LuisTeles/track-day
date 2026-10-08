@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { TrackImportPayload } from "@track-day/schema";
+import { migrate, TrackImportPayload } from "@track-day/schema";
 import { describe, expect, it } from "vitest";
 import { buildGuidePrompt, buildTrackPrompt } from "./index";
 
@@ -30,8 +30,10 @@ describe("buildTrackPrompt", () => {
 describe("buildGuidePrompt", () => {
   it("includes the track, car specs and sim", () => {
     const track = TrackImportPayload.parse(
-      JSON.parse(
-        readFileSync(new URL("../../../examples/interlagos.track.json", import.meta.url), "utf8"),
+      migrate(
+        JSON.parse(
+          readFileSync(new URL("../../../examples/interlagos.track.json", import.meta.url), "utf8"),
+        ),
       ),
     );
     const prompt = buildGuidePrompt({

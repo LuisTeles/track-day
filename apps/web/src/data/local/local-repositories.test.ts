@@ -135,6 +135,49 @@ describe("local repositories", () => {
   });
 });
 
+describe("guide video", () => {
+  const video = {
+    source: "youtube" as const,
+    youtubeId: "dQw4w9WgXcQ",
+    lapStartSec: 3,
+    lapEndSec: 95,
+    marks: [{ cornerId: crypto.randomUUID(), sec: 12 }],
+  };
+  const newGuide = () => ({
+    layoutId: crypto.randomUUID(),
+    target: { carId: crypto.randomUUID() },
+    sim: null,
+    referenceLapTime: null,
+    setupNotes: "",
+    source: "manual" as const,
+    video: null,
+  });
+
+  it("reads a row written without video back as null", async () => {
+    const guide = await repos.guides.create(newGuide());
+    const legacy: Record<string, unknown> = { ...guide };
+    delete legacy.video;
+    await db.table("guides").put(legacy);
+    expect((await repos.guides.get(guide.id))?.video).toBeNull();
+  });
+
+  it("round-trips an updated video", async () => {
+    const guide = await repos.guides.create(newGuide());
+    await repos.guides.update(guide.id, { video });
+    expect((await repos.guides.get(guide.id))?.video).toEqual(video);
+  });
+
+  it("keeps the video through backup export and import", async () => {
+    const guide = await repos.guides.create({ ...newGuide(), video });
+    const backup = await repos.backup.exportAll();
+    const other = new TrackDayDb(`test-${crypto.randomUUID()}`);
+    const otherRepos = createLocalRepositories(other);
+    await otherRepos.backup.importAll(backup, "replace");
+    expect((await otherRepos.guides.get(guide.id))?.video).toEqual(video);
+    await other.delete();
+  });
+});
+
 describe("backup", () => {
   it("round-trips the database including assets", async () => {
     const track = await repos.tracks.create(newTrack("Interlagos"));

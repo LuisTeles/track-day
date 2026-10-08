@@ -150,6 +150,34 @@ export const GuideTarget = z.union([
 ]);
 export type GuideTarget = z.infer<typeof GuideTarget>;
 
+const YouTubeId = z.string().regex(/^[A-Za-z0-9_-]{11}$/);
+
+export const VideoMark = z.object({ cornerId: Id, sec: z.number().nonnegative() });
+export type VideoMark = z.infer<typeof VideoMark>;
+
+export const VideoFile = z.object({
+  name: z.string().min(1),
+  sizeBytes: z.number().int().nonnegative(),
+  durationSec: z.number().positive(),
+});
+export type VideoFile = z.infer<typeof VideoFile>;
+
+export const ReferenceVideo = z
+  .discriminatedUnion("source", [
+    z.object({ source: z.literal("youtube"), youtubeId: YouTubeId }),
+    z.object({ source: z.literal("file"), file: VideoFile }),
+  ])
+  .and(
+    z.object({
+      /** Time the car crosses the start/finish line at the start of the reference lap. */
+      lapStartSec: z.number().nonnegative().nullable(),
+      /** Time it crosses the line again at the end of the lap. */
+      lapEndSec: z.number().nonnegative().nullable(),
+      marks: z.array(VideoMark),
+    }),
+  );
+export type ReferenceVideo = z.infer<typeof ReferenceVideo>;
+
 export const Guide = EntityBase.extend({
   layoutId: Id,
   target: GuideTarget,
@@ -158,6 +186,8 @@ export const Guide = EntityBase.extend({
   referenceLapTime: z.string().nullable(),
   setupNotes: z.string(),
   source: Source,
+  /** Reference onboard lap for this car (ADR-009). Video bytes are never stored. */
+  video: ReferenceVideo.nullable().default(null),
 });
 export type Guide = z.infer<typeof Guide>;
 

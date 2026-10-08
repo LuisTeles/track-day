@@ -58,6 +58,7 @@ async function open(
     referenceLapTime: null,
     setupNotes: "",
     source: "manual",
+    video: null,
   });
   const t1 = (await repos.corners.listByLayout(layoutId)).find((c) => c.number === 1)!;
   const t2 = (await repos.corners.listByLayout(layoutId)).find((c) => c.number === 2)!;
@@ -209,6 +210,7 @@ describe("TrackViewPage edit mode", () => {
           referenceLapTime: null,
           setupNotes: "",
           source: "manual",
+          video: null,
         })
       ).id;
     });
@@ -363,6 +365,7 @@ describe("TrackViewPage edit mode", () => {
           referenceLapTime: null,
           setupNotes: "",
           source: "manual",
+          video: null,
         })
       ).id;
       await repos.cornerGuides.create({

@@ -1,4 +1,5 @@
 import {
+  CURRENT_SCHEMA_VERSION,
   simLabel,
   trackImportJsonSchema,
   type SimId,
@@ -21,7 +22,7 @@ export interface KnownTrackFacts {
 }
 
 const EXAMPLE: TrackImportPayload = {
-  schemaVersion: 1,
+  schemaVersion: CURRENT_SCHEMA_VERSION,
   kind: "track",
   track: {
     name: "Autódromo José Carlos Pace",

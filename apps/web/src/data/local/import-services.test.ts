@@ -104,7 +104,7 @@ describe("importTrack", () => {
 
 describe("importGuide", () => {
   const guide = GuideImportPayload.parse({
-    schemaVersion: 1,
+    schemaVersion: 2,
     kind: "guide",
     guide: { referenceLapTime: "2:01.000" },
     corners: [

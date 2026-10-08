@@ -140,6 +140,7 @@ export function useAddCar(layoutId: string) {
         referenceLapTime: null,
         setupNotes: "",
         source: "manual",
+        video: null,
       });
       return { guideId: created.id };
     },

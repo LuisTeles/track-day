@@ -119,6 +119,7 @@ export class LocalGuideImportService implements GuideImportService {
         referenceLapTime: payload.guide.referenceLapTime ?? null,
         setupNotes: payload.guide.setupNotes ?? "",
         source,
+        video: null,
       });
 
       for (const c of payload.corners) {

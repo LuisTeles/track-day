@@ -24,7 +24,7 @@ import {
 import { SimId } from "./sim";
 
 /** Bump when a payload shape changes, and add a migration in `migrations.ts`. */
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 // The import payloads are what an AI (or a human) writes by hand: no ids, no
 // timestamps, corners referenced by number. Unknown values are `null`, and
