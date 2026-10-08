@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { RepositoriesProvider } from "@/data/provider";
@@ -27,7 +27,7 @@ describe("DeleteTrackButton", () => {
   it("asks for confirmation and does nothing on cancel", async () => {
     const { deleteTrack, user } = setup();
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
+    await user.click(screen.getByRole("button", { name: "Delete track" }));
     const dialog = screen.getByRole("alertdialog", { name: /Delete Autódromo José Carlos Pace/ });
     expect(dialog).toHaveTextContent(/Export a backup first/);
 
@@ -40,8 +40,10 @@ describe("DeleteTrackButton", () => {
   it("deletes the track and goes back to the track list", async () => {
     const { deleteTrack, user } = setup();
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
     await user.click(screen.getByRole("button", { name: "Delete track" }));
+    await user.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete track" }),
+    );
 
     expect(deleteTrack).toHaveBeenCalledWith("t1");
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith("/"));
@@ -50,8 +52,10 @@ describe("DeleteTrackButton", () => {
   it("keeps the dialog open with the error when deleting fails", async () => {
     const { user } = setup(vi.fn().mockRejectedValue(new Error("Database is locked")));
 
-    await user.click(screen.getByRole("button", { name: "Delete" }));
     await user.click(screen.getByRole("button", { name: "Delete track" }));
+    await user.click(
+      within(screen.getByRole("alertdialog")).getByRole("button", { name: "Delete track" }),
+    );
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Database is locked");
     expect(screen.getByRole("alertdialog")).toBeInTheDocument();

@@ -130,7 +130,8 @@ test("adds Monza, whose start line isn't tagged, after the user taps it", async 
   await expect(page.locator("[data-corner]")).toHaveCount(4);
 
   // Redo the map: the same flow in a side panel, replacing the saved outline.
-  await page.getByRole("button", { name: "Redo map" }).click();
+  await page.getByRole("button", { name: "More map actions" }).click();
+  await page.getByRole("menuitem", { name: "Redo map" }).click();
   const redo = page.getByRole("complementary", { name: "Redo map from OpenStreetMap" });
   await redo.getByRole("button", { name: "Search" }).click();
   await redo.getByRole("button", { name: /Autodromo Nazionale di Monza/ }).click();

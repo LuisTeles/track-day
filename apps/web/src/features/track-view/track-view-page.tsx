@@ -16,10 +16,13 @@ import { LinePoints, useLinePointPick } from "./edit/line-points";
 import type { LinePoint } from "./geometry/nearest";
 import { getRacingLine, RacingLineLayer } from "./racing-line";
 import { cornerFraction } from "./geometry/anchors";
+import { ArrowLeft, Play } from "lucide-react";
 import { Button } from "@/shared/ui/button";
+import { Select } from "@/shared/ui/select";
+import { MapToolbar } from "./map-toolbar";
 import { SidePanel } from "./side-panel";
 import { TrackCanvas, type TrackCanvasHandle } from "./track-canvas";
-import { ToolButton, TrackViewShell } from "./track-view-shell";
+import { TrackViewShell } from "./track-view-shell";
 import { useStoredToggle } from "@/shared/hooks/use-stored-toggle";
 import { OsmAttribution } from "@/shared/ui/osm-attribution";
 import { CornerGuideSection } from "./corner-guide-section";
@@ -179,44 +182,48 @@ function TrackView({ trackId }: { trackId: string }) {
 
   const topBar = (
     <>
-      <Link href="/" onClick={guardLink} className="text-sm text-muted hover:text-foreground">
-        ← Tracks
-      </Link>
-      <h1 className="text-sm font-semibold">
+      <Button asChild size="icon" variant="ghost">
+        <Link href="/" onClick={guardLink} aria-label="Back to tracks" title="Back to tracks">
+          <ArrowLeft aria-hidden />
+        </Link>
+      </Button>
+      <h1 className="max-w-[40vw] truncate text-sm font-semibold">
         {track.aliases[0] ?? track.name}
         {layout && layouts.length === 1 && (
           <span className="font-normal text-muted"> · {layout.name}</span>
         )}
       </h1>
-      {layout && (
-        <Link
-          href={practiceHref(
-            track.id,
-            layout.id,
-            params.get("guide"),
-            selectedCorner?.number ?? null,
-          )}
-          onClick={guardLink}
-          className="rounded-md bg-foreground px-2 py-0.5 text-sm font-medium text-background hover:opacity-90"
-        >
-          Practice
-        </Link>
-      )}
       {layouts.length > 1 && (
-        <select
+        <Select
           aria-label="Layout"
           value={layout?.id}
           onChange={(e) => {
             if (leaveEdits()) setParams({ layout: e.target.value, corner: null });
           }}
-          className="rounded-md border border-border bg-transparent px-1.5 py-0.5 text-sm"
+          className="h-9 w-auto"
         >
           {layouts.map((l) => (
             <option key={l.id} value={l.id}>
               {l.name}
             </option>
           ))}
-        </select>
+        </Select>
+      )}
+      {layout && (
+        <Button asChild size="sm" variant="secondary">
+          <Link
+            href={practiceHref(
+              track.id,
+              layout.id,
+              params.get("guide"),
+              selectedCorner?.number ?? null,
+            )}
+            onClick={guardLink}
+          >
+            <Play aria-hidden />
+            Practice
+          </Link>
+        </Button>
       )}
       <DeleteTrackButton trackId={track.id} trackName={track.name} />
     </>
@@ -233,14 +240,8 @@ function TrackView({ trackId }: { trackId: string }) {
     );
   }
 
-  const editButton = (
-    <ToolButton pressed={editing} onClick={toggleEdit}>
-      Edit
-    </ToolButton>
-  );
-
   const carPicker = (
-    <select
+    <Select
       aria-label="Car"
       value={guide?.id ?? "__none__"}
       onChange={(e) => {
@@ -250,7 +251,7 @@ function TrackView({ trackId }: { trackId: string }) {
         }
         if (leaveEdits()) setParams({ guide: e.target.value });
       }}
-      className="max-w-44 rounded-lg border border-border bg-transparent px-1.5 py-1 text-sm"
+      className="h-10 w-auto max-w-44 pointer-coarse:h-11"
     >
       {guides.length === 0 && (
         <option value="__none__" disabled>
@@ -263,7 +264,37 @@ function TrackView({ trackId }: { trackId: string }) {
         </option>
       ))}
       <option value="__add__">+ Add car…</option>
-    </select>
+    </Select>
+  );
+
+  const toggleList = () => {
+    if (leaveEdits()) setParams({ panel: listOpen ? null : "corners", corner: null });
+  };
+  const toolbar = (
+    <MapToolbar
+      hasMap={layout.outlinePath !== null}
+      onZoomIn={() => canvas.current?.zoomBy(1.5)}
+      onZoomOut={() => canvas.current?.zoomBy(1 / 1.5)}
+      onReset={() => canvas.current?.reset()}
+      chips={{ on: showChips, disabled: !guide, toggle: toggleChips }}
+      racingLine={{
+        on: showRacingLine && (racingLine !== null || lines.length > 0),
+        disabled: !racingLine && lines.length === 0,
+        toggle: toggleRacingLine,
+      }}
+      editing={editing}
+      onToggleEdit={toggleEdit}
+      carPicker={carPicker}
+      listOpen={listOpen}
+      onToggleList={toggleList}
+      redoMap={{
+        available: layout.outlineSource === "osm",
+        active: redoingMap,
+        open: () => {
+          if (leaveEdits()) setRedoingMap(true);
+        },
+      }}
+    />
   );
 
   const panel = (
@@ -379,12 +410,7 @@ function TrackView({ trackId }: { trackId: string }) {
         canvas={
           <NoOutline track={track} layout={layout} corners={corners} onSelect={selectCorner} />
         }
-        controls={
-          <>
-            {editButton}
-            {carPicker}
-          </>
-        }
+        controls={toolbar}
         panel={panel}
       />
     );
@@ -431,47 +457,7 @@ function TrackView({ trackId }: { trackId: string }) {
           )}
         </>
       }
-      controls={
-        <>
-          <ToolButton aria-label="Zoom in" onClick={() => canvas.current?.zoomBy(1.5)}>
-            +
-          </ToolButton>
-          <ToolButton aria-label="Zoom out" onClick={() => canvas.current?.zoomBy(1 / 1.5)}>
-            −
-          </ToolButton>
-          <ToolButton onClick={() => canvas.current?.reset()}>Reset view</ToolButton>
-          <ToolButton pressed={showChips} disabled={!guide} onClick={toggleChips}>
-            Speed &amp; gear
-          </ToolButton>
-          <ToolButton
-            pressed={showRacingLine && (racingLine !== null || lines.length > 0)}
-            disabled={!racingLine && lines.length === 0}
-            onClick={toggleRacingLine}
-          >
-            Racing line
-          </ToolButton>
-          {editButton}
-          {carPicker}
-          <ToolButton
-            pressed={listOpen}
-            onClick={() => {
-              if (leaveEdits()) setParams({ panel: listOpen ? null : "corners", corner: null });
-            }}
-          >
-            Corners
-          </ToolButton>
-          {layout.outlineSource === "osm" && (
-            <ToolButton
-              pressed={redoingMap}
-              onClick={() => {
-                if (leaveEdits()) setRedoingMap(true);
-              }}
-            >
-              Redo map
-            </ToolButton>
-          )}
-        </>
-      }
+      controls={toolbar}
       panel={
         redoingMap ? (
           <SidePanel open title="Redo map from OpenStreetMap" onClose={() => setRedoingMap(false)}>

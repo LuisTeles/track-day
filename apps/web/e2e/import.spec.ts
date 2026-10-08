@@ -65,8 +65,8 @@ test("deletes an imported track after confirmation", async ({ page }) => {
   await page.getByRole("button", { name: "Save track" }).click();
   await expect(page).toHaveURL(/\/tracks\/view\/\?track=/);
 
-  await page.getByRole("button", { name: "Delete", exact: true }).click();
   await page.getByRole("button", { name: "Delete track" }).click();
+  await page.getByRole("alertdialog").getByRole("button", { name: "Delete track" }).click();
 
   await expect(page.getByText("No tracks yet")).toBeVisible();
   await page.reload();

@@ -106,7 +106,8 @@ test("zooming moves the map and reset view restores it", async ({ page }) => {
   await page.getByRole("button", { name: "Zoom in" }).click();
   await expect.poll(async () => (await t10.boundingBox())!.x).not.toBeCloseTo(before.x, 0);
 
-  await page.getByRole("button", { name: "Reset view" }).click();
+  await page.getByRole("button", { name: "More map actions" }).click();
+  await page.getByRole("menuitem", { name: "Reset view" }).click();
   await expect
     .poll(async () => Math.round((await t10.boundingBox())!.x))
     .toBe(Math.round(before.x));
@@ -131,16 +132,18 @@ test("speed & gear chips come from the guide and can be hidden", async ({ page }
   await expect(panel).toContainText("50 km/h");
   await page.keyboard.press("Escape");
 
-  const toggle = page.getByRole("button", { name: "Speed & gear" });
-  await expect(toggle).toHaveAttribute("aria-pressed", "true");
+  // Escape above closed the panel (on phones it would cover the toolbar).
+  await page.getByRole("button", { name: "Layers" }).click();
+  const toggle = page.getByRole("menuitemcheckbox", { name: "Speed & gear" });
+  await expect(toggle).toHaveAttribute("aria-checked", "true");
   await toggle.click();
-  await expect(toggle).toHaveAttribute("aria-pressed", "false");
   await expect(t10).not.toContainText("km/h");
 
   // Remembered across reloads (per browser).
   await page.reload();
-  await expect(page.getByRole("button", { name: "Speed & gear" })).toHaveAttribute(
-    "aria-pressed",
+  await page.getByRole("button", { name: "Layers" }).click();
+  await expect(page.getByRole("menuitemcheckbox", { name: "Speed & gear" })).toHaveAttribute(
+    "aria-checked",
     "false",
   );
 });
@@ -149,7 +152,9 @@ test("tracks without a guide have no chips and the toggle is disabled", async ({
   await loadSamples(page);
   await page.getByRole("link", { name: /Suzuka/ }).click();
   await expect(page.locator("[data-corner]")).toHaveCount(18);
-  await expect(page.getByRole("button", { name: "Speed & gear" })).toBeDisabled();
+  await page.getByRole("button", { name: "Layers" }).click();
+  await expect(page.getByRole("menuitemcheckbox", { name: "Speed & gear" })).toBeDisabled();
+  await page.keyboard.press("Escape");
   // The car select stays (to add a car) but has no car to pick.
   await expect(page.getByRole("combobox", { name: "Car" }).locator("option:checked")).toHaveText(
     "No car yet",
@@ -163,7 +168,8 @@ test("racing line layer can be toggled where one exists", async ({ page }, testI
   await expect(line).toHaveCount(1);
 
   // Zoom into the Senna S to see the line on the asphalt.
-  await page.getByRole("button", { name: "Speed & gear" }).click();
+  await page.getByRole("button", { name: "Layers" }).click();
+  await page.getByRole("menuitemcheckbox", { name: "Speed & gear" }).click();
   const t3 = page.getByRole("button", { name: /^Turn 3,/ });
   const before = (await t3.boundingBox())!;
   if (testInfo.project.name === "mobile") {
@@ -183,14 +189,45 @@ test("racing line layer can be toggled where one exists", async ({ page }, testI
     .toBeGreaterThan(50);
   await page.screenshot({ path: testInfo.outputPath("racing-line.png") });
 
-  const toggle = page.getByRole("button", { name: "Racing line" });
-  await toggle.click();
+  const toggleRacingLine = async () => {
+    await page.getByRole("button", { name: "Layers" }).click();
+    await page.getByRole("menuitemcheckbox", { name: "Racing line" }).click();
+  };
+  await toggleRacingLine();
   await expect(line).toHaveCount(0);
-  await toggle.click();
+  await toggleRacingLine();
   await expect(line).toHaveCount(1);
 
   await page.goto("/");
   await page.getByRole("link", { name: /Suzuka/ }).click();
-  await expect(page.getByRole("button", { name: "Racing line" })).toBeDisabled();
+  await page.getByRole("button", { name: "Layers" }).click();
+  await expect(page.getByRole("menuitemcheckbox", { name: "Racing line" })).toBeDisabled();
   await expect(line).toHaveCount(0);
+});
+
+test("the map toolbar stays one row on a small phone", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile");
+  await page.setViewportSize({ width: 360, height: 740 });
+  await loadSamples(page);
+  await page.getByRole("link", { name: /Interlagos/ }).click();
+  const bar = page.getByRole("toolbar", { name: "Map controls" });
+  const box = (await bar.boundingBox())!;
+  expect(box.height).toBeLessThanOrEqual(56);
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(360);
+});
+
+test("Escape closes the Layers menu and leaves the side panel open", async ({ page }, testInfo) => {
+  // Phones: the bottom sheet covers the toolbar while it is open.
+  test.skip(testInfo.project.name === "mobile");
+  await loadSamples(page);
+  await page.getByRole("link", { name: /Interlagos/ }).click();
+  await page.getByRole("button", { name: /^Turn 3,/ }).click();
+  const panel = page.getByRole("complementary");
+  await expect(panel).toBeVisible();
+  await page.getByRole("button", { name: "Layers" }).click();
+  await expect(page.getByRole("menuitemcheckbox", { name: "Racing line" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menuitemcheckbox", { name: "Racing line" })).toHaveCount(0);
+  await expect(panel).toBeVisible();
 });

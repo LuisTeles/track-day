@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useRepositories } from "@/data/provider";
@@ -15,6 +16,7 @@ import {
   AlertDialogTrigger,
 } from "@/shared/ui/alert-dialog";
 import { Button } from "@/shared/ui/button";
+import { IconButton } from "@/shared/ui/icon-button";
 
 export function DeleteTrackButton({ trackId, trackName }: { trackId: string; trackName: string }) {
   const { trackDeletion } = useRepositories();
@@ -40,9 +42,9 @@ export function DeleteTrackButton({ trackId, trackName }: { trackId: string; tra
       }}
     >
       <AlertDialogTrigger asChild>
-        <button type="button" className="text-sm text-muted hover:text-danger">
-          Delete
-        </button>
+        <IconButton label="Delete track" className="text-muted hover:text-danger">
+          <Trash2 />
+        </IconButton>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogTitle>Delete {trackName}?</AlertDialogTitle>
