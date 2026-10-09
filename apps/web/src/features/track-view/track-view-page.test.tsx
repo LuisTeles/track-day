@@ -1,7 +1,7 @@
 import interlagos from "@examples/interlagos.track.json";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TrackImportPayload, type Corner } from "@track-day/schema";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RepositoriesProvider } from "@/data/provider";
@@ -12,7 +12,35 @@ import { ConfirmProvider } from "@/shared/ui/confirm";
 import { ToastProvider } from "@/shared/ui/toast";
 import { mockLayout } from "@/test/dom";
 import { emptyCornerGuide } from "./edit/corner-guide-draft";
+import type { YTPlayerOptions } from "@/features/video/youtube-api";
 import { TrackViewPage } from "./track-view-page";
+
+class FakeYTPlayer {
+  static instances: FakeYTPlayer[] = [];
+  time = 0;
+  destroyed = false;
+  constructor(_el: HTMLElement, opts: YTPlayerOptions) {
+    FakeYTPlayer.instances.push(this);
+    queueMicrotask(() => opts.events?.onReady?.({ target: this }));
+  }
+  seekTo(s: number) {
+    this.time = s;
+  }
+  playVideo() {}
+  pauseVideo() {}
+  getCurrentTime() {
+    return this.time;
+  }
+  getPlayerState() {
+    return -1;
+  }
+  destroy() {
+    this.destroyed = true;
+  }
+}
+vi.mock("@/features/video/youtube-api", () => ({
+  loadYouTubeApi: () => Promise.resolve({ Player: FakeYTPlayer }),
+}));
 
 let search = new URLSearchParams();
 const replace = vi.fn((url: string) => {
@@ -616,5 +644,96 @@ describe("TrackViewPage car setup", () => {
       "aria-disabled",
       "true",
     );
+  });
+});
+
+describe("TrackViewPage reference video", () => {
+  const openVideo = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(await screen.findByRole("button", { name: "More map actions" }));
+    await user.click(screen.getByRole("menuitem", { name: "Reference video" }));
+  };
+  const withVideo = ({ guideId, t1 }: { guideId: string; t1: Corner }) =>
+    repos.guides.update(guideId, {
+      video: {
+        source: "youtube",
+        youtubeId: "dQw4w9WgXcQ",
+        lapStartSec: 5,
+        lapEndSec: null,
+        marks: [{ cornerId: t1.id, sec: 12.5 }],
+      },
+    });
+  beforeEach(() => {
+    FakeYTPlayer.instances = [];
+  });
+
+  it("opens from the More menu, clearing the selected corner", async () => {
+    const { t1, user } = await open({});
+    search.set("corner", t1.id);
+    rerenderPage();
+    await openVideo(user);
+    expect(search.get("panel")).toBe("video");
+    expect(search.get("corner")).toBeNull();
+    expect(await screen.findByRole("heading", { name: "Video · GT3 · any sim" })).toBeVisible();
+    expect(screen.getByLabelText("Paste a YouTube link")).toBeInTheDocument();
+  });
+
+  it("asks before opening over unsaved edits", async () => {
+    const { user } = await open({ edit: "1", panel: "setup" });
+    await user.type(await screen.findByLabelText("Setup notes"), "Soft springs");
+    await openVideo(user);
+    await screen.findByRole("alertdialog", { name: "Discard unsaved changes?" });
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+    expect(search.get("panel")).toBe("setup");
+  });
+
+  it("disables Reference video without a car", async () => {
+    const { user } = await open({}, async ({ guideId }) => {
+      await repos.guides.remove(guideId);
+    });
+    await user.click(await screen.findByRole("button", { name: "More map actions" }));
+    const item = screen.getByRole("menuitem", { name: "Reference video" });
+    expect(item).toHaveAttribute("aria-disabled", "true");
+    expect(item).toHaveAttribute("title", "Add a car first");
+  });
+
+  it("seeks to a marked corner from the map instead of opening its card", async () => {
+    await open({ panel: "video" }, withVideo);
+    await waitFor(() => expect(FakeYTPlayer.instances).toHaveLength(1));
+    await act(() => Promise.resolve()); // onReady
+    const t1Marker = screen.getByRole("button", { name: /^Turn 1,/ });
+    fireEvent.click(t1Marker);
+    expect(FakeYTPlayer.instances[0]!.time).toBe(12.5);
+    expect(search.get("corner")).toBeNull();
+    expect(search.get("panel")).toBe("video");
+    // The corner whose mark is current is the selected marker.
+    await waitFor(() => expect(t1Marker).toHaveAttribute("aria-pressed", "true"));
+  });
+
+  it("says when a clicked corner isn't marked yet", async () => {
+    await open({ panel: "video" }, withVideo);
+    await waitFor(() => expect(FakeYTPlayer.instances).toHaveLength(1));
+    fireEvent.click(screen.getByRole("button", { name: /^Turn 2,/ }));
+    expect(await screen.findByText("T2 isn't marked yet.")).toBeInTheDocument();
+    expect(search.get("corner")).toBeNull();
+    expect(FakeYTPlayer.instances[0]!.time).toBe(0);
+  });
+
+  it("seeks from the panel's corner list", async () => {
+    const { user } = await open({ panel: "video" }, withVideo);
+    await waitFor(() => expect(FakeYTPlayer.instances).toHaveLength(1));
+    await act(() => Promise.resolve());
+    await user.click(screen.getByRole("button", { name: /^T1 .* · 0:12\.5$/ }));
+    expect(FakeYTPlayer.instances[0]!.time).toBe(12.5);
+  });
+
+  it("stops the player when the panel closes", async () => {
+    const { user } = await open({ panel: "video" }, withVideo);
+    await waitFor(() => expect(FakeYTPlayer.instances).toHaveLength(1));
+    await user.click(screen.getByRole("button", { name: "Close panel" }));
+    expect(search.get("panel")).toBeNull();
+    await waitFor(() => expect(FakeYTPlayer.instances[0]!.destroyed).toBe(true));
+    // Markers open the corner card again.
+    fireEvent.click(screen.getByRole("button", { name: /^Turn 2,/ }));
+    expect(search.get("corner")).not.toBeNull();
   });
 });

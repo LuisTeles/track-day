@@ -22,6 +22,7 @@ const props = () => ({
   onToggleList: vi.fn(),
   redoMap: { available: true, active: false, open: vi.fn() },
   carSetup: { available: true, open: vi.fn() },
+  video: { available: true, open: vi.fn() },
   cheatSheetHref: "/tracks/print/?track=t&layout=l&guide=g",
   onCheatSheetClick: vi.fn((e: { preventDefault(): void }) => e.preventDefault()),
   onShowShortcuts: vi.fn(),
@@ -123,10 +124,28 @@ describe("MapToolbar", () => {
     expect(item).toHaveAttribute("title", "Add a car first");
   });
 
+  it("opens Reference video from the More menu", async () => {
+    const p = props();
+    render(<MapToolbar {...p} />);
+    await userEvent.click(screen.getByRole("button", { name: "More map actions" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Reference video" }));
+    expect(p.video.open).toHaveBeenCalled();
+  });
+
+  it("disables Reference video with a reason when there is no car", async () => {
+    const p = props();
+    render(<MapToolbar {...p} video={{ available: false, open: p.video.open }} />);
+    await userEvent.click(screen.getByRole("button", { name: "More map actions" }));
+    const item = screen.getByRole("menuitem", { name: "Reference video" });
+    expect(item).toHaveAttribute("aria-disabled", "true");
+    expect(item).toHaveAttribute("title", "Add a car first");
+  });
+
   it("keeps the More menu without a map, minus the map-only items", async () => {
     render(<MapToolbar {...props()} hasMap={false} />);
     await userEvent.click(screen.getByRole("button", { name: "More map actions" }));
     expect(screen.getByRole("menuitem", { name: "Car setup" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Reference video" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Keyboard shortcuts" })).toBeInTheDocument();
     for (const name of ["Reset view", "Redo map", "Zoom in", "Zoom out"])
       expect(screen.queryByRole("menuitem", { name })).toBeNull();

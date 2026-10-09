@@ -1,8 +1,17 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { FAKE_YOUTUBE_API } from "./fixtures/fake-youtube";
 
 type PageKey =
-  "home-empty" | "home" | "backup" | "import" | "track" | "track-panel" | "practice" | "print";
+  | "home-empty"
+  | "home"
+  | "backup"
+  | "import"
+  | "track"
+  | "track-panel"
+  | "track-video"
+  | "practice"
+  | "print";
 
 /**
  * Rule ids that fail today, per page. Each UI task removes the ones it fixes;
@@ -15,6 +24,7 @@ const KNOWN_VIOLATIONS: Record<PageKey, string[]> = {
   import: [],
   track: [],
   "track-panel": [],
+  "track-video": [],
   practice: [],
   print: [],
 };
@@ -73,6 +83,29 @@ for (const scheme of ["light", "dark"] as const) {
     await page.getByRole("button", { name: /^Turn 1,/ }).click();
     await expect(page.getByRole("complementary")).toBeVisible();
     await scan(page, "track-panel");
+  });
+}
+
+for (const scheme of ["light", "dark"] as const) {
+  test(`video panel is accessible (${scheme})`, async ({ page }) => {
+    await page.route("https://www.youtube.com/iframe_api", (route) =>
+      route.fulfill({ contentType: "text/javascript", body: FAKE_YOUTUBE_API }),
+    );
+    await page.emulateMedia({ colorScheme: scheme });
+    await loadSamples(page);
+    await page.getByRole("link", { name: /Interlagos/ }).click();
+    await page.getByLabel("Car", { exact: true }).selectOption("__add__");
+    await page.getByLabel("Car name", { exact: true }).fill("Mazda MX-5");
+    await page.getByRole("button", { name: "Add car", exact: true }).click();
+    await page.getByRole("button", { name: "More map actions" }).click();
+    await page.getByRole("menuitem", { name: "Reference video" }).click();
+    const panel = page.getByRole("complementary", { name: /^Video · / });
+    await expect(panel.getByLabel("Paste a YouTube link")).toBeVisible();
+    await scan(page, "track-video");
+    await panel.getByLabel("Paste a YouTube link").fill("https://youtu.be/dQw4w9WgXcQ");
+    await panel.getByRole("button", { name: "Use this video" }).click();
+    await expect(panel.getByTestId("fake-youtube")).toBeVisible();
+    await scan(page, "track-video");
   });
 }
 

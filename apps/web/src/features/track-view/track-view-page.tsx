@@ -28,6 +28,11 @@ import { ShortcutsDialog } from "./shortcuts-dialog";
 import { TrackCanvas, type TrackCanvasHandle } from "./track-canvas";
 import { TrackViewShell } from "./track-view-shell";
 import { useStoredToggle } from "@/shared/hooks/use-stored-toggle";
+import { useToast } from "@/shared/ui/toast";
+import type { VideoPlayerHandle } from "@/features/video/player";
+import { useVideoTime } from "@/features/video/use-video-time";
+import { VideoPanel, type SeekRequest } from "@/features/video/video-panel";
+import { cornerAt } from "@/features/video/video-sync";
 import { OsmAttribution } from "@/shared/ui/osm-attribution";
 import { CornerGuideSection } from "./corner-guide-section";
 import { chipsFor, guideLabel } from "./guides";
@@ -41,7 +46,10 @@ const DISCARD = {
   destructive: true,
 } as const;
 
-/** `?track=<id>&layout=<id>&corner=<id>`; `panel=corners` opens the list. */
+/**
+ * `?track=<id>&layout=<id>&corner=<id>`; `panel=corners` opens the list,
+ * `panel=setup` the car's setup and `panel=video` its reference video.
+ */
 export function TrackViewPage() {
   const params = useSearchParams();
   const trackId = params.get("track");
@@ -82,6 +90,10 @@ function TrackView({ trackId }: { trackId: string }) {
     [setDirty],
   );
   const confirm = useConfirm();
+  const toast = useToast();
+  // The reference video's player, shared with the map (marker seeks, the lap dot).
+  const playerRef = useRef<VideoPlayerHandle | null>(null);
+  const [seekRequest, setSeekRequest] = useState<SeekRequest | null>(null);
   const isDirty = () => Object.values(dirtyRef.current).some(Boolean);
   const clearEdits = () => {
     setDirty({});
@@ -126,6 +138,8 @@ function TrackView({ trackId }: { trackId: string }) {
   const cornerId = params.get("corner");
   const listOpen = params.get("panel") === "corners";
   const setupOpen = params.get("panel") === "setup" && guide !== null;
+  const videoOpen = params.get("panel") === "video" && guide !== null;
+  const videoTime = useVideoTime(playerRef, videoOpen);
 
   const setParams = useCallback(
     (changes: Record<string, string | null>) => {
@@ -147,6 +161,18 @@ function TrackView({ trackId }: { trackId: string }) {
   const openSetup = () => {
     leaveEdits(() => setParams({ panel: "setup", corner: null }));
   };
+  const openVideo = () => {
+    leaveEdits(() => setParams({ panel: "video", corner: null }));
+  };
+  /** While the video panel is open, a corner on the map seeks the video to its mark. */
+  const seekToCorner = (id: string) => {
+    const corner = data?.corners.find((c) => c.id === id);
+    const mark = guide?.video?.marks.find((m) => m.cornerId === id);
+    if (!corner) return;
+    if (!mark) return toast.show(`T${corner.number} isn't marked yet.`);
+    setSeekRequest((r) => ({ sec: mark.sec, id: (r?.id ?? 0) + 1 }));
+  };
+  const onMarker = (id: string) => (videoOpen ? seekToCorner(id) : selectCorner(id));
   const toggleEdit = () => {
     leaveEdits(() => setParams({ edit: editing ? null : "1" }));
   };
@@ -277,8 +303,12 @@ function TrackView({ trackId }: { trackId: string }) {
   const currentGuideLabel = guide
     ? guideLabel(guide, data.carClasses ?? [], data.cars ?? [])
     : null;
-  // The setup panel and a selected corner share the one panel: setup wins.
-  const selected = setupOpen ? null : (corners.find((c) => c.id === cornerId) ?? null);
+  // The setup or video panel and a selected corner share the one panel: setup/video win.
+  const selected = setupOpen || videoOpen ? null : (corners.find((c) => c.id === cornerId) ?? null);
+  // With the video open, the selected marker is the corner the video is at.
+  const markerId = videoOpen
+    ? cornerAt(videoTime, guide?.video?.marks ?? [])
+    : (selected?.id ?? null);
   const topPracticeHref = layout
     ? practiceHref(track.id, layout.id, params.get("guide"), selectedCorner?.number ?? null)
     : null;
@@ -397,6 +427,7 @@ function TrackView({ trackId }: { trackId: string }) {
         },
       }}
       carSetup={{ available: guide !== null, open: openSetup }}
+      video={{ available: guide !== null, open: openVideo }}
       cheatSheetHref={cheatSheetHref}
       onCheatSheetClick={(e) => guardLink(e, cheatSheetHref)}
       onShowShortcuts={() => setHelpOpen(true)}
@@ -416,13 +447,15 @@ function TrackView({ trackId }: { trackId: string }) {
   const panel = (
     <>
       <SidePanel
-        open={selected !== null || listOpen || setupOpen}
+        open={selected !== null || listOpen || setupOpen || videoOpen}
         title={
           setupOpen && currentGuideLabel
             ? `Setup · ${currentGuideLabel}`
-            : selected
-              ? cornerTitle(selected)
-              : "Corners"
+            : videoOpen && currentGuideLabel
+              ? `Video · ${currentGuideLabel}`
+              : selected
+                ? cornerTitle(selected)
+                : "Corners"
         }
         onClose={closePanel}
       >
@@ -433,6 +466,17 @@ function TrackView({ trackId }: { trackId: string }) {
             editing={editing}
             trackId={track.id}
             onDirtyChange={onSetupDirty}
+          />
+        ) : videoOpen && guide && currentGuideLabel ? (
+          <VideoPanel
+            key={guide.id}
+            guide={guide}
+            label={currentGuideLabel}
+            corners={corners}
+            layout={layout}
+            trackId={track.id}
+            playerRef={playerRef}
+            seekRequest={seekRequest}
           />
         ) : selected ? (
           <CornerDetails
@@ -536,9 +580,7 @@ function TrackView({ trackId }: { trackId: string }) {
     return (
       <TrackViewShell
         topBar={topBar}
-        canvas={
-          <NoOutline track={track} layout={layout} corners={corners} onSelect={selectCorner} />
-        }
+        canvas={<NoOutline track={track} layout={layout} corners={corners} onSelect={onMarker} />}
         controls={controls}
         panel={panel}
       />
@@ -575,8 +617,8 @@ function TrackView({ trackId }: { trackId: string }) {
                 ctx={ctx}
                 layout={layout}
                 corners={corners}
-                selectedId={selected?.id ?? null}
-                onSelect={selectCorner}
+                selectedId={markerId}
+                onSelect={onMarker}
                 chips={showChips ? chips : null}
                 terrain={showTerrain}
               />

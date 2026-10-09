@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Clapperboard,
   Keyboard,
   Layers,
   List,
@@ -41,6 +42,7 @@ export interface MapToolbarProps {
   onToggleList(): void;
   redoMap: { available: boolean; active: boolean; open(): void };
   carSetup: { available: boolean; open(): void };
+  video: { available: boolean; open(): void };
   cheatSheetHref: string;
   onCheatSheetClick(e: React.MouseEvent<HTMLAnchorElement>): void; // the view's unsaved-edits guard
   onShowShortcuts(): void;
@@ -147,6 +149,14 @@ export function MapToolbar(p: MapToolbarProps) {
           >
             <Wrench aria-hidden />
             Car setup
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={p.video.open}
+            disabled={!p.video.available}
+            title={p.video.available ? undefined : "Add a car first"}
+          >
+            <Clapperboard aria-hidden />
+            Reference video
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href={p.cheatSheetHref} onClick={p.onCheatSheetClick}>
