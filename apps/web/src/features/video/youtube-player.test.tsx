@@ -2,6 +2,7 @@ import { createRef, StrictMode } from "react";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { VideoPlayerHandle } from "./player";
+import { controlsAfterReady } from "@/test/youtube";
 import type { YTPlayerOptions } from "./youtube-api";
 
 const loadYouTubeApi = vi.fn();
@@ -15,17 +16,20 @@ class FakePlayer {
   time = 0;
   state = -1;
   iframe = document.createElement("iframe");
+  /** Fires onReady; until then the control methods don't exist, as on the real API. */
+  ready: () => void;
   constructor(
     public el: HTMLElement,
     public opts: YTPlayerOptions,
   ) {
     FakePlayer.instances.push(this);
+    this.ready = controlsAfterReady(this, opts);
   }
   seekTo(s: number, a: boolean) {
     this.calls.push(["seekTo", s, a]);
     this.time = s;
-    // Like the real player: seeking an unstarted or cued video starts it.
-    if (this.state === -1 || this.state === 5) this.state = 1;
+    // Like the real player: seeking an unstarted, cued or ended video starts it.
+    if (this.state === -1 || this.state === 5 || this.state === 0) this.state = 1;
   }
   playVideo() {
     this.calls.push(["playVideo"]);
@@ -57,25 +61,40 @@ beforeEach(() => {
 });
 afterEach(() => vi.clearAllMocks());
 
-async function mount(extra: { onReady?: () => void } = {}) {
+async function mount({ ready = true, ...extra }: { onReady?: () => void; ready?: boolean } = {}) {
   const ref = createRef<VideoPlayerHandle>();
   const utils = render(
     <YouTubePlayer ref={ref} videoId="dQw4w9WgXcQ" title="Onboard" {...extra} />,
   );
   await waitFor(() => expect(FakePlayer.instances).toHaveLength(1));
+  if (ready) act(() => last().ready());
   return { ref, ...utils };
 }
 
 describe("YouTubePlayer", () => {
   it("creates the player with the nocookie host, title and ready callback", async () => {
     const onReady = vi.fn();
-    await mount({ onReady });
+    await mount({ onReady, ready: false });
     expect(last().opts.videoId).toBe("dQw4w9WgXcQ");
     expect(last().opts.host).toBe("https://www.youtube-nocookie.com");
     expect(last().opts.playerVars).toMatchObject({ rel: 0, modestbranding: 1, playsinline: 1 });
-    expect(last().iframe.title).toBe("Onboard");
-    act(() => last().opts.events!.onReady!({ target: last() }));
+    expect(onReady).not.toHaveBeenCalled();
+    act(() => last().ready());
     expect(onReady).toHaveBeenCalled();
+    expect(last().iframe.title).toBe("Onboard");
+  });
+
+  it("has a safe handle before the player is ready (its methods don't exist yet)", async () => {
+    const { ref } = await mount({ ready: false });
+    expect(() => ref.current!.currentTime()).not.toThrow();
+    expect(ref.current!.currentTime()).toBe(0);
+    expect(() => ref.current!.seek(5)).not.toThrow();
+    expect(() => ref.current!.play()).not.toThrow();
+    expect(() => ref.current!.pause()).not.toThrow();
+    expect(ref.current!.isPlaying()).toBe(false);
+    act(() => last().ready());
+    act(() => ref.current!.seek(7));
+    expect(ref.current!.currentTime()).toBe(7);
   });
 
   it("exposes a handle that seeks, plays and pauses", async () => {
@@ -90,8 +109,8 @@ describe("YouTubePlayer", () => {
     expect(ref.current!.isPlaying()).toBe(false);
   });
 
-  it.each([-1, 5])(
-    "a seek on an unstarted or cued video (%i) doesn't start playback",
+  it.each([-1, 5, 0])(
+    "a seek on an unstarted, cued or ended video (%i) doesn't start playback",
     async (state) => {
       const { ref } = await mount();
       last().state = state;

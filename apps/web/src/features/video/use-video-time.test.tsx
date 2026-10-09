@@ -35,6 +35,19 @@ describe("useVideoTime", () => {
     expect(result.current).toBe(0);
   });
 
+  it("keeps the last time when reading it throws (a player that isn't ready yet)", () => {
+    const { ref, currentTime } = makeHandle();
+    const { result } = renderHook(() => useVideoTime(ref, true));
+    currentTime.mockImplementation(() => {
+      throw new TypeError("getCurrentTime is not a function");
+    });
+    expect(() => act(() => void vi.advanceTimersByTime(1000))).not.toThrow();
+    expect(result.current).toBe(0);
+    currentTime.mockReturnValue(4);
+    act(() => void vi.advanceTimersByTime(250));
+    expect(result.current).toBe(4);
+  });
+
   it("stops polling when inactive and when unmounted", () => {
     const { ref, currentTime } = makeHandle();
     const { rerender, unmount } = renderHook(({ on }) => useVideoTime(ref, on), {

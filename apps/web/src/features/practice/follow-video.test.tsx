@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { useCallback, useMemo, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { YTPlayerOptions } from "@/features/video/youtube-api";
+import { controlsAfterReady } from "@/test/youtube";
 import { useManualNavigator } from "./navigation/use-manual-navigator";
 import { buildSteps, stepIndexOf, type StepMode } from "./navigation/steps";
 
@@ -14,8 +15,9 @@ vi.mock("@/features/video/youtube-api", () => ({
 import { FollowVideo } from "./follow-video";
 
 /**
- * Fake YT player. Like the real one, seeking an unstarted (-1) or cued (5) video starts
- * playback. With `lag`, a seek lands only when the test calls `land()`.
+ * Fake YT player. Like the real one, it has no control methods until `ready()`, and
+ * seeking an unstarted (-1), cued (5) or ended (0) video starts playback. With `lag`, a
+ * seek lands only when the test calls `land()`.
  */
 class FakePlayer {
   static instances: FakePlayer[] = [];
@@ -25,15 +27,17 @@ class FakePlayer {
   time = FakePlayer.startTime;
   queued: number[] = [];
   state = -1;
+  ready: () => void;
   constructor(
     public el: HTMLElement,
     public opts: YTPlayerOptions,
   ) {
     FakePlayer.instances.push(this);
+    this.ready = controlsAfterReady(this, opts);
   }
   seekTo(s: number) {
     this.calls.push(["seekTo", s]);
-    if (this.state === -1 || this.state === 5) this.state = 1;
+    if (this.state === -1 || this.state === 5 || this.state === 0) this.state = 1;
     if (FakePlayer.lag) this.queued.push(s);
     else this.time = s;
   }
@@ -181,7 +185,7 @@ async function mountYouTube(props: Omit<Parameters<typeof Harness>[0], "video"> 
   const utils = render(<Harness video={YOUTUBE} {...props} />);
   await act(() => vi.advanceTimersByTimeAsync(0)); // the API promise resolves
   expect(FakePlayer.instances).toHaveLength(1);
-  act(() => player().opts.events!.onReady!({ target: player() as never }));
+  act(() => player().ready());
   return utils;
 }
 

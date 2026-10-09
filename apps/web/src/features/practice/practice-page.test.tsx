@@ -10,6 +10,7 @@ import { TrackDayDb } from "@/data/local/db";
 import { createLocalRepositories } from "@/data/local/local-repositories";
 import type { YTPlayerOptions } from "@/features/video/youtube-api";
 import { mockLayout } from "@/test/dom";
+import { controlsAfterReady } from "@/test/youtube";
 import { PracticePage } from "./practice-page";
 
 class FakeYTPlayer {
@@ -18,7 +19,7 @@ class FakeYTPlayer {
   state = -1;
   constructor(_el: HTMLElement, opts: YTPlayerOptions) {
     FakeYTPlayer.instances.push(this);
-    queueMicrotask(() => opts.events?.onReady?.({ target: this }));
+    queueMicrotask(controlsAfterReady(this, opts));
   }
   seekTo(s: number) {
     this.time = s;

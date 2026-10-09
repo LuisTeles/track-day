@@ -1,10 +1,22 @@
 // Stands in for https://www.youtube.com/iframe_api in e2e, so tests never touch YouTube.
 // The player is a plain div (no iframe); its time is `window.__ytTime`, which `seekTo` sets.
-// Like the real player, seeking an unstarted (-1) or cued (5) video starts playback; the
-// player state is mirrored on the div as `data-state`.
+// Like the real player, its control methods (getCurrentTime, seekTo, getIframe…) exist only
+// once it fires onReady, and seeking an unstarted (-1), cued (5) or ended (0) video starts
+// playback; the player state is mirrored on the div as `data-state`.
 export const FAKE_YOUTUBE_API = `
 (function () {
   if (typeof window.__ytTime !== "number") window.__ytTime = 0;
+  var controls = {
+    getCurrentTime: function () { return window.__ytTime; },
+    seekTo: function (sec) {
+      window.__ytTime = sec;
+      if (this._state === -1 || this._state === 5 || this._state === 0) this._setState(1);
+    },
+    playVideo: function () { this._setState(1); },
+    pauseVideo: function () { this._setState(2); },
+    getPlayerState: function () { return this._state; },
+    getIframe: function () { return this._div; },
+  };
   function Player(element, options) {
     var div = document.createElement("div");
     div.setAttribute("data-testid", "fake-youtube");
@@ -16,19 +28,11 @@ export const FAKE_YOUTUBE_API = `
     this._setState(-1);
     var self = this;
     setTimeout(function () {
+      for (var name in controls) self[name] = controls[name];
       if (options.events && options.events.onReady) options.events.onReady({ target: self });
     }, 0);
   }
-  Player.prototype.getCurrentTime = function () { return window.__ytTime; };
   Player.prototype._setState = function (s) { this._state = s; this._div.setAttribute("data-state", String(s)); };
-  Player.prototype.seekTo = function (sec) {
-    window.__ytTime = sec;
-    if (this._state === -1 || this._state === 5) this._setState(1);
-  };
-  Player.prototype.playVideo = function () { this._setState(1); };
-  Player.prototype.pauseVideo = function () { this._setState(2); };
-  Player.prototype.getPlayerState = function () { return this._state; };
-  Player.prototype.getIframe = function () { return this._div; };
   Player.prototype.destroy = function () { this._div.remove(); };
   window.YT = { Player: Player, PlayerState: { PLAYING: 1 } };
   if (typeof window.onYouTubeIframeAPIReady === "function") window.onYouTubeIframeAPIReady();

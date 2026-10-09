@@ -17,6 +17,7 @@ const MESSAGES: Record<PlayerError, string> = {
 const UNSTARTED = -1;
 const PLAYING = 1;
 const CUED = 5;
+const ENDED = 0;
 
 function errorFromCode(code: number): PlayerError {
   return code === 101 || code === 150 ? "blocked" : "unavailable";
@@ -53,6 +54,7 @@ export function YouTubePlayer({
     if (!container) return;
     let cancelled = false;
     let created: YTPlayer | null = null;
+    let ready: YTPlayer | null = null;
     const fail = (kind: PlayerError) => {
       if (!cancelled) setFailure({ key, kind });
     };
@@ -69,13 +71,19 @@ export function YouTubePlayer({
             host: "https://www.youtube-nocookie.com",
             playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
             events: {
-              onReady: () => onReadyRef.current?.(),
+              // The control methods (getCurrentTime, seekTo…) only exist from here on, so
+              // the handle sees the player only once it is ready.
+              onReady: (e) => {
+                if (cancelled) return;
+                ready = e.target;
+                player.current = ready;
+                const iframe = e.target.getIframe?.();
+                if (iframe) iframe.title = titleRef.current;
+                onReadyRef.current?.();
+              },
               onError: (e) => fail(errorFromCode(e.data)),
             },
           });
-          player.current = created;
-          const iframe = created.getIframe?.();
-          if (iframe) iframe.title = titleRef.current;
         } catch {
           fail("unavailable");
         }
@@ -85,7 +93,7 @@ export function YouTubePlayer({
 
     return () => {
       cancelled = true;
-      if (player.current === created) player.current = null;
+      if (ready && player.current === ready) player.current = null;
       created?.destroy();
       target.remove();
     };
@@ -100,13 +108,13 @@ export function YouTubePlayer({
     ref,
     () => ({
       currentTime: () => player.current?.getCurrentTime() ?? 0,
-      // Seeking an unstarted or cued video starts it (IFrame API): a jump never should.
+      // Seeking an unstarted, cued or ended video starts it (IFrame API): a jump never should.
       seek: (sec) => {
         const p = player.current;
         if (!p) return;
         const state = p.getPlayerState();
         p.seekTo(sec, true);
-        if (state === UNSTARTED || state === CUED) p.pauseVideo();
+        if (state === UNSTARTED || state === CUED || state === ENDED) p.pauseVideo();
       },
       play: () => player.current?.playVideo(),
       pause: () => player.current?.pauseVideo(),

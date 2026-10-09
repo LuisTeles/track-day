@@ -11,6 +11,7 @@ import { createLocalRepositories } from "@/data/local/local-repositories";
 import { ConfirmProvider } from "@/shared/ui/confirm";
 import { ToastProvider } from "@/shared/ui/toast";
 import { mockLayout } from "@/test/dom";
+import { controlsAfterReady } from "@/test/youtube";
 import { emptyCornerGuide } from "./edit/corner-guide-draft";
 import type { YTPlayerOptions } from "@/features/video/youtube-api";
 import { TrackViewPage } from "./track-view-page";
@@ -26,7 +27,7 @@ class FakeYTPlayer {
   constructor(_el: HTMLElement, opts: YTPlayerOptions) {
     FakeYTPlayer.instances.push(this);
     this.videoId = opts.videoId;
-    this.ready = () => opts.events?.onReady?.({ target: this });
+    this.ready = controlsAfterReady(this, opts);
     if (FakeYTPlayer.autoReady) queueMicrotask(this.ready);
   }
   seekTo(s: number) {
@@ -784,6 +785,23 @@ describe("TrackViewPage reference video", () => {
     expect(search.get("panel")).toBe("video");
     // The corner whose mark is current is the selected marker.
     await waitFor(() => expect(t1Marker).toHaveAttribute("aria-pressed", "true"));
+  });
+
+  it("polls nothing on a player that isn't ready yet: no error, no dot", async () => {
+    FakeYTPlayer.autoReady = false;
+    const errors: unknown[] = [];
+    const onError = (e: ErrorEvent) => errors.push(e.error);
+    window.addEventListener("error", onError);
+    try {
+      await open({ panel: "video" }, withVideo);
+      await waitFor(() => expect(FakeYTPlayer.instances).toHaveLength(1));
+      // Several 250 ms polls of the video clock while the player loads.
+      await act(() => new Promise((r) => setTimeout(r, 800)));
+      expect(errors).toEqual([]);
+      expect(screen.queryByTestId("video-dot")).toBeNull();
+    } finally {
+      window.removeEventListener("error", onError);
+    }
   });
 
   it("says when a clicked corner isn't marked yet", async () => {

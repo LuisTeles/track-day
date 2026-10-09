@@ -8,6 +8,7 @@ import { RepositoriesProvider } from "@/data/provider";
 import type { Repositories } from "@/data/repositories";
 import { ConfirmProvider } from "@/shared/ui/confirm";
 import type { VideoPlayerHandle } from "./player";
+import { controlsAfterReady } from "@/test/youtube";
 import type { YTPlayerOptions } from "./youtube-api";
 
 const loadYouTubeApi = vi.fn();
@@ -25,7 +26,7 @@ class FakePlayer {
     public opts: YTPlayerOptions,
   ) {
     FakePlayer.instances.push(this);
-    queueMicrotask(() => opts.events?.onReady?.({ target: this }));
+    queueMicrotask(controlsAfterReady(this, opts));
   }
   seekTo(s: number) {
     this.time = s;
