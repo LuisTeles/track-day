@@ -32,7 +32,13 @@ import { useToast } from "@/shared/ui/toast";
 import type { VideoPlayerHandle } from "@/features/video/player";
 import { useVideoTime } from "@/features/video/use-video-time";
 import { VideoPanel, type SeekRequest } from "@/features/video/video-panel";
-import { cornerAt } from "@/features/video/video-sync";
+import { VideoDot } from "@/features/video/video-dot";
+import {
+  cornerAt,
+  lapFractionAt,
+  markOrderProblems,
+  videoAnchors,
+} from "@/features/video/video-sync";
 import { OsmAttribution } from "@/shared/ui/osm-attribution";
 import { CornerGuideSection } from "./corner-guide-section";
 import { chipsFor, guideLabel } from "./guides";
@@ -146,6 +152,16 @@ function TrackView({ trackId }: { trackId: string }) {
   const setupOpen = params.get("panel") === "setup" && guide !== null;
   const videoOpen = params.get("panel") === "video" && guide !== null;
   const videoTime = useVideoTime(playerRef, videoOpen);
+  // Where the reference car is on the lap; null (no dot) unless the marks make sense.
+  const videoFraction = useMemo(() => {
+    const video = guide?.video;
+    const lap = data?.layout;
+    const all = data?.corners;
+    if (!videoOpen || !video || !lap?.outlinePath || !all) return null;
+    if (markOrderProblems(video, all).length > 0) return null;
+    const anchors = videoAnchors(video, all, lap);
+    return lapFractionAt(videoTime, anchors, video.lapEndSec);
+  }, [videoOpen, guide?.video, data?.layout, data?.corners, videoTime]);
 
   const setParams = useCallback(
     (changes: Record<string, string | null>) => {
@@ -626,15 +642,18 @@ function TrackView({ trackId }: { trackId: string }) {
             }
             label={`Map of ${track.name}, ${layout.name} layout`}
             overlay={(ctx) => (
-              <CornerMarkers
-                ctx={ctx}
-                layout={layout}
-                corners={corners}
-                selectedId={markerId}
-                onSelect={onMarker}
-                chips={showChips ? chips : null}
-                terrain={showTerrain}
-              />
+              <>
+                <VideoDot ctx={ctx} fraction={videoFraction} />
+                <CornerMarkers
+                  ctx={ctx}
+                  layout={layout}
+                  corners={corners}
+                  selectedId={markerId}
+                  onSelect={onMarker}
+                  chips={showChips ? chips : null}
+                  terrain={showTerrain}
+                />
+              </>
             )}
           />
           {layout.outlineSource === "osm" && (

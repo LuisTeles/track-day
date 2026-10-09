@@ -281,3 +281,55 @@ test("a video file is picked each session, and a different file asks first", asy
   await page.getByRole("button", { name: "Close panel" }).click();
   await expect(page.locator("video")).toHaveCount(0);
 });
+
+test("a dot follows the video between marked corners and hides outside the marks", async ({
+  page,
+}) => {
+  await fakeYouTube(page);
+  await openWithCar(page);
+  const panel = await openVideoPanel(page);
+  await panel.getByLabel("Paste a YouTube link").fill("https://youtu.be/dQw4w9WgXcQ");
+  await panel.getByRole("button", { name: "Use this video" }).click();
+  await expect(panel.getByTestId("fake-youtube")).toBeVisible();
+  const dot = page.getByTestId("video-dot");
+
+  // No marks yet: nothing to follow.
+  await expect(dot).toHaveCount(0);
+
+  await panel.getByRole("button", { name: "Mark corners" }).click();
+  await markAt(page, panel, 5);
+  await markAt(page, panel, 12.5);
+  await markAt(page, panel, 20);
+  await panel.getByRole("button", { name: "Save marks" }).click();
+  await expect(panel.getByRole("button", { name: "Mark corners" })).toBeVisible();
+  await expect.poll(() => storedVideo(page)).toMatchObject({ lapStartSec: 5 });
+
+  const setTime = (t: number) =>
+    page.evaluate((v) => ((window as unknown as { __ytTime: number }).__ytTime = v), t);
+
+  // Before the first anchor, and after the last mark (no finish marked): hidden.
+  await setTime(2);
+  await expect(dot).toHaveCount(0);
+  await setTime(40);
+  await expect(dot).toHaveCount(0);
+
+  // Halfway between T1 (12.5 s) and T2 (20 s): between the two markers.
+  await setTime(16.25);
+  await expect(dot).toHaveCount(1);
+  const centre = async (loc: Locator) => {
+    const box = (await loc.boundingBox())!;
+    return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  };
+  const t1 = await centre(page.getByRole("button", { name: /^Turn 1,/ }));
+  const t2 = await centre(page.getByRole("button", { name: /^Turn 2,/ }));
+  const d = await centre(dot);
+  const slack = 40;
+  expect(d.x).toBeGreaterThanOrEqual(Math.min(t1.x, t2.x) - slack);
+  expect(d.x).toBeLessThanOrEqual(Math.max(t1.x, t2.x) + slack);
+  expect(d.y).toBeGreaterThanOrEqual(Math.min(t1.y, t2.y) - slack);
+  expect(d.y).toBeLessThanOrEqual(Math.max(t1.y, t2.y) + slack);
+
+  // Closing the panel removes it.
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await expect(dot).toHaveCount(0);
+});
