@@ -804,6 +804,53 @@ describe("TrackViewPage reference video", () => {
     }
   });
 
+  it("[ and ] step through the marked corners in lap order and keep the panel open", async () => {
+    await open({ panel: "video" }, async ({ guideId, layoutId, t1 }) => {
+      const t3 = (await repos.corners.listByLayout(layoutId)).find((c) => c.number === 3)!;
+      // T2 is not marked: stepping skips it.
+      await repos.guides.update(guideId, {
+        video: {
+          source: "youtube",
+          youtubeId: "dQw4w9WgXcQ",
+          lapStartSec: 5,
+          lapEndSec: null,
+          marks: [
+            { cornerId: t1.id, sec: 12.5 },
+            { cornerId: t3.id, sec: 30 },
+          ],
+        },
+      });
+    });
+    await waitFor(() => expect(FakeYTPlayer.instances).toHaveLength(1));
+    await act(() => Promise.resolve()); // onReady
+    const yt = FakeYTPlayer.instances[0]!;
+    const t1Marker = screen.getByRole("button", { name: /^Turn 1,/ });
+    const t3Marker = screen.getByRole("button", { name: /^Turn 3,/ });
+
+    fireEvent.keyDown(document, { key: "]" });
+    expect(yt.time).toBe(12.5);
+    await waitFor(() => expect(t1Marker).toHaveAttribute("aria-pressed", "true"));
+    fireEvent.keyDown(document, { key: "]" });
+    expect(yt.time).toBe(30);
+    await waitFor(() => expect(t3Marker).toHaveAttribute("aria-pressed", "true"));
+    fireEvent.keyDown(document, { key: "[" });
+    expect(yt.time).toBe(12.5);
+    await waitFor(() => expect(t1Marker).toHaveAttribute("aria-pressed", "true"));
+    fireEvent.keyDown(document, { key: "[" }); // wraps to the last marked corner
+    expect(yt.time).toBe(30);
+
+    expect(search.get("panel")).toBe("video");
+    expect(search.get("corner")).toBeNull();
+    expect(screen.getByRole("heading", { name: "Video · GT3 · any sim" })).toBeVisible();
+  });
+
+  it("[ and ] still open corner cards with the video panel closed", async () => {
+    const { t1 } = await open({});
+    await screen.findByRole("button", { name: /^Turn 1,/ });
+    fireEvent.keyDown(document, { key: "]" });
+    expect(search.get("corner")).toBe(t1.id);
+  });
+
   it("says when a clicked corner isn't marked yet", async () => {
     await open({ panel: "video" }, withVideo);
     await waitFor(() => expect(FakeYTPlayer.instances).toHaveLength(1));

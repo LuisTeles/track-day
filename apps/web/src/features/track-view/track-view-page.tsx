@@ -179,6 +179,23 @@ function TrackView({ trackId }: { trackId: string }) {
     setSeekRequest((r) => ({ sec: mark.sec, id: (r?.id ?? 0) + 1 }));
   };
   const onMarker = (id: string) => (videoOpen ? seekToCorner(id) : selectCorner(id));
+  /**
+   * `[` / `]` with the video panel open: seek to the previous or next marked corner in lap
+   * order from the one the video is at, like a marker click; the panel stays open.
+   */
+  const stepVideo = (delta: 1 | -1) => {
+    const marked = new Set(guide?.video?.marks.map((m) => m.cornerId));
+    const inLap = [...(data?.corners ?? [])]
+      .sort((a, b) => a.order - b.order)
+      .filter((c) => marked.has(c.id));
+    if (inLap.length === 0) return;
+    const index = inLap.findIndex((c) => c.id === videoCorner);
+    const target =
+      index < 0
+        ? inLap[delta === 1 ? 0 : inLap.length - 1]
+        : inLap[(index + delta + inLap.length) % inLap.length];
+    if (target) onMarker(target.id);
+  };
   const toggleEdit = () => {
     leaveEdits(() => setParams({ edit: editing ? null : "1" }));
   };
@@ -191,6 +208,7 @@ function TrackView({ trackId }: { trackId: string }) {
   const runShortcut = (action: ShortcutAction) => {
     const all = data?.corners ?? [];
     const step = (delta: 1 | -1) => {
+      if (videoOpen) return stepVideo(delta);
       if (all.length === 0) return;
       const index = all.findIndex((c) => c.id === cornerId);
       const target =

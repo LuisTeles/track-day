@@ -9,8 +9,16 @@ export type ShortcutAction =
   | "help";
 
 export const SHORTCUTS: { keys: string; action: ShortcutAction; description: string }[] = [
-  { keys: "[", action: "prev-corner", description: "Previous corner" },
-  { keys: "]", action: "next-corner", description: "Next corner" },
+  {
+    keys: "[",
+    action: "prev-corner",
+    description: "Previous corner (marked corner with the video open)",
+  },
+  {
+    keys: "]",
+    action: "next-corner",
+    description: "Next corner (marked corner with the video open)",
+  },
   { keys: "+", action: "zoom-in", description: "Zoom in" },
   { keys: "−", action: "zoom-out", description: "Zoom out" },
   { keys: "0", action: "reset-view", description: "Reset view" },
