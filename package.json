@@ -1,6 +1,6 @@
 {
   "name": "track-day",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Record and study track knowledge — corners, reference points, speeds, gears — per car.",
   "license": "MIT",
