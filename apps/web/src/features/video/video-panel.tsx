@@ -1,6 +1,6 @@
 "use client";
 
-import type { Corner, Guide, Layout, ReferenceVideo, VideoFile } from "@track-day/schema";
+import type { Corner, Guide, ReferenceVideo, VideoFile } from "@track-day/schema";
 import { ExternalLink, MapPin, Trash2 } from "lucide-react";
 import {
   useEffect,
@@ -34,13 +34,9 @@ export interface VideoPanelProps {
   /** The car's label, e.g. "GT3 · any sim". */
   label: string;
   corners: Corner[];
-  /** For the map dot and marking (later tasks); unused by the panel itself. */
-  layout: Pick<Layout, "lengthMeters">;
   trackId: string;
   /** Filled with the mounted player's handle; null while no player is ready. */
   playerRef: RefObject<VideoPlayerHandle | null>;
-  /** Called when playback starts or stops, and with false when the player goes away. */
-  onPlayingChange?(playing: boolean): void;
   seekRequest?: SeekRequest | null;
   /** True while marking has unsaved changes. */
   onDirtyChange?(dirty: boolean): void;
@@ -76,7 +72,6 @@ export function VideoPanel({
   corners,
   trackId,
   playerRef,
-  onPlayingChange,
   seekRequest,
   onDirtyChange,
   discards = 0,
@@ -145,23 +140,6 @@ export function VideoPanel({
   useEffect(() => {
     if (seekRequest && seekRequest.id !== staleRequest.current) onSeekRequest(seekRequest.sec);
   }, [seekRequest]);
-
-  const reportPlaying = useEffectEvent((playing: boolean) => onPlayingChange?.(playing));
-  useEffect(() => {
-    if (!ready) return;
-    let playing = false;
-    const id = setInterval(() => {
-      const now = playerRef.current?.isPlaying() ?? false;
-      if (now !== playing) {
-        playing = now;
-        reportPlaying(now);
-      }
-    }, 250);
-    return () => {
-      clearInterval(id);
-      if (playing) reportPlaying(false);
-    };
-  }, [ready, playerRef]);
 
   const play = (file: File, plan: Plan) => {
     setMismatch(null);

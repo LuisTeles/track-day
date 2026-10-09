@@ -501,7 +501,6 @@ function TrackView({ trackId }: { trackId: string }) {
             guide={guide}
             label={currentGuideLabel}
             corners={corners}
-            layout={layout}
             trackId={track.id}
             playerRef={playerRef}
             seekRequest={seekRequest}

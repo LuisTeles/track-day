@@ -88,7 +88,6 @@ function setup(
     guide: { id: "g1", video } as Guide,
     label: "GT3 · any sim",
     corners,
-    layout: { lengthMeters: 4309 },
     trackId: "t1",
     playerRef,
     ...extra,
@@ -435,16 +434,12 @@ describe("VideoPanel watching", () => {
     expect(player().time).toBe(12.5);
   });
 
-  it("reports playing and stops the player when unmounted", async () => {
-    const onPlayingChange = vi.fn();
-    const { unmount } = setup(youtube(), { onPlayingChange });
+  it("stops the player when unmounted", async () => {
+    const { unmount } = setup(youtube());
     await waitFor(() => expect(FakePlayer.instances).toHaveLength(1));
     await act(() => Promise.resolve());
-    player().state = 1;
-    await waitFor(() => expect(onPlayingChange).toHaveBeenLastCalledWith(true));
     unmount();
     expect(player().destroyed).toBe(true);
-    expect(onPlayingChange).toHaveBeenLastCalledWith(false);
   });
 
   it("revokes the file's object URL when unmounted", async () => {
