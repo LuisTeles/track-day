@@ -18,7 +18,9 @@ const TAP_MS = 500;
 const TEXT_ENTRY = "input, select, textarea, [contenteditable]";
 /**
  * Video players: Space plays or pauses and arrows seek, so they keep those keys
- * (Escape still exits). `data-media` marks a player's container.
+ * (Escape still exits from a same-page player such as <video>). A focused cross-origin
+ * iframe (YouTube) gets no key to this page at all, Escape included, until focus
+ * leaves it. `data-media` marks a player's container.
  */
 const MEDIA = "video, audio, iframe, [data-media]";
 /** Elements that handle their own clicks/taps. */

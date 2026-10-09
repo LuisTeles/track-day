@@ -138,7 +138,7 @@ export function MarkCorners({
         <p className="rounded-lg border border-border bg-surface p-3">Every point is marked.</p>
       )}
       <p className="text-xs text-muted">
-        Play or scrub the video, then mark. Pressing M marks too.
+        Play or scrub the video, then mark. Or click outside the video, then press M.
       </p>
       <ul className="-mx-2" aria-label="Marks">
         {rows.map(({ point, name, aria }) => {
