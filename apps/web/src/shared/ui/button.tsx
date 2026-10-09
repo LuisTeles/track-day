@@ -8,7 +8,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        // A solid hover token: bg-primary/90 dropped white text under 4.5:1 (ADR-008).
+        default: "bg-primary text-primary-foreground hover:bg-primary-hover",
         secondary: "bg-foreground text-background hover:bg-foreground/90",
         outline: "border border-input bg-background hover:bg-surface",
         ghost: "hover:bg-surface",

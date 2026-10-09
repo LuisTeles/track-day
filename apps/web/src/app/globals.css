@@ -12,6 +12,8 @@
   --surface: light-dark(#f6f7f9, #141416);
   --accent: light-dark(#dc2626, #ef4444);
   --accent-foreground: light-dark(#ffffff, #0a0a0a);
+  /* Hovered primary buttons: keeps >= 4.5:1 with --accent-foreground (6.47 / 7.16). */
+  --accent-hover: light-dark(#b91c1c, #f87171);
   --danger: light-dark(#b91c1c, #f87171);
   --success: light-dark(#15803d, #4ade80);
   --estimate: light-dark(#854d0e, #fbbf24);
@@ -47,6 +49,7 @@
   --surface: #121212;
   --accent: #f43f5e;
   --accent-foreground: #ffffff;
+  --accent-hover: #be123c; /* 6.29:1 with white */
   --success: #4ade80;
   --track: #3a3d42;
   --track-edge: #1c1d20;
@@ -64,6 +67,7 @@
   --color-surface: var(--surface);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-accent-hover: var(--accent-hover);
   --color-danger: var(--danger);
   --color-success: var(--success);
   --color-canvas: var(--canvas);
@@ -80,6 +84,7 @@
      `hover:bg-surface` and `text-muted` instead. */
   --color-primary: var(--accent);
   --color-primary-foreground: var(--accent-foreground);
+  --color-primary-hover: var(--accent-hover);
   --color-destructive: var(--danger);
   --color-input: var(--border);
   --color-ring: var(--accent);

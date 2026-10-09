@@ -35,6 +35,8 @@ test("no page has known violations left", () => {
 });
 
 async function scan(page: Page, key: PageKey) {
+  // No colour transitions mid-scan: a hovered button is scanned in its final colour.
+  await page.emulateMedia({ reducedMotion: "reduce" });
   const { violations } = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
     .analyze();
@@ -87,21 +89,30 @@ for (const scheme of ["light", "dark"] as const) {
   });
 }
 
+/** Opens the video panel of a new car on Interlagos, with the fake YouTube API. */
+async function openVideoPanel(page: Page, scheme: "light" | "dark") {
+  await page.route("https://www.youtube.com/iframe_api", (route) =>
+    route.fulfill({ contentType: "text/javascript", body: FAKE_YOUTUBE_API }),
+  );
+  await page.emulateMedia({ colorScheme: scheme });
+  await loadSamples(page);
+  await page.getByRole("link", { name: /Interlagos/ }).click();
+  await page.getByLabel("Car", { exact: true }).selectOption("__add__");
+  await page.getByLabel("Car name", { exact: true }).fill("Mazda MX-5");
+  await page.getByRole("button", { name: "Add car", exact: true }).click();
+  await page.getByRole("button", { name: "More map actions" }).click();
+  await page.getByRole("menuitem", { name: "Reference video" }).click();
+  const panel = page.getByRole("complementary", { name: /^Video · / });
+  await expect(panel.getByLabel("Paste a YouTube link")).toBeVisible();
+  return panel;
+}
+
+/** Hover transitions last 150 ms: wait them out so the scan sees the hover colour. */
+const settleHover = (page: Page) => page.waitForTimeout(300);
+
 for (const scheme of ["light", "dark"] as const) {
   test(`video panel is accessible (${scheme})`, async ({ page }) => {
-    await page.route("https://www.youtube.com/iframe_api", (route) =>
-      route.fulfill({ contentType: "text/javascript", body: FAKE_YOUTUBE_API }),
-    );
-    await page.emulateMedia({ colorScheme: scheme });
-    await loadSamples(page);
-    await page.getByRole("link", { name: /Interlagos/ }).click();
-    await page.getByLabel("Car", { exact: true }).selectOption("__add__");
-    await page.getByLabel("Car name", { exact: true }).fill("Mazda MX-5");
-    await page.getByRole("button", { name: "Add car", exact: true }).click();
-    await page.getByRole("button", { name: "More map actions" }).click();
-    await page.getByRole("menuitem", { name: "Reference video" }).click();
-    const panel = page.getByRole("complementary", { name: /^Video · / });
-    await expect(panel.getByLabel("Paste a YouTube link")).toBeVisible();
+    const panel = await openVideoPanel(page, scheme);
     await scan(page, "track-video");
     await panel.getByLabel("Paste a YouTube link").fill("https://youtu.be/dQw4w9WgXcQ");
     await panel.getByRole("button", { name: "Use this video" }).click();
@@ -110,6 +121,27 @@ for (const scheme of ["light", "dark"] as const) {
     await panel.getByRole("button", { name: "Mark corners" }).click();
     await panel.getByRole("button", { name: "Mark start line" }).click();
     await expect(panel.getByRole("button", { name: "Earlier start line" })).toBeVisible();
+    await scan(page, "track-video");
+  });
+
+  test(`hovered primary buttons keep their contrast (${scheme})`, async ({ page }) => {
+    const panel = await openVideoPanel(page, scheme);
+    await panel.getByLabel("Paste a YouTube link").fill("https://youtu.be/dQw4w9WgXcQ");
+    const use = panel.getByRole("button", { name: "Use this video" });
+    await use.hover();
+    await settleHover(page);
+    expect(await use.evaluate((el) => el.matches(":hover"))).toBe(true);
+    await scan(page, "track-video");
+    await use.click();
+    await expect(panel.getByTestId("fake-youtube")).toBeVisible();
+    await panel.getByRole("button", { name: "Mark corners" }).click();
+    // Marking mode's big Mark button, hovered as it is after a click on it.
+    const mark = panel.getByRole("button", { name: "Mark start line" });
+    await mark.click();
+    const next = panel.getByRole("button", { name: /^Mark T/ });
+    await next.hover();
+    await settleHover(page);
+    expect(await next.evaluate((el) => el.matches(":hover"))).toBe(true);
     await scan(page, "track-video");
   });
 }
