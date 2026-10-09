@@ -77,6 +77,8 @@ export function VideoPanel({
   const confirm = useConfirm();
   const [picked, setPicked] = useState<{ file: File; plan: Plan } | null>(null);
   const [mismatch, setMismatch] = useState<File | null>(null);
+  /** The last picked file the browser couldn't play; nothing was saved for it. */
+  const [unplayable, setUnplayable] = useState(false);
   const [ready, setReady] = useState(false);
   const readyRef = useRef(false);
   const pendingSeek = useRef<number | null>(null);
@@ -101,6 +103,17 @@ export function VideoPanel({
     readyRef.current = false;
     setReady(false);
   };
+
+  // After attaching (the form or picker that had focus is gone), focus the corner list.
+  // Opening the panel on a video leaves focus with the panel's own heading.
+  const hasPlayer = video?.source === "youtube" || picked !== null;
+  const listHeading = useRef<HTMLHeadingElement>(null);
+  const listId = useId();
+  const hadPlayer = useRef(hasPlayer);
+  useEffect(() => {
+    if (hasPlayer && !hadPlayer.current) listHeading.current?.focus();
+    hadPlayer.current = hasPlayer;
+  }, [hasPlayer]);
 
   // A request made before this panel mounted (say, before it was last closed) is stale.
   const staleRequest = useRef(seekRequest?.id);
@@ -128,11 +141,13 @@ export function VideoPanel({
 
   const play = (file: File, plan: Plan) => {
     setMismatch(null);
+    setUnplayable(false);
     resetPlayer();
     setPicked({ file, plan });
   };
 
   const onPick = (file: File) => {
+    setUnplayable(false);
     if (video?.source === "file") {
       const same = file.name === video.file.name && file.size === video.file.sizeBytes;
       if (same) return play(file, "same");
@@ -153,6 +168,13 @@ export function VideoPanel({
     } else {
       saveVideo({ source: "file", file, ...NO_MARKS });
     }
+  };
+
+  // Back to the picker: no metadata came, so nothing was saved for this file.
+  const onFileError = () => {
+    resetPlayer();
+    setPicked(null);
+    setUnplayable(true);
   };
 
   const startNewMarks = async (file: File) => {
@@ -176,16 +198,28 @@ export function VideoPanel({
       destructive: true,
     });
     if (!ok) return;
-    resetPlayer();
-    setPicked(null);
-    setMismatch(null);
-    saveVideo(null);
+    // Only once it's gone: if the save fails, the player stays and keeps working.
+    save.mutate(
+      { guideId: guide.id, video: null },
+      {
+        onSuccess: () => {
+          resetPlayer();
+          setPicked(null);
+          setMismatch(null);
+        },
+      },
+    );
   };
 
   const title = `Reference video for ${label}`;
   const error = save.error && (
     <p role="alert" className="text-sm text-danger">
       Could not save: {save.error.message}
+    </p>
+  );
+  const unplayableMessage = unplayable && (
+    <p role="alert" className="text-sm text-danger">
+      {"This file can't be played in this browser."}
     </p>
   );
 
@@ -202,7 +236,13 @@ export function VideoPanel({
     );
   } else if (picked) {
     player = (
-      <FilePlayer ref={playerRef} file={picked.file} title={title} onMetadata={onMetadata} />
+      <FilePlayer
+        ref={playerRef}
+        file={picked.file}
+        title={title}
+        onMetadata={onMetadata}
+        onError={onFileError}
+      />
     );
   }
 
@@ -215,6 +255,7 @@ export function VideoPanel({
               {`This car's video is a file on your device: ${video.file.name}, ${formatDuration(video.file.durationSec)}. Choose it to play.`}
             </p>
             <FilePicker onPick={onPick} />
+            {unplayableMessage}
             {mismatch && (
               <div
                 role="status"
@@ -242,6 +283,7 @@ export function VideoPanel({
             onPick={onPick}
           />
         )}
+        {video?.source !== "file" && unplayableMessage}
         {error}
       </div>
     );
@@ -253,7 +295,10 @@ export function VideoPanel({
     <div className="space-y-4 text-sm">
       {player}
       {error}
-      <ol aria-label="Corners on the video" className="-mx-2">
+      <h3 ref={listHeading} id={listId} tabIndex={-1} className="font-semibold outline-none">
+        Corners on the video
+      </h3>
+      <ol aria-labelledby={listId} className="-mx-2">
         {inLapOrder.map((corner) => {
           const sec = marks.get(corner.id);
           const name = `T${corner.number}${corner.name ? ` ${corner.name}` : ""}`;
@@ -360,7 +405,7 @@ function AttachForm({
           aria-describedby={invalid ? `${id}-error` : undefined}
         />
         {invalid && (
-          <p id={`${id}-error`} className="text-sm text-danger">
+          <p id={`${id}-error`} role="alert" className="text-sm text-danger">
             {"That doesn't look like a YouTube link. Paste one like https://youtu.be/…"}
           </p>
         )}

@@ -21,6 +21,20 @@ describe("useVideoTime", () => {
     expect(result.current).toBe(3.5);
   });
 
+  it("reads 0 once inactive, and again until the first poll after reactivating", () => {
+    const { ref, currentTime } = makeHandle();
+    const { result, rerender } = renderHook(({ on }) => useVideoTime(ref, on), {
+      initialProps: { on: true },
+    });
+    currentTime.mockReturnValue(42);
+    act(() => void vi.advanceTimersByTime(250));
+    expect(result.current).toBe(42);
+    rerender({ on: false });
+    expect(result.current).toBe(0);
+    rerender({ on: true });
+    expect(result.current).toBe(0);
+  });
+
   it("stops polling when inactive and when unmounted", () => {
     const { ref, currentTime } = makeHandle();
     const { rerender, unmount } = renderHook(({ on }) => useVideoTime(ref, on), {

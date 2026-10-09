@@ -569,7 +569,9 @@ function TrackView({ trackId }: { trackId: string }) {
             setDirty({});
             setPicking(null);
             setPickError(null);
-            setParams({ guide: guideId });
+            // A panel left in the URL (say `panel=video` from before there was a car)
+            // must not pop open for the new car.
+            setParams({ guide: guideId, panel: null });
           }}
         />
       )}

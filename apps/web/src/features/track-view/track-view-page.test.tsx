@@ -17,11 +17,17 @@ import { TrackViewPage } from "./track-view-page";
 
 class FakeYTPlayer {
   static instances: FakeYTPlayer[] = [];
+  /** False: call `ready()` by hand. */
+  static autoReady = true;
   time = 0;
   destroyed = false;
+  videoId: string;
+  ready: () => void;
   constructor(_el: HTMLElement, opts: YTPlayerOptions) {
     FakeYTPlayer.instances.push(this);
-    queueMicrotask(() => opts.events?.onReady?.({ target: this }));
+    this.videoId = opts.videoId;
+    this.ready = () => opts.events?.onReady?.({ target: this });
+    if (FakeYTPlayer.autoReady) queueMicrotask(this.ready);
   }
   seekTo(s: number) {
     this.time = s;
@@ -664,6 +670,67 @@ describe("TrackViewPage reference video", () => {
     });
   beforeEach(() => {
     FakeYTPlayer.instances = [];
+    FakeYTPlayer.autoReady = true;
+  });
+
+  it("switching car remounts the player for that car's video and drops a pending seek", async () => {
+    let other = "";
+    const { user } = await open({ panel: "video" }, async (ids) => {
+      await withVideo(ids);
+      const cls = await repos.carClasses.create({
+        name: "GT4",
+        description: "",
+        drivetrain: null,
+        downforce: null,
+      });
+      other = (
+        await repos.guides.create({
+          layoutId: ids.layoutId,
+          target: { carClassId: cls.id },
+          sim: null,
+          referenceLapTime: null,
+          setupNotes: "",
+          source: "manual",
+          video: {
+            source: "youtube",
+            youtubeId: "abcdefghijk",
+            lapStartSec: null,
+            lapEndSec: null,
+            marks: [],
+          },
+        })
+      ).id;
+    });
+    FakeYTPlayer.autoReady = false;
+    await waitFor(() => expect(FakeYTPlayer.instances).toHaveLength(1));
+    const first = FakeYTPlayer.instances[0]!;
+    // Not ready yet: the seek waits for the player.
+    fireEvent.click(screen.getByRole("button", { name: /^Turn 1,/ }));
+    expect(first.time).toBe(0);
+
+    await user.selectOptions(screen.getByLabelText("Car"), other);
+    await waitFor(() => expect(FakeYTPlayer.instances).toHaveLength(2));
+    expect(first.destroyed).toBe(true);
+    const second = FakeYTPlayer.instances[1]!;
+    expect(second.videoId).toBe("abcdefghijk");
+    expect(await screen.findByRole("heading", { name: "Video · GT4 · any sim" })).toBeVisible();
+    act(() => second.ready());
+    expect(second.time).toBe(0);
+  });
+
+  it("closes the video panel after adding a car", async () => {
+    const { user } = await open({ panel: "video" }, async ({ guideId }) => {
+      await repos.guides.remove(guideId);
+    });
+    search.delete("guide");
+    rerenderPage();
+    await user.selectOptions(await screen.findByLabelText("Car"), "__add__");
+    const dialog = await screen.findByRole("alertdialog", { name: "Add a car" });
+    await user.type(within(dialog).getByLabelText("Car name"), "Mazda MX-5");
+    await user.click(within(dialog).getByRole("button", { name: "Add car" }));
+    await waitFor(() => expect(search.get("guide")).not.toBeNull());
+    expect(search.get("panel")).toBeNull();
+    expect(screen.queryByRole("heading", { name: /^Video · / })).toBeNull();
   });
 
   it("opens from the More menu, clearing the selected corner", async () => {

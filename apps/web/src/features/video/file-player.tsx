@@ -8,11 +8,14 @@ export function FilePlayer({
   file,
   title,
   onMetadata,
+  onError,
 }: {
   ref?: Ref<VideoPlayerHandle>;
   file: File;
   title: string;
   onMetadata?(meta: { durationSec: number }): void;
+  /** The browser can't play the file (an unsupported codec or container, say HEVC or MKV). */
+  onError?(): void;
 }) {
   const video = useRef<HTMLVideoElement>(null);
 
@@ -48,6 +51,7 @@ export function FilePlayer({
       controls
       playsInline
       className="aspect-video w-full rounded-xl bg-black"
+      onError={() => onError?.()}
       onLoadedMetadata={(e) => {
         const durationSec = e.currentTarget.duration;
         if (Number.isFinite(durationSec) && durationSec > 0) onMetadata?.({ durationSec });

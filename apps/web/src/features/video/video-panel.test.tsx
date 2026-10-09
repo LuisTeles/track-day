@@ -134,9 +134,12 @@ describe("VideoPanel without a video", () => {
     const { update, user } = setup(null);
     await user.type(screen.getByLabelText("Paste a YouTube link"), "https://vimeo.com/123");
     await user.click(screen.getByRole("button", { name: "Use this video" }));
-    expect(
-      screen.getByText("That doesn't look like a YouTube link. Paste one like https://youtu.be/…"),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "That doesn't look like a YouTube link. Paste one like https://youtu.be/…",
+    );
+    expect(screen.getByLabelText("Paste a YouTube link")).toHaveAccessibleDescription(
+      "That doesn't look like a YouTube link. Paste one like https://youtu.be/…",
+    );
     expect(screen.getByLabelText("Paste a YouTube link")).toHaveAttribute("aria-invalid", "true");
     expect(update).not.toHaveBeenCalled();
   });
@@ -159,6 +162,40 @@ describe("VideoPanel without a video", () => {
         },
       }),
     );
+  });
+
+  it("says when a new file can't be played, saving nothing", async () => {
+    const { update, user } = setup(null);
+    await user.upload(screen.getByLabelText("Choose a video file"), mp4("clip.mkv"));
+    fireEvent.error(document.querySelector("video")!);
+    expect(await screen.findByText("This file can't be played in this browser.")).toBeVisible();
+    expect(screen.getByLabelText("Choose a video file")).toBeInTheDocument();
+    expect(screen.getByLabelText("Paste a YouTube link")).toBeInTheDocument();
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("moves focus to the corner list once a video is attached", async () => {
+    const { user, rerender } = setup(null);
+    await user.type(screen.getByLabelText("Paste a YouTube link"), "dQw4w9WgXcQ");
+    await user.click(screen.getByRole("button", { name: "Use this video" }));
+    rerender({ guide: { id: "g1", video: youtube([]) } as Guide });
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { name: "Corners on the video" })).toHaveFocus(),
+    );
+  });
+
+  it("moves focus to the corner list once a file is picked", async () => {
+    const { user } = setup(null);
+    await user.upload(screen.getByLabelText("Choose a video file"), mp4());
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { name: "Corners on the video" })).toHaveFocus(),
+    );
+  });
+
+  it("does not take focus when it opens on a video", async () => {
+    setup(youtube());
+    await waitFor(() => expect(FakePlayer.instances).toHaveLength(1));
+    expect(screen.getByRole("heading", { name: "Corners on the video" })).not.toHaveFocus();
   });
 
   it("plays a picked file and saves its name, size and duration", async () => {
@@ -214,6 +251,32 @@ describe("VideoPanel with a file video", () => {
     expect(screen.getByRole("button", { name: "Use with these marks" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start new marks" })).toBeInTheDocument();
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it("says when the same file can't be played, and keeps the picker", async () => {
+    const { update, user } = setup(fileVideo());
+    await user.upload(screen.getByLabelText("Choose a video file"), mp4());
+    fireEvent.error(document.querySelector("video")!);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "This file can't be played in this browser.",
+    );
+    expect(document.querySelector("video")).toBeNull();
+    expect(screen.getByLabelText("Choose a video file")).toBeInTheDocument();
+    expect(screen.getByText(/This car's video is a file on your device/)).toBeInTheDocument();
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("says when a different file used with the marks can't be played, saving nothing", async () => {
+    const { update, user } = setup(fileVideo());
+    await user.upload(screen.getByLabelText("Choose a video file"), mp4("other.mkv", "xy"));
+    await user.click(screen.getByRole("button", { name: "Use with these marks" }));
+    fireEvent.error(document.querySelector("video")!);
+    expect(await screen.findByText("This file can't be played in this browser.")).toBeVisible();
+    expect(screen.getByLabelText("Choose a video file")).toBeInTheDocument();
+    expect(update).not.toHaveBeenCalled();
+    // Picking a playable file clears the message.
+    await user.upload(screen.getByLabelText("Choose a video file"), mp4());
+    expect(screen.queryByText("This file can't be played in this browser.")).toBeNull();
   });
 
   it("treats a same-named file of another size as different", async () => {
@@ -356,6 +419,19 @@ describe("VideoPanel watching", () => {
     const dialog = await screen.findByRole("alertdialog", { name: "Remove this video?" });
     await user.click(within(dialog).getByRole("button", { name: "Remove video" }));
     await waitFor(() => expect(update).toHaveBeenCalledWith("g1", { video: null }));
+  });
+
+  it("keeps the player usable when removing fails", async () => {
+    const { update, user } = setup(youtube());
+    update.mockRejectedValueOnce(new Error("disk full"));
+    await waitFor(() => expect(FakePlayer.instances).toHaveLength(1));
+    await act(() => Promise.resolve()); // onReady
+    await user.click(screen.getByRole("button", { name: "Remove video" }));
+    const dialog = await screen.findByRole("alertdialog", { name: "Remove this video?" });
+    await user.click(within(dialog).getByRole("button", { name: "Remove video" }));
+    expect(await screen.findByText("Could not save: disk full")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "T1 Senna · 0:12.5" }));
+    expect(player().time).toBe(12.5);
   });
 
   it("reports playing and stops the player when unmounted", async () => {

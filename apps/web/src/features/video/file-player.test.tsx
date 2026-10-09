@@ -33,6 +33,13 @@ describe("FilePlayer", () => {
     expect(revoke).toHaveBeenCalledWith("blob:fake-1");
   });
 
+  it("reports a file the browser can't play", () => {
+    const onError = vi.fn();
+    const { container } = render(<FilePlayer file={file()} title="t" onError={onError} />);
+    fireEvent.error(container.querySelector("video")!);
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+
   it("revokes the previous URL when the file changes", () => {
     const { rerender } = render(<FilePlayer file={file("a.mp4")} title="t" />);
     rerender(<FilePlayer file={file("b.mp4")} title="t" />);

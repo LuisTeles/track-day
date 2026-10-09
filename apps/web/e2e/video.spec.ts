@@ -144,6 +144,37 @@ test("attach a YouTube link, then jump to corners from the list and the map", as
   await expect(page.getByRole("complementary", { name: "T1 · S do Senna" })).toBeVisible();
 });
 
+test("nothing is loaded from YouTube until the video panel opens", async ({ page }) => {
+  const youtube: string[] = [];
+  page.on("request", (r) => {
+    if (
+      /(^|\.)(youtube\.com|youtube-nocookie\.com|googlevideo\.com|ytimg\.com)$/.test(
+        new URL(r.url()).hostname,
+      )
+    )
+      youtube.push(r.url());
+  });
+  await fakeYouTube(page);
+  await openWithCar(page);
+  await expect(page.locator("[data-corner]").first()).toBeVisible();
+  expect(youtube, "a car without a video").toEqual([]);
+
+  // A car with a YouTube video, panel closed: still nothing after a fresh load.
+  const panel = await openVideoPanel(page);
+  await panel.getByLabel("Paste a YouTube link").fill("https://youtu.be/dQw4w9WgXcQ");
+  await panel.getByRole("button", { name: "Use this video" }).click();
+  await expect(panel.getByTestId("fake-youtube")).toBeVisible();
+  expect(youtube.length, "the open panel loads the player API").toBeGreaterThan(0);
+  await page.getByRole("button", { name: "Close panel" }).click();
+  await expect(page).not.toHaveURL(/[?&]panel=/);
+  youtube.length = 0;
+  await page.reload();
+  await expect(page.locator("[data-corner]").first()).toBeVisible();
+  await page.getByRole("button", { name: /^Turn 1,/ }).click();
+  await expect(page.getByRole("complementary", { name: "T1 · S do Senna" })).toBeVisible();
+  expect(youtube, "a car with a video, panel closed").toEqual([]);
+});
+
 test("offline: the panel explains, and the map keeps working", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
