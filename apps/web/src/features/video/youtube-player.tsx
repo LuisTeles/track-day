@@ -14,7 +14,9 @@ const MESSAGES: Record<PlayerError, string> = {
   offline: "The video needs an internet connection.",
 };
 
+const UNSTARTED = -1;
 const PLAYING = 1;
+const CUED = 5;
 
 function errorFromCode(code: number): PlayerError {
   return code === 101 || code === 150 ? "blocked" : "unavailable";
@@ -98,7 +100,14 @@ export function YouTubePlayer({
     ref,
     () => ({
       currentTime: () => player.current?.getCurrentTime() ?? 0,
-      seek: (sec) => player.current?.seekTo(sec, true),
+      // Seeking an unstarted or cued video starts it (IFrame API): a jump never should.
+      seek: (sec) => {
+        const p = player.current;
+        if (!p) return;
+        const state = p.getPlayerState();
+        p.seekTo(sec, true);
+        if (state === UNSTARTED || state === CUED) p.pauseVideo();
+      },
       play: () => player.current?.playVideo(),
       pause: () => player.current?.pauseVideo(),
       isPlaying: () => player.current?.getPlayerState() === PLAYING,

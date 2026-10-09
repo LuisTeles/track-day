@@ -1,5 +1,6 @@
 "use client";
 
+import type { Corner } from "@track-day/schema";
 import { cornerLine } from "@/features/track-view/geometry/corner-line";
 import { ChevronLeft, ChevronRight, NotebookPen, Settings2, X } from "lucide-react";
 import Link from "next/link";
@@ -64,7 +65,9 @@ function Practice({ trackId }: { trackId: string }) {
     layoutParam,
     params.get("guide") ?? remembered?.guide ?? null,
   );
-  const [noting, setNoting] = useState(false);
+  // The note's corner is fixed while it is open, whatever moves the card meanwhile.
+  const [noteCorner, setNoteCorner] = useState<Corner | null>(null);
+  const noting = noteCorner !== null;
   const [optionsOpen, setOptionsOpen] = useState(false);
   const wakeLock = useWakeLock();
   const fullscreen = useFullscreen();
@@ -243,7 +246,7 @@ function Practice({ trackId }: { trackId: string }) {
           <span className="rounded-full bg-surface px-3 py-1 tabular-nums max-md:mr-auto">
             {current + 1}/{steps.length}
           </span>
-          <ControlButton onClick={() => setNoting(true)}>
+          <ControlButton onClick={() => setNoteCorner(step.corners[0]!)}>
             <NotebookPen aria-hidden className="size-4" />
             <span className="max-sm:sr-only">Note</span>
           </ControlButton>
@@ -302,6 +305,7 @@ function Practice({ trackId }: { trackId: string }) {
               steps={steps}
               current={current}
               onStep={navigator.goTo}
+              paused={noting}
             />
           ) : (
             diagramFor(step)
@@ -332,11 +336,17 @@ function Practice({ trackId }: { trackId: string }) {
       />
       <QuickNote
         trackId={trackId}
-        corner={step.corners[0]!}
+        corner={noteCorner ?? step.corners[0]!}
         guideId={session.guide?.id ?? null}
-        existing={session.guide ? (session.guideFor(step.corners[0]!.id) ?? undefined) : undefined}
+        existing={
+          session.guide
+            ? (session.guideFor((noteCorner ?? step.corners[0]!).id) ?? undefined)
+            : undefined
+        }
         open={noting}
-        onOpenChange={setNoting}
+        onOpenChange={(open) => {
+          if (!open) setNoteCorner(null);
+        }}
       />
     </PracticeShell>
   );

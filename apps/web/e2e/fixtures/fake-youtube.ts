@@ -1,5 +1,7 @@
 // Stands in for https://www.youtube.com/iframe_api in e2e, so tests never touch YouTube.
 // The player is a plain div (no iframe); its time is `window.__ytTime`, which `seekTo` sets.
+// Like the real player, seeking an unstarted (-1) or cued (5) video starts playback; the
+// player state is mirrored on the div as `data-state`.
 export const FAKE_YOUTUBE_API = `
 (function () {
   if (typeof window.__ytTime !== "number") window.__ytTime = 0;
@@ -11,16 +13,20 @@ export const FAKE_YOUTUBE_API = `
     div.style.cssText = "width:100%;height:100%;display:grid;place-items:center;color:#fff;background:#000";
     element.replaceWith(div);
     this._div = div;
-    this._state = -1;
+    this._setState(-1);
     var self = this;
     setTimeout(function () {
       if (options.events && options.events.onReady) options.events.onReady({ target: self });
     }, 0);
   }
   Player.prototype.getCurrentTime = function () { return window.__ytTime; };
-  Player.prototype.seekTo = function (sec) { window.__ytTime = sec; };
-  Player.prototype.playVideo = function () { this._state = 1; };
-  Player.prototype.pauseVideo = function () { this._state = 2; };
+  Player.prototype._setState = function (s) { this._state = s; this._div.setAttribute("data-state", String(s)); };
+  Player.prototype.seekTo = function (sec) {
+    window.__ytTime = sec;
+    if (this._state === -1 || this._state === 5) this._setState(1);
+  };
+  Player.prototype.playVideo = function () { this._setState(1); };
+  Player.prototype.pauseVideo = function () { this._setState(2); };
   Player.prototype.getPlayerState = function () { return this._state; };
   Player.prototype.getIframe = function () { return this._div; };
   Player.prototype.destroy = function () { this._div.remove(); };

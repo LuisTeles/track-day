@@ -24,6 +24,8 @@ class FakePlayer {
   seekTo(s: number, a: boolean) {
     this.calls.push(["seekTo", s, a]);
     this.time = s;
+    // Like the real player: seeking an unstarted or cued video starts it.
+    if (this.state === -1 || this.state === 5) this.state = 1;
   }
   playVideo() {
     this.calls.push(["playVideo"]);
@@ -86,6 +88,28 @@ describe("YouTubePlayer", () => {
     expect(ref.current!.isPlaying()).toBe(true);
     act(() => ref.current!.pause());
     expect(ref.current!.isPlaying()).toBe(false);
+  });
+
+  it.each([-1, 5])(
+    "a seek on an unstarted or cued video (%i) doesn't start playback",
+    async (state) => {
+      const { ref } = await mount();
+      last().state = state;
+      act(() => ref.current!.seek(12));
+      expect(last().calls).toEqual([["seekTo", 12, true], ["pauseVideo"]]);
+      expect(ref.current!.isPlaying()).toBe(false);
+    },
+  );
+
+  it("a seek while playing or paused leaves playback as it was", async () => {
+    const { ref } = await mount();
+    last().state = 1;
+    act(() => ref.current!.seek(12));
+    expect(ref.current!.isPlaying()).toBe(true);
+    last().state = 2;
+    act(() => ref.current!.seek(15));
+    expect(ref.current!.isPlaying()).toBe(false);
+    expect(last().calls.filter((c) => c[0] === "pauseVideo")).toEqual([]);
   });
 
   it("destroys the player on unmount", async () => {

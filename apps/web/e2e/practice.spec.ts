@@ -236,15 +236,19 @@ test("following the reference video: the video moves the card, Next seeks the vi
   await expect(page.getByTestId("corner-diagram")).toBeVisible();
   await followVideo(page);
   await expect(page.getByTestId("corner-diagram")).toHaveCount(0);
-  // The video starts at the card's corner.
+  // The video starts at the card's corner, without starting playback.
   await expect.poll(() => ytTime(page)).toBe(10);
+  await expect(page.getByTestId("fake-youtube")).toHaveAttribute("data-state", "2");
 
+  // Let the clock see the start-up seek land (its guard ignores other corners until then).
+  await page.waitForTimeout(500);
   await setYtTime(page, 21);
   await expect(card(page)).toHaveAttribute("aria-label", /^T2,/);
 
   await page.getByRole("button", { name: "Next corner" }).click();
   await expect(card(page)).toHaveAttribute("aria-label", /^T3,/);
   await expect.poll(() => ytTime(page)).toBe(30);
+  await expect(page.getByTestId("fake-youtube")).not.toHaveAttribute("data-state", "1");
   // No tug of war: the card stays where it was sent.
   await page.waitForTimeout(600);
   await expect(card(page)).toHaveAttribute("aria-label", /^T3,/);
@@ -278,7 +282,7 @@ test("practice card fits a phone in both orientations while following the video"
     const box = (await card(page).boundingBox())!;
     expect(box.y + box.height).toBeLessThanOrEqual(size.height);
     const player = (await page.getByTestId("fake-youtube").boundingBox())!;
-    expect(player.height).toBeGreaterThan(0);
+    expect(player.height).toBeGreaterThanOrEqual(80);
     expect(player.y + player.height).toBeLessThanOrEqual(box.y + box.height);
     expect(player.x + player.width).toBeLessThanOrEqual(size.width);
     // The guidance is still all there.

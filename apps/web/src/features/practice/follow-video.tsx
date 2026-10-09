@@ -33,6 +33,8 @@ interface FollowVideoProps {
   current: number;
   /** The video reached a corner of another step. */
   onStep(index: number): void;
+  /** While true (a note is open) the video doesn't move the card; it catches up after. */
+  paused?: boolean;
 }
 
 /**
@@ -40,7 +42,14 @@ interface FollowVideoProps {
  * ways: the video passing a corner's mark moves the card; moving the card by hand seeks the
  * video to that step's first marked corner (never starting playback). Marks are read-only.
  */
-export function FollowVideo({ video, title, steps, current, onStep }: FollowVideoProps) {
+export function FollowVideo({
+  video,
+  title,
+  steps,
+  current,
+  onStep,
+  paused = false,
+}: FollowVideoProps) {
   const playerRef = useRef<VideoPlayerHandle | null>(null);
   const readyRef = useRef(false);
   const [ready, setReady] = useState(false);
@@ -72,6 +81,7 @@ export function FollowVideo({ video, title, steps, current, onStep }: FollowVide
     if (!step) return;
     const target = markedCorner(step);
     synced.current = (target ?? step.corners[0]!).id;
+    guard.current = { cornerId: target?.id ?? null, until: Date.now() + SEEK_GRACE_MS };
     if (target) playerRef.current?.seek(marks.get(target.id)!);
   };
   const resetPlayer = () => {
@@ -80,7 +90,7 @@ export function FollowVideo({ video, title, steps, current, onStep }: FollowVide
   };
 
   // The video moved into another corner.
-  const onCorner = (cornerId: string | null) => {
+  const follow = (cornerId: string | null) => {
     const g = guard.current;
     if (g && Date.now() < g.until && cornerId !== g.cornerId) return;
     guard.current = null;
@@ -90,6 +100,20 @@ export function FollowVideo({ video, title, steps, current, onStep }: FollowVide
     synced.current = cornerId;
     if (index !== current) onStep(index);
   };
+  /** A corner the video reached while paused, applied on resume. */
+  const missed = useRef<{ cornerId: string | null } | null>(null);
+  const onCorner = (cornerId: string | null) => {
+    if (paused) missed.current = { cornerId };
+    else follow(cornerId);
+  };
+  const catchUp = useEffectEvent(() => {
+    const m = missed.current;
+    missed.current = null;
+    if (m) follow(m.cornerId);
+  });
+  useEffect(() => {
+    if (!paused) catchUp();
+  }, [paused]);
 
   const clock = (
     <CornerClock playerRef={playerRef} active={ready} marks={video.marks} onChange={onCorner} />
