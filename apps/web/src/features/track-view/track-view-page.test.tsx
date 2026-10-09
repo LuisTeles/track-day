@@ -966,6 +966,22 @@ describe("TrackViewPage reference video", () => {
       await waitFor(() => expect(search.get("panel")).toBeNull());
     });
 
+    it("drops the draft when E's Discard changes keeps the panel open", async () => {
+      const { user } = await open({ panel: "video" }, withVideo);
+      await startMarking(user);
+      await user.keyboard("e");
+      await asked();
+      await user.click(screen.getByRole("button", { name: "Discard changes" }));
+      await waitFor(() => expect(search.get("edit")).toBe("1"));
+      // Marking mode is left with its draft: the saved mark is back in the corner list.
+      expect(screen.queryByRole("button", { name: "Mark T1 S do Senna" })).toBeNull();
+      expect(await screen.findByRole("button", { name: /^T1 .* · 0:12\.5$/ })).toBeInTheDocument();
+      // Nothing unsaved is left to drop silently: closing asks nothing.
+      await user.click(screen.getByRole("button", { name: "Close panel" }));
+      expect(screen.queryByRole("alertdialog")).toBeNull();
+      expect(search.get("panel")).toBeNull();
+    });
+
     it("lets a marker click seek while marking, keeping the draft", async () => {
       const { user } = await open({ panel: "video" }, withVideo);
       await startMarking(user);

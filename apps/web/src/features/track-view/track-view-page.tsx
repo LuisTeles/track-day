@@ -98,7 +98,13 @@ function TrackView({ trackId }: { trackId: string }) {
   const playerRef = useRef<VideoPlayerHandle | null>(null);
   const [seekRequest, setSeekRequest] = useState<SeekRequest | null>(null);
   const isDirty = () => Object.values(dirtyRef.current).some(Boolean);
+  /**
+   * Bumped whenever unsaved edits are discarded. Drafts whose component stays mounted
+   * (the video panel's marking) reset on it, so a discarded draft never lingers untracked.
+   */
+  const [discards, setDiscards] = useState(0);
   const clearEdits = () => {
+    if (isDirty()) setDiscards((n) => n + 1);
     setDirty({});
     setPicking(null);
     setPickError(null);
@@ -499,6 +505,7 @@ function TrackView({ trackId }: { trackId: string }) {
             trackId={track.id}
             playerRef={playerRef}
             seekRequest={seekRequest}
+            discards={discards}
             onDirtyChange={onVideoDirty}
           />
         ) : selected ? (

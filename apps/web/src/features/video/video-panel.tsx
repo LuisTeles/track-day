@@ -44,6 +44,8 @@ export interface VideoPanelProps {
   seekRequest?: SeekRequest | null;
   /** True while marking has unsaved changes. */
   onDirtyChange?(dirty: boolean): void;
+  /** Bumped when the page discards unsaved edits: marking (and its draft) is left. */
+  discards?: number;
 }
 
 /**
@@ -77,6 +79,7 @@ export function VideoPanel({
   onPlayingChange,
   seekRequest,
   onDirtyChange,
+  discards = 0,
 }: VideoPanelProps) {
   const video = guide.video;
   const save = useSaveVideo(trackId);
@@ -87,6 +90,12 @@ export function VideoPanel({
   const [unplayable, setUnplayable] = useState(false);
   const [ready, setReady] = useState(false);
   const [marking, setMarking] = useState(false);
+  // Edits discarded by the page: drop the marking draft (adjusting state while rendering).
+  const [seenDiscards, setSeenDiscards] = useState(discards);
+  if (discards !== seenDiscards) {
+    setSeenDiscards(discards);
+    setMarking(false);
+  }
   const markButton = useRef<HTMLButtonElement>(null);
   const wasMarking = useRef(false);
   const readyRef = useRef(false);
@@ -310,6 +319,7 @@ export function VideoPanel({
         {player}
         {error}
         <MarkCorners
+          key={discards}
           video={video}
           corners={corners}
           playerRef={playerRef}
