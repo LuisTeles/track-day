@@ -1,7 +1,14 @@
 // @vitest-environment node
 import "fake-indexeddb/auto";
 import { readFileSync } from "node:fs";
-import { GuideImportPayload, TrackImportPayload, type Layout } from "@track-day/schema";
+import {
+  BackupPayload,
+  GuideImportPayload,
+  parseImport,
+  TrackImportPayload,
+  type Layout,
+  type ReferenceVideo,
+} from "@track-day/schema";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Repositories } from "../repositories";
 import { TrackDayDb } from "./db";
@@ -191,5 +198,80 @@ describe("importGuide", () => {
     await repos.backup.importAll(backup, "replace");
     const restored = (await repos.cornerGuides.listByGuide(guideId)).map((g) => g.notes).sort();
     expect(restored).toEqual(["", "Bumpy"]);
+  });
+});
+
+describe("backup with reference videos", () => {
+  async function guideOnInterlagos(video: ReferenceVideo | null) {
+    const { layoutId } = await repos.trackImport.importTrack(interlagos);
+    const corners = await repos.corners.listByLayout(layoutId);
+    const cls = await repos.carClasses.create({
+      name: "GT3",
+      description: "",
+      drivetrain: null,
+      downforce: null,
+    });
+    const guide = await repos.guides.create({
+      layoutId,
+      target: { carClassId: cls.id },
+      sim: null,
+      referenceLapTime: null,
+      setupNotes: "",
+      source: "manual",
+      video: video && {
+        ...video,
+        marks: video.marks.map((m, i) => ({ ...m, cornerId: corners[i]!.id })),
+      },
+    });
+    return guide;
+  }
+
+  it("imports a v1 backup (guides without video) with video null", async () => {
+    const guide = await guideOnInterlagos(null);
+    const current = await repos.backup.exportAll();
+    // What a v1 app exported: no `video` on guides.
+    const v1 = {
+      ...current,
+      schemaVersion: 1,
+      data: {
+        ...current.data,
+        guides: current.data.guides.map((g) => {
+          const old: Partial<typeof g> = { ...g };
+          delete old.video;
+          return old;
+        }),
+      },
+    };
+    expect(v1.data.guides[0]).not.toHaveProperty("video");
+    await db.delete();
+    db = new TrackDayDb(`test-${crypto.randomUUID()}`);
+    repos = createLocalRepositories(db);
+
+    const result = parseImport(JSON.stringify(v1), BackupPayload);
+    if (!result.ok) throw new Error(JSON.stringify(result.issues));
+    await repos.backup.importAll(result.value, "merge");
+    expect((await repos.guides.get(guide.id))?.video).toBeNull();
+  });
+
+  it("round-trips a v2 backup with a video and its marks", async () => {
+    const video: ReferenceVideo = {
+      source: "youtube",
+      youtubeId: "dQw4w9WgXcQ",
+      lapStartSec: 4.5,
+      lapEndSec: 98.2,
+      marks: [
+        { cornerId: "", sec: 12.5 },
+        { cornerId: "", sec: 20 },
+      ],
+    };
+    const guide = await guideOnInterlagos(video);
+    const saved = (await repos.guides.get(guide.id))!.video;
+    const raw = JSON.stringify(await repos.backup.exportAll());
+
+    const result = parseImport(raw, BackupPayload);
+    if (!result.ok) throw new Error(JSON.stringify(result.issues));
+    await repos.backup.importAll(result.value, "replace");
+    expect((await repos.guides.get(guide.id))?.video).toEqual(saved);
+    expect(saved?.marks).toHaveLength(2);
   });
 });
