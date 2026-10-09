@@ -453,3 +453,45 @@ describe("VideoPanel watching", () => {
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:fake-1");
   });
 });
+
+describe("VideoPanel marking", () => {
+  const ready = async () => {
+    await waitFor(() => expect(FakePlayer.instances).toHaveLength(1));
+    await act(() => Promise.resolve()); // onReady
+  };
+
+  it("marks from the player's time, saves, and returns to the corner list", async () => {
+    const onDirtyChange = vi.fn();
+    const { update, user } = setup({ ...youtube([]), lapStartSec: null }, { onDirtyChange });
+    await ready();
+    await user.click(screen.getByRole("button", { name: "Mark corners" }));
+    expect(screen.queryByRole("heading", { name: "Corners on the video" })).toBeNull();
+    player().time = 7.25;
+    await user.click(screen.getByRole("button", { name: "Mark start line" }));
+    expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+    await user.click(screen.getByRole("button", { name: "Save marks" }));
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith("g1", {
+        video: expect.objectContaining({ lapStartSec: 7.3, marks: [] }),
+      }),
+    );
+    expect(await screen.findByRole("heading", { name: "Corners on the video" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Mark corners" })).toHaveFocus();
+    expect(player().destroyed).toBe(false);
+  });
+
+  it("cancel discards the draft and keeps the player", async () => {
+    const { update, user } = setup(youtube());
+    await ready();
+    await user.click(screen.getByRole("button", { name: "Mark corners" }));
+    await user.click(screen.getByRole("button", { name: "Clear T1" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "T1 Senna · 0:12.5" })).toBeEnabled();
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it("waits for the player before marking", () => {
+    setup(youtube());
+    expect(screen.getByRole("button", { name: "Mark corners" })).toBeDisabled();
+  });
+});

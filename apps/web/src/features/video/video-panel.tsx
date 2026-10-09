@@ -1,7 +1,7 @@
 "use client";
 
 import type { Corner, Guide, Layout, ReferenceVideo, VideoFile } from "@track-day/schema";
-import { ExternalLink, Trash2 } from "lucide-react";
+import { ExternalLink, MapPin, Trash2 } from "lucide-react";
 import {
   useEffect,
   useEffectEvent,
@@ -16,6 +16,7 @@ import { useConfirm } from "@/shared/ui/confirm";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
 import { FilePlayer } from "./file-player";
+import { MarkCorners } from "./mark-corners";
 import type { VideoPlayerHandle } from "./player";
 import { useSaveVideo } from "./use-save-video";
 import { formatVideoTime } from "./video-sync";
@@ -41,6 +42,8 @@ export interface VideoPanelProps {
   /** Called when playback starts or stops, and with false when the player goes away. */
   onPlayingChange?(playing: boolean): void;
   seekRequest?: SeekRequest | null;
+  /** True while marking has unsaved changes. */
+  onDirtyChange?(dirty: boolean): void;
 }
 
 /**
@@ -49,6 +52,8 @@ export interface VideoPanelProps {
  * "fresh": a new video, saved with no marks.
  */
 type Plan = "same" | "keep" | "fresh";
+
+const noop = () => {};
 
 const NO_MARKS = { lapStartSec: null, lapEndSec: null, marks: [] };
 
@@ -71,6 +76,7 @@ export function VideoPanel({
   playerRef,
   onPlayingChange,
   seekRequest,
+  onDirtyChange,
 }: VideoPanelProps) {
   const video = guide.video;
   const save = useSaveVideo(trackId);
@@ -80,6 +86,9 @@ export function VideoPanel({
   /** The last picked file the browser couldn't play; nothing was saved for it. */
   const [unplayable, setUnplayable] = useState(false);
   const [ready, setReady] = useState(false);
+  const [marking, setMarking] = useState(false);
+  const markButton = useRef<HTMLButtonElement>(null);
+  const wasMarking = useRef(false);
   const readyRef = useRef(false);
   const pendingSeek = useRef<number | null>(null);
   const savedFile = useRef<File | null>(null);
@@ -102,7 +111,13 @@ export function VideoPanel({
   const resetPlayer = () => {
     readyRef.current = false;
     setReady(false);
+    setMarking(false);
   };
+  // Back from marking: focus returns to the button that started it.
+  useEffect(() => {
+    if (wasMarking.current && !marking) markButton.current?.focus();
+    wasMarking.current = marking;
+  }, [marking]);
 
   // After attaching (the form or picker that had focus is gone), focus the corner list.
   // Opening the panel on a video leaves focus with the panel's own heading.
@@ -289,6 +304,26 @@ export function VideoPanel({
     );
   }
 
+  if (marking && video) {
+    return (
+      <div className="space-y-4 text-sm">
+        {player}
+        {error}
+        <MarkCorners
+          video={video}
+          corners={corners}
+          playerRef={playerRef}
+          saving={save.isPending}
+          onDirtyChange={onDirtyChange ?? noop}
+          onCancel={() => setMarking(false)}
+          onSave={(next) =>
+            save.mutate({ guideId: guide.id, video: next }, { onSuccess: () => setMarking(false) })
+          }
+        />
+      </div>
+    );
+  }
+
   const marks = new Map(video?.marks.map((m) => [m.cornerId, m.sec]));
   const inLapOrder = [...corners].sort((a, b) => a.order - b.order);
   return (
@@ -328,6 +363,17 @@ export function VideoPanel({
               <ExternalLink aria-hidden />
               Watch on YouTube
             </a>
+          </Button>
+        )}
+        {video && (
+          <Button
+            ref={markButton}
+            variant="secondary"
+            disabled={!ready || save.isPending}
+            onClick={() => setMarking(true)}
+          >
+            <MapPin aria-hidden />
+            Mark corners
           </Button>
         )}
         {video && <RemoveButton onClick={() => void remove()} disabled={save.isPending} />}

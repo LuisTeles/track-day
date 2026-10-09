@@ -718,10 +718,7 @@ describe("TrackViewPage reference video", () => {
     expect(second.time).toBe(0);
   });
 
-  it("closes the video panel after adding a car", async () => {
-    const { user } = await open({ panel: "video" }, async ({ guideId }) => {
-      await repos.guides.remove(guideId);
-    });
+  const addCar = async (user: ReturnType<typeof userEvent.setup>) => {
     search.delete("guide");
     rerenderPage();
     await user.selectOptions(await screen.findByLabelText("Car"), "__add__");
@@ -729,8 +726,21 @@ describe("TrackViewPage reference video", () => {
     await user.type(within(dialog).getByLabelText("Car name"), "Mazda MX-5");
     await user.click(within(dialog).getByRole("button", { name: "Add car" }));
     await waitFor(() => expect(search.get("guide")).not.toBeNull());
+  };
+
+  it("closes the video panel after adding a car", async () => {
+    const { user } = await open({ panel: "video" }, async ({ guideId }) => {
+      await repos.guides.remove(guideId);
+    });
+    await addCar(user);
     expect(search.get("panel")).toBeNull();
     expect(screen.queryByRole("heading", { name: /^Video · / })).toBeNull();
+  });
+
+  it("keeps the setup panel open after adding a car", async () => {
+    const { user } = await open({ panel: "setup" });
+    await addCar(user);
+    expect(search.get("panel")).toBe("setup");
   });
 
   it("opens from the More menu, clearing the selected corner", async () => {
@@ -802,5 +812,72 @@ describe("TrackViewPage reference video", () => {
     // Markers open the corner card again.
     fireEvent.click(screen.getByRole("button", { name: /^Turn 2,/ }));
     expect(search.get("corner")).not.toBeNull();
+  });
+
+  describe("marking", () => {
+    const startMarking = async (user: ReturnType<typeof userEvent.setup>) => {
+      await waitFor(() => expect(FakeYTPlayer.instances).toHaveLength(1));
+      await act(() => Promise.resolve()); // onReady
+      await user.click(await screen.findByRole("button", { name: "Mark corners" }));
+      await user.click(screen.getByRole("button", { name: "Clear T1" }));
+    };
+    const asked = async () => {
+      const dialog = await screen.findByRole("alertdialog", { name: "Discard unsaved changes?" });
+      expect(within(dialog).getByText("Your video marks haven't been saved.")).toBeVisible();
+    };
+
+    it("asks before closing the panel over unsaved marks, and Keep editing keeps the draft", async () => {
+      const { user } = await open({ panel: "video" }, withVideo);
+      await startMarking(user);
+      await user.click(screen.getByRole("button", { name: "Close panel" }));
+      await asked();
+      await user.click(screen.getByRole("button", { name: "Keep editing" }));
+      expect(search.get("panel")).toBe("video");
+      expect(screen.getByRole("button", { name: "Mark T1 S do Senna" })).toBeInTheDocument();
+    });
+
+    it("asks before a More menu item or a link drops unsaved marks", async () => {
+      const { user } = await open({ panel: "video" }, withVideo);
+      await startMarking(user);
+      await user.click(screen.getByRole("button", { name: "More map actions" }));
+      await user.click(screen.getByRole("menuitem", { name: "Car setup" }));
+      await asked();
+      await user.click(screen.getByRole("button", { name: "Keep editing" }));
+      expect(search.get("panel")).toBe("video");
+
+      await user.click(screen.getByRole("button", { name: "More map actions" }));
+      await user.click(screen.getByRole("menuitem", { name: "Cheat sheet" }));
+      await asked();
+      await user.click(screen.getByRole("button", { name: "Keep editing" }));
+      expect(push).not.toHaveBeenCalled();
+    });
+
+    it("discards the draft on Discard changes", async () => {
+      const { user } = await open({ panel: "video" }, withVideo);
+      await startMarking(user);
+      await user.click(screen.getByRole("button", { name: "Close panel" }));
+      await asked();
+      await user.click(screen.getByRole("button", { name: "Discard changes" }));
+      await waitFor(() => expect(search.get("panel")).toBeNull());
+    });
+
+    it("lets a marker click seek while marking, keeping the draft", async () => {
+      const { user } = await open({ panel: "video" }, withVideo);
+      await startMarking(user);
+      fireEvent.click(screen.getByRole("button", { name: /^Turn 1,/ }));
+      expect(screen.queryByRole("alertdialog")).toBeNull();
+      expect(screen.getByRole("button", { name: "Mark T1 S do Senna" })).toBeInTheDocument();
+    });
+
+    it("leaves freely once the marks are saved", async () => {
+      const { user, guide } = await open({ panel: "video" }, withVideo);
+      await startMarking(user);
+      await user.click(screen.getByRole("button", { name: "Save marks" }));
+      await screen.findByRole("button", { name: "Mark corners" });
+      await user.click(screen.getByRole("button", { name: "Close panel" }));
+      expect(screen.queryByRole("alertdialog")).toBeNull();
+      expect(search.get("panel")).toBeNull();
+      expect((await repos.guides.get(guide.id))?.video?.marks).toEqual([]);
+    });
   });
 });

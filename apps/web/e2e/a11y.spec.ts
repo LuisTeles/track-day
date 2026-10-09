@@ -106,6 +106,10 @@ for (const scheme of ["light", "dark"] as const) {
     await panel.getByRole("button", { name: "Use this video" }).click();
     await expect(panel.getByTestId("fake-youtube")).toBeVisible();
     await scan(page, "track-video");
+    await panel.getByRole("button", { name: "Mark corners" }).click();
+    await panel.getByRole("button", { name: "Mark start line" }).click();
+    await expect(panel.getByRole("button", { name: "Earlier start line" })).toBeVisible();
+    await scan(page, "track-video");
   });
 }
 

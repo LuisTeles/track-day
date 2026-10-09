@@ -89,6 +89,10 @@ function TrackView({ trackId }: { trackId: string }) {
     (value: boolean) => setDirty((d) => (d.setup === value ? d : { ...d, setup: value })),
     [setDirty],
   );
+  const onVideoDirty = useCallback(
+    (value: boolean) => setDirty((d) => (d.video === value ? d : { ...d, video: value })),
+    [setDirty],
+  );
   const confirm = useConfirm();
   const toast = useToast();
   // The reference video's player, shared with the map (marker seeks, the lap dot).
@@ -109,7 +113,9 @@ function TrackView({ trackId }: { trackId: string }) {
     if (!isDirty()) return then();
     const description = dirtyRef.current.setup
       ? "Your setup notes haven’t been saved."
-      : "Your edits to this corner haven’t been saved.";
+      : dirtyRef.current.video
+        ? "Your video marks haven't been saved."
+        : "Your edits to this corner haven’t been saved.";
     void confirm({ ...DISCARD, description }).then((ok) => ok && then());
   };
   /** Asks before dropping unsaved edits; on yes, clears the edit state first. */
@@ -477,6 +483,7 @@ function TrackView({ trackId }: { trackId: string }) {
             trackId={track.id}
             playerRef={playerRef}
             seekRequest={seekRequest}
+            onDirtyChange={onVideoDirty}
           />
         ) : selected ? (
           <CornerDetails
@@ -569,9 +576,13 @@ function TrackView({ trackId }: { trackId: string }) {
             setDirty({});
             setPicking(null);
             setPickError(null);
-            // A panel left in the URL (say `panel=video` from before there was a car)
-            // must not pop open for the new car.
-            setParams({ guide: guideId, panel: null });
+            // A video panel left in the URL (from before there was a car) must not pop
+            // open for the new car; setup and the corner list stay as they were.
+            setParams(
+              params.get("panel") === "video"
+                ? { guide: guideId, panel: null }
+                : { guide: guideId },
+            );
           }}
         />
       )}

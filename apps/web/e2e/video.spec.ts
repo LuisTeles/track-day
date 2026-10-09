@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { FAKE_YOUTUBE_API } from "./fixtures/fake-youtube";
 
 const IFRAME_API = "https://www.youtube.com/iframe_api";
@@ -52,44 +52,10 @@ async function storedVideo(page: Page) {
   );
 }
 
-/** Marks corners (by number → seconds) on the car's stored video, as Task 5's marking would. */
-async function seedMarks(page: Page, marks: Record<number, number>) {
-  return page.evaluate(
-    ({ id, marks }) =>
-      new Promise<void>((resolve, reject) => {
-        const open = indexedDB.open("track-day");
-        open.onerror = () => reject(open.error);
-        open.onsuccess = () => {
-          const db = open.result;
-          const tx = db.transaction(["guides", "corners"], "readwrite");
-          const guides = tx.objectStore("guides").get(id);
-          guides.onsuccess = () => {
-            const guide = guides.result;
-            const corners = tx.objectStore("corners").index("layoutId").getAll(guide.layoutId);
-            corners.onsuccess = () => {
-              const byNumber = new Map(
-                corners.result.map((c: { id: string; number: number }) => [c.number, c.id]),
-              );
-              guide.video = {
-                ...guide.video,
-                lapStartSec: 5,
-                marks: Object.entries(marks).map(([n, sec]) => ({
-                  cornerId: byNumber.get(Number(n)),
-                  sec,
-                })),
-              };
-              tx.objectStore("guides").put(guide);
-            };
-          };
-          tx.oncomplete = () => {
-            db.close();
-            resolve();
-          };
-          tx.onerror = () => reject(tx.error);
-        };
-      }),
-    { id: await guideId(page), marks },
-  );
+/** Sets the fake player's time, then marks the next point with the primary button. */
+async function markAt(page: Page, panel: Locator, sec: number) {
+  await page.evaluate((t) => ((window as unknown as { __ytTime: number }).__ytTime = t), sec);
+  await panel.getByRole("button", { name: /^Mark (start|T\d|finish)/ }).click();
 }
 
 const ytTime = (page: Page) =>
@@ -118,7 +84,18 @@ test("attach a YouTube link, then jump to corners from the list and the map", as
     .poll(() => storedVideo(page))
     .toMatchObject({ source: "youtube", youtubeId: "dQw4w9WgXcQ", marks: [] });
 
-  await seedMarks(page, { 1: 12.5, 2: 20 });
+  // Mark the start line, T1 and T2 (the rest stay unmarked), then reload.
+  await panel.getByRole("button", { name: "Mark corners" }).click();
+  await expect(panel.getByRole("button", { name: "Mark start line" })).toBeVisible();
+  await markAt(page, panel, 5);
+  await expect(panel.getByRole("button", { name: /^Mark T1/ })).toBeVisible();
+  await markAt(page, panel, 12.5);
+  await markAt(page, panel, 20);
+  await panel.getByRole("button", { name: "Save marks" }).click();
+  await expect(panel.getByRole("button", { name: "Mark corners" })).toBeVisible();
+  await expect
+    .poll(() => storedVideo(page))
+    .toMatchObject({ lapStartSec: 5, lapEndSec: null, marks: [{ sec: 12.5 }, { sec: 20 }] });
   await page.reload();
   await expect(panel.getByTestId("fake-youtube")).toBeVisible();
 
@@ -142,6 +119,50 @@ test("attach a YouTube link, then jump to corners from the list and the map", as
   await expect(page.getByTestId("fake-youtube")).toHaveCount(0);
   await page.getByRole("button", { name: /^Turn 1,/ }).click();
   await expect(page.getByRole("complementary", { name: "T1 · S do Senna" })).toBeVisible();
+});
+
+test("mark every point with the button and the M key, nudge, save, reload", async ({ page }) => {
+  await fakeYouTube(page);
+  await openWithCar(page);
+  const panel = await openVideoPanel(page);
+  await panel.getByLabel("Paste a YouTube link").fill("https://youtu.be/dQw4w9WgXcQ");
+  await panel.getByRole("button", { name: "Use this video" }).click();
+  await expect(panel.getByTestId("fake-youtube")).toBeVisible();
+  await panel.getByRole("button", { name: "Mark corners" }).click();
+
+  await markAt(page, panel, 4);
+  // The M key does the same as the button.
+  const setTime = (t: number) =>
+    page.evaluate((v) => ((window as unknown as { __ytTime: number }).__ytTime = v), t);
+  await setTime(10);
+  await page.keyboard.press("m");
+  await expect(panel.getByText("0:10.0")).toBeVisible();
+  await panel.getByRole("button", { name: "Later T1" }).click();
+  await expect(panel.getByText("0:10.5")).toBeVisible();
+
+  // Out of order: the save is blocked until fixed.
+  await setTime(8);
+  await page.keyboard.press("m");
+  await expect(
+    panel.getByText("T2 is marked before the corner ahead of it. Fix the order to save."),
+  ).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Save marks" })).toBeDisabled();
+  await panel.getByRole("button", { name: "Undo last mark" }).click();
+  await expect(panel.getByRole("button", { name: "Save marks" })).toBeEnabled();
+
+  // Leaving with unsaved marks asks first.
+  await page.getByRole("button", { name: "Close panel" }).click();
+  const dialog = page.getByRole("alertdialog", { name: "Discard unsaved changes?" });
+  await expect(dialog).toContainText("Your video marks haven't been saved.");
+  await dialog.getByRole("button", { name: "Keep editing" }).click();
+  await expect(panel).toBeVisible();
+
+  await panel.getByRole("button", { name: "Save marks" }).click();
+  await expect
+    .poll(() => storedVideo(page))
+    .toMatchObject({ lapStartSec: 4, marks: [{ sec: 10.5 }] });
+  await page.reload();
+  await expect(panel.getByRole("button", { name: /^T1 .*· 0:10\.5$/ })).toBeEnabled();
 });
 
 test("nothing is loaded from YouTube until the video panel opens", async ({ page }) => {

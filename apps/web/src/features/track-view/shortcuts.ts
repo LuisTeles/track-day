@@ -36,19 +36,24 @@ const MAP: Record<string, ShortcutAction> = {
 const TYPING = "input, textarea, select, [contenteditable=''], [contenteditable='true']";
 const LAYER = "[role=dialog], [role=alertdialog], [role=menu]";
 
-export function shortcutFor(
-  e: Pick<
-    KeyboardEvent,
-    "key" | "ctrlKey" | "metaKey" | "altKey" | "repeat" | "target" | "defaultPrevented"
-  > &
-    Partial<Pick<KeyboardEvent, "getModifierState">>,
-): ShortcutAction | null {
-  if (e.defaultPrevented || e.repeat || e.metaKey) return null;
+type KeyInfo = Pick<
+  KeyboardEvent,
+  "key" | "ctrlKey" | "metaKey" | "altKey" | "repeat" | "target" | "defaultPrevented"
+> &
+  Partial<Pick<KeyboardEvent, "getModifierState">>;
+
+/** True when a plain key press must be left alone: typing, an open dialog or menu, repeats, Ctrl/Cmd. */
+export function keyIsBlocked(e: KeyInfo): boolean {
+  if (e.defaultPrevented || e.repeat || e.metaKey) return true;
   // AltGr reports Ctrl+Alt on Windows; it types `[` `]` on PT, DE and FR layouts.
-  if (e.ctrlKey && !e.getModifierState?.("AltGraph")) return null;
+  if (e.ctrlKey && !e.getModifierState?.("AltGraph")) return true;
   // Alt (Option on a Mac) also types symbols, but Alt+letter is a browser/OS combo.
-  if ((e.altKey || e.ctrlKey) && /^[a-z]$/i.test(e.key)) return null;
+  if ((e.altKey || e.ctrlKey) && /^[a-z]$/i.test(e.key)) return true;
   const target = e.target instanceof Element ? e.target : null;
-  if (target?.closest(TYPING) || target?.closest(LAYER)) return null;
+  return !!(target?.closest(TYPING) || target?.closest(LAYER));
+}
+
+export function shortcutFor(e: KeyInfo): ShortcutAction | null {
+  if (keyIsBlocked(e)) return null;
   return MAP[e.key] ?? null;
 }
