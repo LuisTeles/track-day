@@ -30,15 +30,8 @@ import { TrackViewShell } from "./track-view-shell";
 import { useStoredToggle } from "@/shared/hooks/use-stored-toggle";
 import { useToast } from "@/shared/ui/toast";
 import type { VideoPlayerHandle } from "@/features/video/player";
-import { useVideoTime } from "@/features/video/use-video-time";
 import { VideoPanel, type SeekRequest } from "@/features/video/video-panel";
-import { VideoDot } from "@/features/video/video-dot";
-import {
-  cornerAt,
-  lapFractionAt,
-  markOrderProblems,
-  videoAnchors,
-} from "@/features/video/video-sync";
+import { VideoDotLayer } from "@/features/video/video-dot-layer";
 import { OsmAttribution } from "@/shared/ui/osm-attribution";
 import { CornerGuideSection } from "./corner-guide-section";
 import { chipsFor, guideLabel } from "./guides";
@@ -151,17 +144,8 @@ function TrackView({ trackId }: { trackId: string }) {
   const listOpen = params.get("panel") === "corners";
   const setupOpen = params.get("panel") === "setup" && guide !== null;
   const videoOpen = params.get("panel") === "video" && guide !== null;
-  const videoTime = useVideoTime(playerRef, videoOpen);
-  // Where the reference car is on the lap; null (no dot) unless the marks make sense.
-  const videoFraction = useMemo(() => {
-    const video = guide?.video;
-    const lap = data?.layout;
-    const all = data?.corners;
-    if (!videoOpen || !video || !lap?.outlinePath || !all) return null;
-    if (markOrderProblems(video, all).length > 0) return null;
-    const anchors = videoAnchors(video, all, lap);
-    return lapFractionAt(videoTime, anchors, video.lapEndSec);
-  }, [videoOpen, guide?.video, data?.layout, data?.corners, videoTime]);
+  // The corner the playing video is at; reported by the dot layer only when it changes.
+  const [videoCorner, setVideoCorner] = useState<string | null>(null);
 
   const setParams = useCallback(
     (changes: Record<string, string | null>) => {
@@ -328,9 +312,7 @@ function TrackView({ trackId }: { trackId: string }) {
   // The setup or video panel and a selected corner share the one panel: setup/video win.
   const selected = setupOpen || videoOpen ? null : (corners.find((c) => c.id === cornerId) ?? null);
   // With the video open, the selected marker is the corner the video is at.
-  const markerId = videoOpen
-    ? cornerAt(videoTime, guide?.video?.marks ?? [])
-    : (selected?.id ?? null);
+  const markerId = videoOpen ? videoCorner : (selected?.id ?? null);
   const topPracticeHref = layout
     ? practiceHref(track.id, layout.id, params.get("guide"), selectedCorner?.number ?? null)
     : null;
@@ -643,7 +625,15 @@ function TrackView({ trackId }: { trackId: string }) {
             label={`Map of ${track.name}, ${layout.name} layout`}
             overlay={(ctx) => (
               <>
-                <VideoDot ctx={ctx} fraction={videoFraction} />
+                <VideoDotLayer
+                  ctx={ctx}
+                  playerRef={playerRef}
+                  active={videoOpen}
+                  video={guide?.video ?? null}
+                  corners={corners}
+                  layout={layout}
+                  onCornerChange={setVideoCorner}
+                />
                 <CornerMarkers
                   ctx={ctx}
                   layout={layout}

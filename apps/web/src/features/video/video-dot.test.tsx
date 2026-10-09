@@ -42,11 +42,38 @@ describe("VideoDot", () => {
     renderDot(Number.NaN);
     expect(screen.queryByTestId("video-dot")).toBeNull();
   });
+});
 
-  it("only animates when motion is allowed", () => {
-    renderDot(0.5);
-    const cls = screen.getByTestId("video-dot").className;
-    expect(cls).toContain("motion-safe:transition-transform");
-    expect(cls).not.toMatch(/(^|\s)transition/);
+describe("VideoDot transition", () => {
+  const fakeCtx = (k = 1): CanvasContext =>
+    ({
+      geometry: { pointAt: (f: number) => ({ x: f * 100, y: 0 }) },
+      toScreen: (p: { x: number; y: number }) => p,
+      zoom: { k, x: 0, y: 0 },
+      viewport: { width: 800, height: 600 },
+    }) as unknown as CanvasContext;
+  const cls = () => screen.getByTestId("video-dot").className;
+
+  it("glides on an ordinary forward move", () => {
+    const ctx = fakeCtx();
+    const { rerender } = render(<VideoDot ctx={ctx} fraction={0.3} />);
+    expect(cls()).not.toContain("transition");
+    rerender(<VideoDot ctx={ctx} fraction={0.35} />);
+    expect(cls()).toContain("motion-safe:transition-transform");
+  });
+
+  it("does not glide across a seek or lap wrap", () => {
+    const ctx = fakeCtx();
+    const { rerender } = render(<VideoDot ctx={ctx} fraction={0.95} />);
+    rerender(<VideoDot ctx={ctx} fraction={0.02} />);
+    expect(cls()).not.toContain("transition");
+    rerender(<VideoDot ctx={ctx} fraction={0.5} />);
+    expect(cls()).not.toContain("transition");
+  });
+
+  it("does not glide while the map is panned or zoomed", () => {
+    const { rerender } = render(<VideoDot ctx={fakeCtx(1)} fraction={0.3} />);
+    rerender(<VideoDot ctx={fakeCtx(2)} fraction={0.31} />);
+    expect(cls()).not.toContain("transition");
   });
 });
