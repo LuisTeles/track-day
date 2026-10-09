@@ -153,7 +153,7 @@ test("mark every point with the button and the M key, nudge, save, reload", asyn
   // Leaving with unsaved marks asks first.
   await page.getByRole("button", { name: "Close panel" }).click();
   const dialog = page.getByRole("alertdialog", { name: "Discard unsaved changes?" });
-  await expect(dialog).toContainText("Your video marks haven't been saved.");
+  await expect(dialog).toContainText("Your video marks haven’t been saved.");
   await dialog.getByRole("button", { name: "Keep editing" }).click();
   await expect(panel).toBeVisible();
 

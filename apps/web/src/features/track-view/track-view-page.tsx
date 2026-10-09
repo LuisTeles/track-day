@@ -114,7 +114,7 @@ function TrackView({ trackId }: { trackId: string }) {
     const description = dirtyRef.current.setup
       ? "Your setup notes haven’t been saved."
       : dirtyRef.current.video
-        ? "Your video marks haven't been saved."
+        ? "Your video marks haven’t been saved."
         : "Your edits to this corner haven’t been saved.";
     void confirm({ ...DISCARD, description }).then((ok) => ok && then());
   };

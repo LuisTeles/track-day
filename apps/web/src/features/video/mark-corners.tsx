@@ -152,7 +152,6 @@ export function MarkCorners({
                 <>
                   <span className="tabular-nums">{formatVideoTime(sec)}</span>
                   <Button
-                    size="sm"
                     variant="outline"
                     aria-label={`Earlier ${aria}`}
                     onClick={() => nudge(point, -NUDGE)}
@@ -160,19 +159,13 @@ export function MarkCorners({
                     −0.5 s
                   </Button>
                   <Button
-                    size="sm"
                     variant="outline"
                     aria-label={`Later ${aria}`}
                     onClick={() => nudge(point, NUDGE)}
                   >
                     +0.5 s
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    aria-label={`Clear ${aria}`}
-                    onClick={() => clear(point)}
-                  >
+                  <Button variant="ghost" aria-label={`Clear ${aria}`} onClick={() => clear(point)}>
                     Clear
                   </Button>
                 </>
@@ -197,7 +190,7 @@ export function MarkCorners({
         <Button variant="outline" disabled={undoTarget === null} onClick={undo}>
           Undo last mark
         </Button>
-        <Button variant="outline" onClick={onCancel}>
+        <Button variant="outline" disabled={saving} onClick={onCancel}>
           Cancel
         </Button>
       </div>

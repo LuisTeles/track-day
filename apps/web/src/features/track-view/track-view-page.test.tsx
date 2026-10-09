@@ -823,7 +823,7 @@ describe("TrackViewPage reference video", () => {
     };
     const asked = async () => {
       const dialog = await screen.findByRole("alertdialog", { name: "Discard unsaved changes?" });
-      expect(within(dialog).getByText("Your video marks haven't been saved.")).toBeVisible();
+      expect(within(dialog).getByText("Your video marks haven’t been saved.")).toBeVisible();
     };
 
     it("asks before closing the panel over unsaved marks, and Keep editing keeps the draft", async () => {
@@ -833,6 +833,46 @@ describe("TrackViewPage reference video", () => {
       await asked();
       await user.click(screen.getByRole("button", { name: "Keep editing" }));
       expect(search.get("panel")).toBe("video");
+      expect(screen.getByRole("button", { name: "Mark T1 S do Senna" })).toBeInTheDocument();
+    });
+
+    it("asks before Escape closes the panel over unsaved marks", async () => {
+      const { user } = await open({ panel: "video" }, withVideo);
+      await startMarking(user);
+      await user.keyboard("{Escape}");
+      await asked();
+      await user.click(screen.getByRole("button", { name: "Keep editing" }));
+      expect(search.get("panel")).toBe("video");
+      expect(screen.getByRole("button", { name: "Mark T1 S do Senna" })).toBeInTheDocument();
+    });
+
+    it("asks before switching car over unsaved marks", async () => {
+      let other = "";
+      const { user } = await open({ panel: "video" }, async (ids) => {
+        await withVideo(ids);
+        const cls = await repos.carClasses.create({
+          name: "GT4",
+          description: "",
+          drivetrain: null,
+          downforce: null,
+        });
+        other = (
+          await repos.guides.create({
+            layoutId: ids.layoutId,
+            target: { carClassId: cls.id },
+            sim: null,
+            referenceLapTime: null,
+            setupNotes: "",
+            source: "manual",
+            video: null,
+          })
+        ).id;
+      });
+      await startMarking(user);
+      await user.selectOptions(screen.getByLabelText("Car"), other);
+      await asked();
+      await user.click(screen.getByRole("button", { name: "Keep editing" }));
+      expect(search.get("guide")).not.toBe(other);
       expect(screen.getByRole("button", { name: "Mark T1 S do Senna" })).toBeInTheDocument();
     });
 

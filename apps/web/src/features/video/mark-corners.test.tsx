@@ -1,5 +1,5 @@
 import type { Corner, ReferenceVideo } from "@track-day/schema";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { MarkCorners } from "./mark-corners";
@@ -20,7 +20,7 @@ const video = (over: Partial<ReferenceVideo> = {}): ReferenceVideo =>
     ...over,
   }) as ReferenceVideo;
 
-function setup(v: ReferenceVideo = video()) {
+function setup(v: ReferenceVideo = video(), props: { saving?: boolean } = {}) {
   const clock = { t: 0 };
   const playerRef = {
     current: {
@@ -44,6 +44,7 @@ function setup(v: ReferenceVideo = video()) {
         onSave={onSave}
         onCancel={onCancel}
         onDirtyChange={onDirtyChange}
+        {...props}
       />
     </>,
   );
@@ -176,5 +177,67 @@ describe("MarkCorners", () => {
     expect(onDirtyChange).toHaveBeenLastCalledWith(false);
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onCancel).toHaveBeenCalled();
+  });
+
+  it("sizes the row buttons for touch (h-10, pointer-coarse:h-11)", () => {
+    setup(video({ lapStartSec: 5, marks: [{ cornerId: "c1", sec: 12.5 }] }));
+    for (const name of ["Earlier T1", "Later T1", "Clear T1"]) {
+      const button = screen.getByRole("button", { name });
+      expect(button, name).toHaveClass("h-10");
+      expect(button, name).toHaveClass("pointer-coarse:h-11");
+    }
+  });
+
+  it("disables Cancel while saving", () => {
+    setup(video(), { saving: true });
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save marks" })).toBeDisabled();
+  });
+
+  it("blocks saving a start line marked after the first corner", () => {
+    setup(video({ lapStartSec: 30, marks: [{ cornerId: "c1", sec: 12.5 }] }));
+    expect(screen.getByText(/The start line is marked after T1\./)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save marks" })).toBeDisabled();
+  });
+
+  it("blocks saving a finish line marked before the last corner", () => {
+    setup(video({ lapStartSec: 1, lapEndSec: 5, marks: [{ cornerId: "c3", sec: 12.5 }] }));
+    expect(screen.getByText(/The finish line is marked before T3\./)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save marks" })).toBeDisabled();
+  });
+
+  it("re-marks a cleared middle corner in lap order", async () => {
+    const { clock, user, onSave } = setup(
+      video({
+        lapStartSec: 1,
+        lapEndSec: 40,
+        marks: [
+          { cornerId: "c1", sec: 10 },
+          { cornerId: "c2", sec: 20 },
+          { cornerId: "c3", sec: 30 },
+        ],
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "Clear T2" }));
+    expect(screen.getByRole("button", { name: "Mark T2" })).toBeInTheDocument();
+    clock.t = 22;
+    await user.click(screen.getByRole("button", { name: "Mark T2" }));
+    expect(screen.getByText("Every point is marked.", { exact: false })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Mark / })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Save marks" }));
+    expect(onSave.mock.calls[0]![0].marks).toEqual([
+      { cornerId: "c1", sec: 10 },
+      { cornerId: "c2", sec: 22 },
+      { cornerId: "c3", sec: 30 },
+    ]);
+  });
+
+  it("ignores a held M key", async () => {
+    const { clock } = setup();
+    clock.t = 3;
+    fireEvent.keyDown(document.body, { key: "m", repeat: true });
+    expect(screen.getByRole("button", { name: /^Mark / })).toHaveTextContent("Mark start line");
+    fireEvent.keyDown(document.body, { key: "m" });
+    expect(screen.getByRole("button", { name: /^Mark / })).toHaveTextContent("Mark T1");
   });
 });

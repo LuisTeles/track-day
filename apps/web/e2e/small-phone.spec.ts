@@ -46,6 +46,12 @@ test("the video panel fits at 360px", async ({ page }) => {
   await panel.getByRole("button", { name: "Use this video" }).click();
   await expect(panel.getByTestId("fake-youtube")).toBeVisible();
   expect(await pageScrollWidth(page), "video panel watching").toBeLessThanOrEqual(360);
+  // Marking mode, with a marked row (nudge buttons) showing.
+  await panel.getByRole("button", { name: "Mark corners" }).click();
+  await panel.getByRole("button", { name: "Mark start line" }).click();
+  await expect(panel.getByRole("button", { name: "Earlier start line" })).toBeVisible();
+  expect(await pageScrollWidth(page), "video panel marking").toBeLessThanOrEqual(360);
+  await panel.getByRole("button", { name: "Cancel" }).click();
   const bar = (await page.getByRole("toolbar", { name: "Map controls" }).boundingBox())!;
   expect(bar.x + bar.width).toBeLessThanOrEqual(360);
 });
