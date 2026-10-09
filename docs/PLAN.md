@@ -261,8 +261,8 @@ One corner per screen for a phone/tablet/second monitor next to the rig.
 - [x] Setup screen for a car's baseline setup (`Guide.setupNotes`) — S
 - [x] Elevation and camber markers on the map — S
 - [x] Printable cheat sheet — S
-- [ ] Onboard video synced to the map (YouTube or local file, hand-marked corner times) — L
-- [ ] Audio lap (Web Speech API, timed from video marks) — M
+- [x] Onboard video synced to the map (YouTube or local file, hand-marked corner times) — L ([ADR-009](adr/009-reference-video.md))
+- [ ] Audio lap (Web Speech API, timed from video marks) — M (marks come from the reference video)
 - [ ] Quiz, flashcards, spaced repetition, corner order — L
 - [ ] Corner card gaps: braking-reference photos, kerb use — M
 - [ ] Corner priority: suggested ranking, per-car override, sequences — M
