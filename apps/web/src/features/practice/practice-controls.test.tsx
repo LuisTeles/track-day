@@ -9,10 +9,12 @@ function Harness({
   onExit,
   onChange,
   onFontSize = () => {},
+  followVideo = null,
 }: {
   onExit(): void;
   onChange(i: number): void;
   onFontSize?(s: FontSize): void;
+  followVideo?: { on: boolean; toggle(): void } | null;
 }) {
   const [open, setOpen] = useState(false);
   const { surfaceProps } = useManualNavigator({
@@ -37,6 +39,7 @@ function Harness({
           fullscreen={{ enabled: false, active: false, toggle: () => {} }}
           wakeLock="active"
           wheel={null}
+          followVideo={followVideo}
         />
       }
     >
@@ -73,5 +76,20 @@ describe("PracticeOptions", () => {
     expect(screen.getByRole("radio", { name: "M" })).toBeChecked();
     await userEvent.click(screen.getByRole("radio", { name: "L" }));
     expect(onFontSize).toHaveBeenCalledWith("L");
+  });
+
+  it("offers to follow the reference video only when the guide's video has marks", async () => {
+    const { unmount } = render(<Harness onExit={() => {}} onChange={() => {}} />);
+    await userEvent.click(screen.getByRole("button", { name: "Options" }));
+    expect(screen.queryByRole("switch", { name: "Follow reference video" })).toBeNull();
+    unmount();
+
+    const toggle = vi.fn();
+    render(<Harness onExit={() => {}} onChange={() => {}} followVideo={{ on: false, toggle }} />);
+    await userEvent.click(screen.getByRole("button", { name: "Options" }));
+    const sw = screen.getByRole("switch", { name: "Follow reference video" });
+    expect(sw).toHaveAttribute("aria-checked", "false");
+    await userEvent.click(sw);
+    expect(toggle).toHaveBeenCalledTimes(1);
   });
 });

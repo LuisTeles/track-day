@@ -17,6 +17,9 @@ function Harness({ onExit = vi.fn(), paused = false }: { onExit?: () => void; pa
     <div data-testid="surface" {...surfaceProps} style={{ width: 300, height: 100 }}>
       <p>Step {navigator.current + 1}</p>
       <button type="button">Control</button>
+      <div data-media>
+        <video data-testid="video" tabIndex={0} />
+      </div>
     </div>
   );
 }
@@ -42,6 +45,18 @@ describe("useManualNavigator", () => {
     expect(screen.getByText("Step 1")).toBeInTheDocument();
     await userEvent.keyboard("{ArrowRight}");
     expect(screen.getByText("Step 2")).toBeInTheDocument();
+  });
+
+  it("leaves Space and arrows to a focused video player, but Escape still exits", async () => {
+    const onExit = vi.fn();
+    render(<Harness onExit={onExit} />);
+    screen.getByTestId("video").focus();
+    for (const key of [" ", "{ArrowRight}", "{ArrowLeft}", "{PageDown}"]) {
+      await userEvent.keyboard(key);
+      expect(screen.getByText("Step 1")).toBeInTheDocument();
+    }
+    await userEvent.keyboard("{Escape}");
+    expect(onExit).toHaveBeenCalled();
   });
 
   it("exits on Escape", async () => {

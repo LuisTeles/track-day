@@ -16,6 +16,11 @@ const TAP_MS = 500;
 
 /** Elements that own every key (typing, choosing an option). */
 const TEXT_ENTRY = "input, select, textarea, [contenteditable]";
+/**
+ * Video players: Space plays or pauses and arrows seek, so they keep those keys
+ * (Escape still exits). `data-media` marks a player's container.
+ */
+const MEDIA = "video, audio, iframe, [data-media]";
 /** Elements that handle their own clicks/taps. */
 const INTERACTIVE = `${TEXT_ENTRY}, button, a, [data-no-nav]`;
 
@@ -24,18 +29,20 @@ const matches = (target: EventTarget | null, selector: string) =>
 
 /**
  * Space activates a focused button or link, so it must not also advance;
- * arrows and paging keys don't, so they still navigate from there.
+ * arrows and paging keys don't, so they still navigate from there. A focused
+ * video player keeps every key but Escape.
  */
 function ownsKey(target: EventTarget | null, key: string) {
   if (matches(target, TEXT_ENTRY)) return true;
+  if (key !== "Escape" && matches(target, MEDIA)) return true;
   return key === " " && matches(target, "button, a");
 }
 
 /**
  * Manual CornerNavigator: keyboard (→/Space/PageDown next, ←/PageUp prev,
  * Home first, Esc exit) plus tap zones and swipes on a surface element.
- * Text fields keep their keys, and Space on a focused button only presses
- * the button, so it never also advances the corner.
+ * Text fields and video players keep their keys, and Space on a focused
+ * button only presses the button, so it never also advances the corner.
  */
 export function useManualNavigator({ count, current, onChange, onExit, paused = false }: Options) {
   const navigator = useMemo<CornerNavigator>(

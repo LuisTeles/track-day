@@ -15,6 +15,7 @@ import {
   type ReactNode,
 } from "react";
 import { useStoredChoice } from "@/shared/hooks/use-stored-choice";
+import { useStoredToggle } from "@/shared/hooks/use-stored-toggle";
 import { readLastSession, writeLastSession } from "./last-session";
 import type { Bindings, NavAction } from "./rig/gamepad";
 import { useFullscreen } from "./rig/use-fullscreen";
@@ -36,6 +37,7 @@ import { OsmAttribution } from "@/shared/ui/osm-attribution";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
 import { cn } from "@/shared/lib/utils";
 import { CornerDiagram } from "./corner-diagram";
+import { FollowVideo } from "./follow-video";
 import { cornerDiagram, schematicDiagram, type CornerPositions } from "./diagram-geometry";
 import { brakeAtText, directionText, titleOf } from "./format";
 import { PracticeCard } from "./practice-card";
@@ -68,6 +70,7 @@ function Practice({ trackId }: { trackId: string }) {
   const fullscreen = useFullscreen();
   const [fontSize, setFontSize] = useStoredChoice("practice:font-size", FONT_SIZES, "M");
   const mode: StepMode = params.get("step") === "complex" ? "complex" : "corner";
+  const [followPref, toggleFollow] = useStoredToggle("practice:follow-video", false);
 
   const steps = useMemo(
     () => (session.data ? buildSteps(session.data.corners, session.data.complexes, mode) : []),
@@ -164,6 +167,10 @@ function Practice({ trackId }: { trackId: string }) {
   const step = steps[current]!;
   const nextStep = steps[(current + 1) % steps.length]!;
   const hasComplexes = session.data.complexes.length > 0;
+  // Following needs at least one marked corner; off, or leaving, unmounts the player.
+  const video = session.guide?.video ?? null;
+  const canFollow = video !== null && video.marks.length > 0;
+  const following = canFollow && followPref;
 
   function diagramFor(s: PracticeStep) {
     const guides = s.corners.map((c) => (session.guide ? session.guideFor(c.id) : null));
@@ -263,6 +270,7 @@ function Practice({ trackId }: { trackId: string }) {
             onFontSize={setFontSize}
             fullscreen={fullscreen}
             wakeLock={wakeLock}
+            followVideo={canFollow ? { on: followPref, toggle: toggleFollow } : null}
             wheel={
               gamepadSupported ? (
                 <WheelButtonSettings
@@ -285,7 +293,20 @@ function Practice({ trackId }: { trackId: string }) {
       }
     >
       <PracticeCard
-        diagram={diagramFor(step)}
+        diagram={
+          following ? (
+            <FollowVideo
+              key={session.guide!.id}
+              video={video}
+              title={`Reference video for ${session.guideLabel ?? "this car"}`}
+              steps={steps}
+              current={current}
+              onStep={navigator.goTo}
+            />
+          ) : (
+            diagramFor(step)
+          )
+        }
         title={titleOf(step.corners)}
         name={step.complex?.name ?? step.corners[0]!.name}
         direction={directionText(step.corners)}
@@ -336,6 +357,7 @@ export function PracticeOptions({
   fullscreen,
   wakeLock,
   wheel,
+  followVideo,
 }: {
   open: boolean;
   onOpenChange(open: boolean): void;
@@ -348,6 +370,8 @@ export function PracticeOptions({
   wakeLock: WakeLockStatus;
   /** Wheel button settings, or null when no gamepad API. */
   wheel: ReactNode | null;
+  /** "Follow reference video", or null when the guide has no video with marks. */
+  followVideo: { on: boolean; toggle(): void } | null;
 }) {
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
@@ -407,6 +431,16 @@ export function PracticeOptions({
             onClick={() => void fullscreen.toggle()}
           >
             Fullscreen
+          </ControlButton>
+        )}
+        {followVideo && (
+          <ControlButton
+            role="switch"
+            aria-checked={followVideo.on}
+            className="w-full justify-start aria-checked:bg-foreground aria-checked:text-background"
+            onClick={followVideo.toggle}
+          >
+            Follow reference video
           </ControlButton>
         )}
         <WakeLockIndicator status={wakeLock} />

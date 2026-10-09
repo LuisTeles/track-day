@@ -391,7 +391,7 @@ function RemoveButton({ onClick, disabled }: { onClick(): void; disabled: boolea
   );
 }
 
-function FilePicker({ onPick }: { onPick(file: File): void }) {
+export function FilePicker({ onPick }: { onPick(file: File): void }) {
   const id = useId();
   return (
     <div className="space-y-1">

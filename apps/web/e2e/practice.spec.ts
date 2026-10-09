@@ -1,4 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  followVideo,
+  practiceWithMarkedVideo,
+  setYtTime,
+  ytTime,
+} from "./fixtures/reference-video";
 
 async function openPractice(page: Page) {
   await page.goto("/");
@@ -214,5 +220,69 @@ test("practice card fits the viewport without clipping on a phone in both orient
     // The cue is never cut mid-line: its box fits inside the card.
     const cue = (await page.getByTestId("practice-cue").boundingBox())!;
     expect(cue.y + cue.height).toBeLessThanOrEqual(card.y + card.height);
+  }
+});
+
+test("following the reference video: the video moves the card, Next seeks the video", async ({
+  page,
+}) => {
+  await practiceWithMarkedVideo(page);
+  await page.getByRole("button", { name: "Options" }).click();
+  await expect(page.getByRole("switch", { name: "Follow reference video" })).toHaveAttribute(
+    "aria-checked",
+    "false",
+  );
+  await page.keyboard.press("Escape");
+  await expect(page.getByTestId("corner-diagram")).toBeVisible();
+  await followVideo(page);
+  await expect(page.getByTestId("corner-diagram")).toHaveCount(0);
+  // The video starts at the card's corner.
+  await expect.poll(() => ytTime(page)).toBe(10);
+
+  await setYtTime(page, 21);
+  await expect(card(page)).toHaveAttribute("aria-label", /^T2,/);
+
+  await page.getByRole("button", { name: "Next corner" }).click();
+  await expect(card(page)).toHaveAttribute("aria-label", /^T3,/);
+  await expect.poll(() => ytTime(page)).toBe(30);
+  // No tug of war: the card stays where it was sent.
+  await page.waitForTimeout(600);
+  await expect(card(page)).toHaveAttribute("aria-label", /^T3,/);
+
+  // T4 isn't marked: the card moves, the video stays.
+  await page.keyboard.press("ArrowRight");
+  await expect(card(page)).toHaveAttribute("aria-label", /^T4,/);
+  await page.waitForTimeout(600);
+  expect(await ytTime(page)).toBe(30);
+  await expect(card(page)).toHaveAttribute("aria-label", /^T4,/);
+
+  // The choice is remembered; leaving practice stops the player.
+  await page.reload();
+  await expect(page.getByTestId("fake-youtube")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(/\/tracks\/view\//);
+  await expect(page.getByTestId("fake-youtube")).toHaveCount(0);
+});
+
+test("practice card fits a phone in both orientations while following the video", async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile");
+  await practiceWithMarkedVideo(page);
+  await followVideo(page);
+  for (const size of [
+    { width: 360, height: 740 },
+    { width: 740, height: 360 },
+  ]) {
+    await page.setViewportSize(size);
+    const box = (await card(page).boundingBox())!;
+    expect(box.y + box.height).toBeLessThanOrEqual(size.height);
+    const player = (await page.getByTestId("fake-youtube").boundingBox())!;
+    expect(player.height).toBeGreaterThan(0);
+    expect(player.y + player.height).toBeLessThanOrEqual(box.y + box.height);
+    expect(player.x + player.width).toBeLessThanOrEqual(size.width);
+    // The guidance is still all there.
+    const cue = (await page.getByTestId("practice-cue").boundingBox())!;
+    expect(cue.y + cue.height).toBeLessThanOrEqual(box.y + box.height);
   }
 });

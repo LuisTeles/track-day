@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { FAKE_YOUTUBE_API } from "./fixtures/fake-youtube";
+import { followVideo, practiceWithMarkedVideo } from "./fixtures/reference-video";
 
 type PageKey =
   | "home-empty"
@@ -118,6 +119,15 @@ test("practice is accessible", async ({ page }) => {
   await page.getByRole("link", { name: /Interlagos/ }).click();
   await page.getByRole("link", { name: "Practice" }).click();
   await expect(page.getByTestId("practice-card")).toBeVisible();
+  await scan(page, "practice");
+});
+
+test("practice following the reference video is accessible", async ({ page }) => {
+  await practiceWithMarkedVideo(page);
+  await page.getByRole("button", { name: "Options" }).click();
+  await scan(page, "practice");
+  await page.keyboard.press("Escape");
+  await followVideo(page);
   await scan(page, "practice");
 });
 
