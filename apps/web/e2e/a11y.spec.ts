@@ -8,7 +8,9 @@ type PageKey =
   | "home"
   | "backup"
   | "import"
+  | "new-track"
   | "track"
+  | "track-edit"
   | "track-panel"
   | "track-video"
   | "practice"
@@ -23,7 +25,9 @@ const KNOWN_VIOLATIONS: Record<PageKey, string[]> = {
   home: [],
   backup: [],
   import: [],
+  "new-track": [],
   track: [],
+  "track-edit": [],
   "track-panel": [],
   "track-video": [],
   practice: [],
@@ -34,12 +38,19 @@ test("no page has known violations left", () => {
   expect(Object.values(KNOWN_VIOLATIONS).flat()).toEqual([]);
 });
 
-async function scan(page: Page, key: PageKey) {
+/** `only` limits the scan to one region, e.g. a panel whose contents are under test. */
+async function scan(page: Page, key: PageKey, only?: string) {
   // No colour transitions mid-scan: a hovered button is scanned in its final colour.
   await page.emulateMedia({ reducedMotion: "reduce" });
-  const { violations } = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
-    .analyze();
+  let builder = new AxeBuilder({ page }).withTags([
+    "wcag2a",
+    "wcag2aa",
+    "wcag21a",
+    "wcag21aa",
+    "wcag22aa",
+  ]);
+  if (only) builder = builder.include(only);
+  const { violations } = await builder.analyze();
   const unexpected = violations.filter((v) => !KNOWN_VIOLATIONS[key].includes(v.id));
   expect(
     unexpected.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`),
@@ -75,6 +86,39 @@ test("import is accessible", async ({ page }) => {
   await page.goto("/tracks/import/");
   await scan(page, "import");
 });
+
+test("new track is accessible", async ({ page }) => {
+  await page.goto("/tracks/new/");
+  await page.getByRole("button", { name: "Create track" }).click();
+  await expect(page.getByText("Give the track a name.")).toBeVisible();
+  await scan(page, "new-track");
+});
+
+for (const scheme of ["light", "dark"] as const) {
+  test(`track structure editing is accessible (${scheme})`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    await loadSamples(page);
+    await page.getByRole("link", { name: /Interlagos/ }).click();
+    await page.getByRole("button", { name: "Edit", exact: true }).click();
+    await page.getByRole("button", { name: "Corners" }).click();
+    await expect(page.getByRole("button", { name: "Add corner" })).toBeVisible();
+    await scan(page, "track-edit");
+    const panel = page.getByTestId("side-panel");
+    await panel.getByRole("button", { name: /^1\s*S do Senna/ }).click();
+    await expect(page.getByRole("form", { name: "Corner details" })).toBeVisible();
+    await scan(page, "track-edit");
+    for (const item of ["Track details", "Complexes & segments"]) {
+      // On a phone the bottom sheet covers the toolbar: close it first.
+      await panel.getByRole("button", { name: "Close panel" }).click();
+      await page.getByRole("button", { name: "More map actions" }).click();
+      await page.getByRole("menuitem", { name: item }).click();
+      await expect(page.getByRole("complementary", { name: item })).toBeVisible();
+      // The panel's contents only: on a phone the sheet can half-cover a map
+      // marker (target-size), whichever panel is open.
+      await scan(page, "track-edit", "[data-testid=side-panel]");
+    }
+  });
+}
 
 for (const scheme of ["light", "dark"] as const) {
   test(`track view is accessible (${scheme})`, async ({ page }) => {
