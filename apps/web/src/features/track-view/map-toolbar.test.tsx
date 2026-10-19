@@ -23,6 +23,8 @@ const props = () => ({
   redoMap: { available: true, active: false, open: vi.fn() },
   carSetup: { available: true, open: vi.fn() },
   video: { available: true, open: vi.fn() },
+  onTrackDetails: vi.fn(),
+  onSections: vi.fn(),
   cheatSheetHref: "/tracks/print/?track=t&layout=l&guide=g",
   onCheatSheetClick: vi.fn((e: { preventDefault(): void }) => e.preventDefault()),
   onShowShortcuts: vi.fn(),
@@ -34,6 +36,17 @@ describe("MapToolbar", () => {
     for (const name of ["Zoom in", "Zoom out", "Edit", "Corners"])
       expect(screen.getByRole("button", { name })).toBeInTheDocument();
     expect(screen.getByRole("toolbar", { name: "Map controls" })).toBeInTheDocument();
+  });
+
+  it("opens track details and complexes & segments from the More menu", async () => {
+    const p = props();
+    render(<MapToolbar {...p} hasMap={false} />);
+    await userEvent.click(screen.getByRole("button", { name: "More map actions" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Track details" }));
+    expect(p.onTrackDetails).toHaveBeenCalled();
+    await userEvent.click(screen.getByRole("button", { name: "More map actions" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: "Complexes & segments" }));
+    expect(p.onSections).toHaveBeenCalled();
   });
 
   it("puts the layer toggles in a Layers menu as checkboxes", async () => {

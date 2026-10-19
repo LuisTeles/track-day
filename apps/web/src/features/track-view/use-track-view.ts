@@ -4,7 +4,7 @@ import { queryKeys } from "@/data/query-keys";
 
 /**
  * Everything the track view needs for one layout: the track, its layouts
- * (for the switcher), and the selected layout's corners, complexes and guides.
+ * (for the switcher), and the selected layout's corners, complexes, segments and guides.
  * Falls back to the track's first layout when `layoutId` is missing or stale.
  */
 export function useTrackView(trackId: string, layoutId: string | null) {
@@ -16,16 +16,26 @@ export function useTrackView(trackId: string, layoutId: string | null) {
       if (!track || track.deletedAt) return null;
       const layouts = await repos.layouts.listByTrack(track.id);
       const layout = layouts.find((l) => l.id === layoutId) ?? layouts[0] ?? null;
-      if (!layout) return { track, layouts, layout: null, corners: [], complexes: [], guides: [] };
+      if (!layout)
+        return {
+          track,
+          layouts,
+          layout: null,
+          corners: [],
+          complexes: [],
+          segments: [],
+          guides: [],
+        };
 
-      const [corners, complexes, guides, carClasses, cars] = await Promise.all([
+      const [corners, complexes, segments, guides, carClasses, cars] = await Promise.all([
         repos.corners.listByLayout(layout.id),
         repos.complexes.listByLayout(layout.id),
+        repos.segments.listByLayout(layout.id),
         repos.guides.listByLayout(layout.id),
         repos.carClasses.list(),
         repos.cars.list(),
       ]);
-      return { track, layouts, layout, corners, complexes, guides, carClasses, cars };
+      return { track, layouts, layout, corners, complexes, segments, guides, carClasses, cars };
     },
   });
 }

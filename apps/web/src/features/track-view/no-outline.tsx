@@ -5,6 +5,7 @@ import { useState, useSyncExternalStore } from "react";
 import { AddMapPanel } from "@/features/osm-map/add-map-panel";
 import { Button } from "@/shared/ui/button";
 import { CornerList } from "./corner-details";
+import { MapImage } from "./track-details/map-image";
 
 const subscribeOnline = (cb: () => void) => {
   window.addEventListener("online", cb);
@@ -68,6 +69,7 @@ export function NoOutline({
                 )
               )}
             </div>
+            {layout.mapAssetId && <MapImage layout={layout} editing={false} />}
             <CornerList corners={corners} onSelect={onSelect} />
           </>
         )}

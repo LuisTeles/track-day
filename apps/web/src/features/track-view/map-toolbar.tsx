@@ -2,6 +2,8 @@
 
 import {
   Clapperboard,
+  Group,
+  Info,
   Keyboard,
   Layers,
   List,
@@ -43,6 +45,8 @@ export interface MapToolbarProps {
   redoMap: { available: boolean; active: boolean; open(): void };
   carSetup: { available: boolean; open(): void };
   video: { available: boolean; open(): void };
+  onTrackDetails(): void;
+  onSections(): void;
   cheatSheetHref: string;
   onCheatSheetClick(e: React.MouseEvent<HTMLAnchorElement>): void; // the view's unsaved-edits guard
   onShowShortcuts(): void;
@@ -157,6 +161,14 @@ export function MapToolbar(p: MapToolbarProps) {
           >
             <Clapperboard aria-hidden />
             Reference video
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={p.onTrackDetails}>
+            <Info aria-hidden />
+            Track details
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={p.onSections}>
+            <Group aria-hidden />
+            Complexes &amp; segments
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href={p.cheatSheetHref} onClick={p.onCheatSheetClick}>

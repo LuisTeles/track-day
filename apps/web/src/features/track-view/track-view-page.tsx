@@ -7,6 +7,8 @@ import { CornerDetails, CornerList, cornerTitle } from "./corner-details";
 import { CarSetup } from "./car-setup";
 import { CornerMarkers } from "./corner-markers";
 import { DeleteTrackButton } from "./delete-track-button";
+import { TrackDetailsPanel } from "./track-details/track-details-panel";
+import { SectionsPanel } from "./sections/sections-panel";
 import { AddMapPanel } from "@/features/osm-map/add-map-panel";
 import { NoOutline } from "./no-outline";
 import { AddCarDialog } from "./edit/add-car-dialog";
@@ -92,6 +94,18 @@ function TrackView({ trackId }: { trackId: string }) {
     (value: boolean) => setDirty((d) => (d.video === value ? d : { ...d, video: value })),
     [setDirty],
   );
+  const onTrackDirty = useCallback(
+    (value: boolean) => setDirty((d) => (d.track === value ? d : { ...d, track: value })),
+    [setDirty],
+  );
+  const onSectionDirty = useCallback(
+    (value: boolean) => setDirty((d) => (d.section === value ? d : { ...d, section: value })),
+    [setDirty],
+  );
+  const onLayoutDirty = useCallback(
+    (value: boolean) => setDirty((d) => (d.layout === value ? d : { ...d, layout: value })),
+    [setDirty],
+  );
   const confirm = useConfirm();
   const toast = useToast();
   // The reference video's player, shared with the map (marker seeks, the lap dot).
@@ -120,7 +134,11 @@ function TrackView({ trackId }: { trackId: string }) {
       ? "Your setup notes haven’t been saved."
       : dirtyRef.current.video
         ? "Your video marks haven’t been saved."
-        : "Your edits to this corner haven’t been saved.";
+        : dirtyRef.current.track || dirtyRef.current.layout
+          ? "Your track details haven’t been saved."
+          : dirtyRef.current.section
+            ? "Your complex or segment hasn’t been saved."
+            : "Your edits to this corner haven’t been saved.";
     void confirm({ ...DISCARD, description }).then((ok) => ok && then());
   };
   /** Asks before dropping unsaved edits; on yes, clears the edit state first. */
@@ -150,6 +168,8 @@ function TrackView({ trackId }: { trackId: string }) {
   const listOpen = params.get("panel") === "corners";
   const setupOpen = params.get("panel") === "setup" && guide !== null;
   const videoOpen = params.get("panel") === "video" && guide !== null;
+  const trackOpen = params.get("panel") === "track";
+  const sectionsOpen = params.get("panel") === "sections";
   // The corner the playing video is at; reported by the dot layer only when it changes.
   const [videoCorner, setVideoCorner] = useState<string | null>(null);
 
@@ -175,6 +195,12 @@ function TrackView({ trackId }: { trackId: string }) {
   };
   const openVideo = () => {
     leaveEdits(() => setParams({ panel: "video", corner: null }));
+  };
+  const openTrackDetails = () => {
+    leaveEdits(() => setParams({ panel: "track", corner: null }));
+  };
+  const openSections = () => {
+    leaveEdits(() => setParams({ panel: "sections", corner: null }));
   };
   /** While the video panel is open, a corner on the map seeks the video to its mark. */
   const seekToCorner = (id: string) => {
@@ -333,8 +359,11 @@ function TrackView({ trackId }: { trackId: string }) {
   const currentGuideLabel = guide
     ? guideLabel(guide, data.carClasses ?? [], data.cars ?? [])
     : null;
-  // The setup or video panel and a selected corner share the one panel: setup/video win.
-  const selected = setupOpen || videoOpen ? null : (corners.find((c) => c.id === cornerId) ?? null);
+  // The setup, video or track panel and a selected corner share the one panel: the panel wins.
+  const selected =
+    setupOpen || videoOpen || trackOpen || sectionsOpen
+      ? null
+      : (corners.find((c) => c.id === cornerId) ?? null);
   // With the video open, the selected marker is the corner the video is at.
   const markerId = videoOpen ? videoCorner : (selected?.id ?? null);
   const topPracticeHref = layout
@@ -456,6 +485,8 @@ function TrackView({ trackId }: { trackId: string }) {
       }}
       carSetup={{ available: guide !== null, open: openSetup }}
       video={{ available: guide !== null, open: openVideo }}
+      onTrackDetails={openTrackDetails}
+      onSections={openSections}
       cheatSheetHref={cheatSheetHref}
       onCheatSheetClick={(e) => guardLink(e, cheatSheetHref)}
       onShowShortcuts={() => setHelpOpen(true)}
@@ -475,19 +506,43 @@ function TrackView({ trackId }: { trackId: string }) {
   const panel = (
     <>
       <SidePanel
-        open={selected !== null || listOpen || setupOpen || videoOpen}
+        open={selected !== null || listOpen || setupOpen || videoOpen || trackOpen || sectionsOpen}
         title={
-          setupOpen && currentGuideLabel
-            ? `Setup · ${currentGuideLabel}`
-            : videoOpen && currentGuideLabel
-              ? `Video · ${currentGuideLabel}`
-              : selected
-                ? cornerTitle(selected)
-                : "Corners"
+          trackOpen
+            ? "Track details"
+            : sectionsOpen
+              ? "Complexes & segments"
+              : setupOpen && currentGuideLabel
+                ? `Setup · ${currentGuideLabel}`
+                : videoOpen && currentGuideLabel
+                  ? `Video · ${currentGuideLabel}`
+                  : selected
+                    ? cornerTitle(selected)
+                    : "Corners"
         }
         onClose={closePanel}
       >
-        {setupOpen && guide && currentGuideLabel ? (
+        {trackOpen ? (
+          <TrackDetailsPanel
+            track={track}
+            layouts={layouts}
+            layout={layout}
+            editing={editing}
+            onTrackDirty={onTrackDirty}
+            onLayoutDirty={onLayoutDirty}
+            onLayoutChange={(id) => setParams({ layout: id, corner: null })}
+          />
+        ) : sectionsOpen ? (
+          <SectionsPanel
+            key={layout.id}
+            layoutId={layout.id}
+            corners={corners}
+            complexes={complexes}
+            segments={data.segments}
+            editing={editing}
+            onDirtyChange={onSectionDirty}
+          />
+        ) : setupOpen && guide && currentGuideLabel ? (
           <CarSetup
             guide={guide}
             label={currentGuideLabel}
