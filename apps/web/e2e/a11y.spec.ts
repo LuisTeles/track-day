@@ -95,27 +95,29 @@ test("new track is accessible", async ({ page }) => {
 });
 
 for (const scheme of ["light", "dark"] as const) {
+  // Scans the edit panels' contents only: on a phone the bottom sheet can
+  // half-cover a map marker (target-size) whichever panel is open, and the map
+  // itself is scanned by "track view is accessible".
   test(`track structure editing is accessible (${scheme})`, async ({ page }) => {
+    const panelOnly = "[data-testid=side-panel]";
     await page.emulateMedia({ colorScheme: scheme });
     await loadSamples(page);
     await page.getByRole("link", { name: /Interlagos/ }).click();
     await page.getByRole("button", { name: "Edit", exact: true }).click();
     await page.getByRole("button", { name: "Corners" }).click();
     await expect(page.getByRole("button", { name: "Add corner" })).toBeVisible();
-    await scan(page, "track-edit");
+    await scan(page, "track-edit", panelOnly);
     const panel = page.getByTestId("side-panel");
     await panel.getByRole("button", { name: /^1\s*S do Senna/ }).click();
     await expect(page.getByRole("form", { name: "Corner details" })).toBeVisible();
-    await scan(page, "track-edit");
+    await scan(page, "track-edit", panelOnly);
     for (const item of ["Track details", "Complexes & segments"]) {
       // On a phone the bottom sheet covers the toolbar: close it first.
       await panel.getByRole("button", { name: "Close panel" }).click();
       await page.getByRole("button", { name: "More map actions" }).click();
       await page.getByRole("menuitem", { name: item }).click();
       await expect(page.getByRole("complementary", { name: item })).toBeVisible();
-      // The panel's contents only: on a phone the sheet can half-cover a map
-      // marker (target-size), whichever panel is open.
-      await scan(page, "track-edit", "[data-testid=side-panel]");
+      await scan(page, "track-edit", panelOnly);
     }
   });
 }
