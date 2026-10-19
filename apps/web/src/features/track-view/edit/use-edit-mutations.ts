@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Corner, CornerGuide, GuideImportPayload, SimId } from "@track-day/schema";
+import type { Car, Corner, CornerGuide, GuideImportPayload, SimId } from "@track-day/schema";
 import { useRepositories } from "@/data/provider";
 import { queryKeys } from "@/data/query-keys";
 import { appendNote, asManual, emptyCornerGuide, type GuidePatch } from "./corner-guide-draft";
@@ -92,46 +92,32 @@ export function useAppendNote(trackId: string) {
   });
 }
 
-interface AddCarInput {
+interface NewCar {
   name: string;
   sim: SimId | null;
   /** Existing class name, or a new one to create. */
   className: string;
+}
+
+interface AddCarInput {
+  /** A garage car, or a new one to create. */
+  car: Car | NewCar;
   /** null = start with an empty guide. */
   guide: GuideImportPayload | null;
 }
 
-/** Creates the car (and its class if new), then an empty or imported guide for the layout. */
+/**
+ * Gives a car a guide for the layout, empty or imported. A new car is created
+ * first (and its class, if new).
+ */
 export function useAddCar(layoutId: string) {
   const repos = useRepositories();
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ name, sim, className, guide }: AddCarInput) => {
-      const wanted = className.trim() || "Other";
-      const existing = (await repos.carClasses.list()).find(
-        (c) => c.name.toLowerCase() === wanted.toLowerCase(),
-      );
-      const carClass =
-        existing ??
-        (await repos.carClasses.create({
-          name: wanted,
-          description: "",
-          drivetrain: null,
-          downforce: null,
-        }));
-      const car = await repos.cars.create({
-        name: name.trim(),
-        classId: carClass.id,
-        sim,
-        powerHp: null,
-        weightKg: null,
-        drivetrain: null,
-        downforce: null,
-        transmission: null,
-        abs: null,
-        tc: null,
-      });
+    mutationFn: async ({ car: input, guide }: AddCarInput) => {
+      const car = "id" in input ? input : await createCar(input);
       const target = { carId: car.id };
+      const sim = input.sim;
       if (guide) return repos.guideImport.importGuide(guide, { layoutId, target, sim });
       const created = await repos.guides.create({
         layoutId,
@@ -146,4 +132,31 @@ export function useAddCar(layoutId: string) {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.all }),
   });
+
+  async function createCar({ name, sim, className }: NewCar) {
+    const wanted = className.trim() || "Other";
+    const existing = (await repos.carClasses.list()).find(
+      (c) => c.name.toLowerCase() === wanted.toLowerCase(),
+    );
+    const carClass =
+      existing ??
+      (await repos.carClasses.create({
+        name: wanted,
+        description: "",
+        drivetrain: null,
+        downforce: null,
+      }));
+    return repos.cars.create({
+      name: name.trim(),
+      classId: carClass.id,
+      sim,
+      powerHp: null,
+      weightKg: null,
+      drivetrain: null,
+      downforce: null,
+      transmission: null,
+      abs: null,
+      tc: null,
+    });
+  }
 }

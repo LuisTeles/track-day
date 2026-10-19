@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { DrivingWithPicker } from "@/features/cars/driving-with-picker";
 import { ThemeToggle } from "@/shared/theme/theme-toggle";
 import { NavLink } from "./nav-link";
 
@@ -24,7 +25,8 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           <NavLink href="/">Tracks</NavLink>
           <NavLink href="/cars/">Cars</NavLink>
           <NavLink href="/backup/">Backup</NavLink>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1">
+            <DrivingWithPicker />
             <ThemeToggle />
           </div>
         </nav>

@@ -5,6 +5,7 @@ import {
   GuideImportPayload,
   parseImport,
   SIMS,
+  type Car,
   type CarClass,
   type Corner,
   type FieldIssue,
@@ -30,6 +31,8 @@ import { missingCorners, trackPayloadFor } from "./guide-payload";
 import { useAddCar } from "./use-edit-mutations";
 import { Select } from "@/shared/ui/select";
 
+const NEW = "__new__";
+
 export function AddCarDialog({
   open,
   onOpenChange,
@@ -37,6 +40,8 @@ export function AddCarDialog({
   layout,
   corners,
   carClasses,
+  cars = [],
+  initialCarId,
   onAdded,
 }: {
   open: boolean;
@@ -45,9 +50,17 @@ export function AddCarDialog({
   layout: Layout;
   corners: Corner[];
   carClasses: CarClass[];
+  /** Garage cars that could get a guide on this layout (none yet). */
+  cars?: Car[];
+  /** Preselects one of `cars`, e.g. the car you're driving. */
+  initialCarId?: string;
   onAdded(guideId: string): void;
 }) {
   const id = useId();
+  const [which, setWhich] = useState<string>(
+    initialCarId && cars.some((c) => c.id === initialCarId) ? initialCarId : NEW,
+  );
+  const existing = cars.find((c) => c.id === which) ?? null;
   const [name, setName] = useState("");
   const [sim, setSim] = useState<SimId | "">("");
   const [className, setClassName] = useState(carClasses[0]?.name ?? "Other");
@@ -66,7 +79,7 @@ export function AddCarDialog({
       trackPayload
         ? buildGuidePrompt({
             track: trackPayload,
-            car: {
+            car: existing ?? {
               name: name || "the car",
               powerHp: null,
               weightKg: null,
@@ -76,11 +89,15 @@ export function AddCarDialog({
               abs: null,
               tc: null,
             },
-            carClass: { name: className || "Other" },
-            sim: sim || null,
+            carClass: {
+              name: existing
+                ? (carClasses.find((c) => c.id === existing.classId)?.name ?? "Other")
+                : className || "Other",
+            },
+            sim: existing ? existing.sim : sim || null,
           })
         : null,
-    [trackPayload, name, className, sim],
+    [trackPayload, name, className, sim, existing, carClasses],
   );
 
   function submit() {
@@ -103,7 +120,7 @@ export function AddCarDialog({
       guide = result.value;
     }
     add.mutate(
-      { name, sim: sim || null, className, guide },
+      { car: existing ?? { name, sim: sim || null, className }, guide },
       { onSuccess: ({ guideId }) => onAdded(guideId) },
     );
   }
@@ -117,41 +134,58 @@ export function AddCarDialog({
           or start from an AI estimate.
         </AlertDialogDescription>
         <div className="space-y-3">
-          <div className="space-y-1">
-            <Label htmlFor={`${id}-name`}>Car name</Label>
-            <Input id={`${id}-name`} value={name} onChange={(e) => setName(e.target.value)} />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
+          {cars.length > 0 && (
             <div className="space-y-1">
-              <Label htmlFor={`${id}-sim`}>Sim</Label>
-              <Select
-                id={`${id}-sim`}
-                value={sim}
-                onChange={(e) => setSim(e.target.value as SimId | "")}
-              >
-                <option value="">Any sim</option>
-                {SIMS.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.label}
+              <Label htmlFor={`${id}-which`}>Which car</Label>
+              <Select id={`${id}-which`} value={which} onChange={(e) => setWhich(e.target.value)}>
+                {cars.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
                   </option>
                 ))}
+                <option value={NEW}>A new car…</option>
               </Select>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor={`${id}-class`}>Class</Label>
-              <Input
-                id={`${id}-class`}
-                list={`${id}-classes`}
-                value={className}
-                onChange={(e) => setClassName(e.target.value)}
-              />
-              <datalist id={`${id}-classes`}>
-                {carClasses.map((c) => (
-                  <option key={c.id} value={c.name} />
-                ))}
-              </datalist>
-            </div>
-          </div>
+          )}
+          {!existing && (
+            <>
+              <div className="space-y-1">
+                <Label htmlFor={`${id}-name`}>Car name</Label>
+                <Input id={`${id}-name`} value={name} onChange={(e) => setName(e.target.value)} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label htmlFor={`${id}-sim`}>Sim</Label>
+                  <Select
+                    id={`${id}-sim`}
+                    value={sim}
+                    onChange={(e) => setSim(e.target.value as SimId | "")}
+                  >
+                    <option value="">Any sim</option>
+                    {SIMS.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor={`${id}-class`}>Class</Label>
+                  <Input
+                    id={`${id}-class`}
+                    list={`${id}-classes`}
+                    value={className}
+                    onChange={(e) => setClassName(e.target.value)}
+                  />
+                  <datalist id={`${id}-classes`}>
+                    {carClasses.map((c) => (
+                      <option key={c.id} value={c.name} />
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+            </>
+          )}
           <fieldset className="space-y-1 text-sm">
             <legend className="font-medium">Start</legend>
             <label className="flex items-center gap-2">
@@ -228,7 +262,9 @@ export function AddCarDialog({
           <Button
             onClick={submit}
             disabled={
-              add.isPending || name.trim() === "" || (start === "ai" && answer.trim() === "")
+              add.isPending ||
+              (!existing && name.trim() === "") ||
+              (start === "ai" && answer.trim() === "")
             }
           >
             Add car

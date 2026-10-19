@@ -1,6 +1,6 @@
 import interlagos from "@examples/interlagos.track.json";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { CarClass, Corner, Layout, Track } from "@track-day/schema";
+import type { Car, CarClass, Corner, Layout, Track } from "@track-day/schema";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -30,7 +30,7 @@ const corners = interlagos.corners.map((c, i) => ({
 })) as unknown as Corner[];
 const carClasses = [{ id: "k1", name: "Road car" }] as CarClass[];
 
-function setup() {
+function setup(extra: Partial<React.ComponentProps<typeof AddCarDialog>> = {}) {
   const repos = {
     carClasses: {
       list: vi.fn().mockResolvedValue(carClasses),
@@ -52,6 +52,7 @@ function setup() {
           corners={corners}
           carClasses={carClasses}
           onAdded={onAdded}
+          {...extra}
         />
       </RepositoriesProvider>
     </QueryClientProvider>,
@@ -75,6 +76,28 @@ describe("AddCarDialog", () => {
     expect(repos.guides.create).toHaveBeenCalledWith(
       expect.objectContaining({ layoutId: "l1", target: { carId: "car1" }, source: "manual" }),
     );
+  });
+
+  it("gives a garage car a guide without creating another car", async () => {
+    const mx5 = { id: "car9", name: "Mazda MX-5", classId: "k1", sim: "iracing" } as Car;
+    const { repos, onAdded, user } = setup({ cars: [mx5], initialCarId: "car9" });
+    expect(screen.getByLabelText("Which car")).toHaveValue("car9");
+    expect(screen.queryByLabelText("Car name")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add car" }));
+    await vi.waitFor(() => expect(onAdded).toHaveBeenCalledWith("g1"));
+    expect(repos.cars.create).not.toHaveBeenCalled();
+    expect(repos.guides.create).toHaveBeenCalledWith(
+      expect.objectContaining({ target: { carId: "car9" }, sim: "iracing" }),
+    );
+  });
+
+  it("can still add a new car when garage cars are offered", async () => {
+    const mx5 = { id: "car9", name: "Mazda MX-5", classId: "k1", sim: null } as Car;
+    const { repos, user } = setup({ cars: [mx5] });
+    expect(screen.getByLabelText("Which car")).toHaveValue("__new__");
+    await user.type(screen.getByLabelText("Car name"), "BMW M2");
+    await user.click(screen.getByRole("button", { name: "Add car" }));
+    await vi.waitFor(() => expect(repos.cars.create).toHaveBeenCalled());
   });
 
   it("imports a pasted AI guide", async () => {

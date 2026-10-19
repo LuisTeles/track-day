@@ -42,6 +42,9 @@ import { CornerGuideSection } from "./corner-guide-section";
 import { chipsFor, guideLabel } from "./guides";
 import { terrainOf } from "./terrain";
 import { useCornerGuides, useTrackView } from "./use-track-view";
+import { resolveGuide } from "@track-day/schema";
+import { useDrivingWith } from "@/features/cars/driving-with";
+import { ClassGuideNote } from "./class-guide-note";
 
 const DISCARD = {
   title: "Discard unsaved changes?",
@@ -169,8 +172,30 @@ function TrackView({ trackId }: { trackId: string }) {
     leaveEdits(() => router.push(href));
   };
 
-  // Until the global car picker exists (M4), the layout's guides are picked here.
-  const guide = data?.guides.find((g) => g.id === params.get("guide")) ?? data?.guides[0] ?? null;
+  // The URL's guide, else the car you're driving (ADR-004 fallback), else the first.
+  const [driving] = useDrivingWith();
+  const drivingCar = data?.cars?.find((c) => c.id === driving?.carId) ?? null;
+  const drivenGuide =
+    data && drivingCar ? resolveGuide(data.guides, drivingCar, driving?.sim ?? null) : undefined;
+  const guide =
+    data?.guides.find((g) => g.id === params.get("guide")) ??
+    drivenGuide ??
+    data?.guides[0] ??
+    null;
+  // Shown when the guide is your car's class guide because the car has none here.
+  const classFallback =
+    drivingCar !== null &&
+    guide !== null &&
+    "carClassId" in guide.target &&
+    guide.target.carClassId === drivingCar.classId &&
+    !data?.guides.some((g) => "carId" in g.target && g.target.carId === drivingCar.id);
+  const classFallbackNote = classFallback ? (
+    <ClassGuideNote
+      carName={drivingCar.name}
+      className={data?.carClasses?.find((c) => c.id === drivingCar.classId)?.name ?? "its class"}
+      onAdd={editing ? () => confirmDiscard(() => setAddingCar(true)) : undefined}
+    />
+  ) : null;
   const { data: cornerGuides } = useCornerGuides(guide?.id ?? null);
   const chips = useMemo(() => (cornerGuides ? chipsFor(cornerGuides) : null), [cornerGuides]);
 
@@ -566,13 +591,16 @@ function TrackView({ trackId }: { trackId: string }) {
             onDirtyChange={onSectionDirty}
           />
         ) : setupOpen && guide && currentGuideLabel ? (
-          <CarSetup
-            guide={guide}
-            label={currentGuideLabel}
-            editing={editing}
-            trackId={track.id}
-            onDirtyChange={onSetupDirty}
-          />
+          <>
+            {classFallbackNote}
+            <CarSetup
+              guide={guide}
+              label={currentGuideLabel}
+              editing={editing}
+              trackId={track.id}
+              onDirtyChange={onSetupDirty}
+            />
+          </>
         ) : videoOpen && guide && currentGuideLabel ? (
           <VideoPanel
             key={guide.id}
@@ -603,8 +631,9 @@ function TrackView({ trackId }: { trackId: string }) {
             guide={
               editing ? (
                 <div className="space-y-4">
+                  {classFallbackNote}
                   <CornerFactsForm
-                    key={selected.id}
+                    key={`facts:${selected.id}`}
                     corner={selected}
                     corners={corners}
                     layout={layout}
@@ -622,7 +651,7 @@ function TrackView({ trackId }: { trackId: string }) {
                     }}
                   />
                   <CornerNotesForm
-                    key={selected.id}
+                    key={`notes:${selected.id}`}
                     trackId={track.id}
                     corner={selected}
                     onDirtyChange={onCornerDirty}
@@ -673,7 +702,10 @@ function TrackView({ trackId }: { trackId: string }) {
               ) : (
                 guide &&
                 currentGuideLabel && (
-                  <CornerGuideSection guide={selectedGuide} label={currentGuideLabel} />
+                  <div className="space-y-3">
+                    {classFallbackNote}
+                    <CornerGuideSection guide={selectedGuide} label={currentGuideLabel} />
+                  </div>
                 )
               )
             }
@@ -692,6 +724,10 @@ function TrackView({ trackId }: { trackId: string }) {
           layout={layout}
           corners={corners}
           carClasses={data.carClasses ?? []}
+          cars={(data.cars ?? []).filter(
+            (c) => !guides.some((g) => "carId" in g.target && g.target.carId === c.id),
+          )}
+          initialCarId={drivingCar?.id}
           onAdded={(guideId) => {
             setAddingCar(false);
             setDirty({});
