@@ -49,8 +49,8 @@ export function TrackList() {
         <Flag aria-hidden className="mb-3 size-8 text-muted" />
         <p className="font-medium">No tracks yet</p>
         <p className="mt-1 max-w-md text-sm text-muted">
-          Use Import with AI above to add a track from a map image, load the sample tracks
-          (Interlagos and Suzuka) to explore the app, or restore a backup.
+          Add a track with New track or Import with AI above, load the sample tracks (Interlagos and
+          Suzuka) to explore the app, or restore a backup.
         </p>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
           <Button onClick={() => loadSamples.mutate()} disabled={loadSamples.isPending}>
