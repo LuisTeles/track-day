@@ -142,7 +142,7 @@ The same format is the **backup and sharing** format.
 ## 6. Feature 3 — Cars
 
 - CRUD for car classes and cars.
-- **Global "driving with" selector** (car + sim) in the header, persisted per session.
+- **Global "driving with" selector** (car + sim) in the header, remembered on the device. It picks the guide a track opens with; the track view's car picker still switches per view.
 - Compare view: same corner, two cars side by side.
 - Seed data: Formula, GT3, GT4, Road car, Drift.
 
@@ -240,14 +240,14 @@ One corner per screen for a phone/tablet/second monitor next to the rig.
 
 ### M4 — Cars & guides
 
-- [ ] Car class / car CRUD + seed data
-- [ ] Global car + sim selector
+- [x] Car class / car CRUD + seed data (M4 spec, 2026-10-19; starter classes on demand)
+- [x] Global car + sim selector ("Driving" in the header, per device)
 - [x] Guide + CornerGuide editor
 - [x] Add a car (empty or from an AI guide) from the track view
-- [ ] Car → class fallback in the UI
+- [x] Car → class fallback in the UI
 - [x] Car guide prompt template
-- [ ] AI-estimate badges + confirm action
-- [ ] Two-car compare view
+- [x] AI-estimate badges + confirm action
+- [x] Two-car compare view
 
 ### M5 — Polish & v1.0.0
 
