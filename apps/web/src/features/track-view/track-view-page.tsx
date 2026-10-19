@@ -14,6 +14,9 @@ import { NoOutline } from "./no-outline";
 import { AddCarDialog } from "./edit/add-car-dialog";
 import { CornerGuideForm } from "./edit/corner-guide-form";
 import { CornerNotesForm } from "./edit/corner-notes-form";
+import { CornerFactsForm } from "./edit/corner-facts-form";
+import { CornerListEditor } from "./edit/corner-list-editor";
+import { useSaveCornerFacts } from "./edit/use-structure-mutations";
 import { CarLinesLayer, carLines } from "./edit/car-lines";
 import { LinePoints, useLinePointPick } from "./edit/line-points";
 import type { LinePoint } from "./geometry/nearest";
@@ -70,6 +73,8 @@ function TrackView({ trackId }: { trackId: string }) {
   const [redoingMap, setRedoingMap] = useState(false);
   const editing = params.get("edit") === "1";
   const [picking, setPicking] = useState<LinePoint | null>(null);
+  // Placing the selected corner's marker: the next click on the track sets it.
+  const [placing, setPlacing] = useState(false);
   const [addingCar, setAddingCar] = useState(false);
   const [pickError, setPickError] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -78,6 +83,10 @@ function TrackView({ trackId }: { trackId: string }) {
   useEffect(() => {
     dirtyRef.current = dirty;
   });
+  const onFactsDirty = useCallback(
+    (value: boolean) => setDirty((d) => (d.facts === value ? d : { ...d, facts: value })),
+    [setDirty],
+  );
   const onCornerDirty = useCallback(
     (value: boolean) => setDirty((d) => (d.corner === value ? d : { ...d, corner: value })),
     [setDirty],
@@ -121,6 +130,7 @@ function TrackView({ trackId }: { trackId: string }) {
     if (isDirty()) setDiscards((n) => n + 1);
     setDirty({});
     setPicking(null);
+    setPlacing(false);
     setPickError(null);
   };
   /**
@@ -279,8 +289,9 @@ function TrackView({ trackId }: { trackId: string }) {
     return () => document.removeEventListener("keydown", onKey);
   });
 
+  const pickActive = picking !== null || placing;
   useEffect(() => {
-    if (!picking) return;
+    if (!pickActive) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       // A dialog or menu over the pick (discard, far point, Add car, Layers,
@@ -294,10 +305,11 @@ function TrackView({ trackId }: { trackId: string }) {
       // Capture phase + preventDefault: cancelling a pick must not also close the panel.
       e.preventDefault();
       setPicking(null);
+      setPlacing(false);
     };
     document.addEventListener("keydown", onKey, true);
     return () => document.removeEventListener("keydown", onKey, true);
-  }, [picking]);
+  }, [pickActive]);
 
   // Keep the selected corner out from under the side panel / bottom sheet.
   // Edit mode, its loaded form and a pick change the sheet's height on a
@@ -320,7 +332,7 @@ function TrackView({ trackId }: { trackId: string }) {
       );
     });
     return () => cancelAnimationFrame(frame);
-  }, [selectedFraction, editing, picking, guidesLoaded]);
+  }, [selectedFraction, editing, picking, placing, guidesLoaded]);
 
   const selectedGuide = cornerGuides?.find((g) => g.cornerId === cornerId);
   const pick = useLinePointPick({
@@ -336,6 +348,17 @@ function TrackView({ trackId }: { trackId: string }) {
     },
     onError: setPickError,
   });
+  const placeCorner = useSaveCornerFacts();
+  const place = (fraction: number) => {
+    if (!cornerId) return;
+    placeCorner.mutate(
+      { id: cornerId, patch: { pathPosition: fraction } },
+      {
+        onSuccess: () => setPlacing(false),
+        onError: (e) => toast.show(`Could not place the corner: ${e.message}`),
+      },
+    );
+  };
   const lines = useMemo(
     () =>
       data?.layout?.outlinePath && cornerGuides
@@ -580,6 +603,24 @@ function TrackView({ trackId }: { trackId: string }) {
             guide={
               editing ? (
                 <div className="space-y-4">
+                  <CornerFactsForm
+                    key={selected.id}
+                    corner={selected}
+                    corners={corners}
+                    layout={layout}
+                    placing={placing}
+                    onPlaceStart={() => {
+                      setPicking(null);
+                      setPickError(null);
+                      setPlacing(true);
+                    }}
+                    onPlaceEnd={() => setPlacing(false)}
+                    onDirtyChange={onFactsDirty}
+                    onDeleted={() => {
+                      setPlacing(false);
+                      setParams({ corner: null, panel: "corners" });
+                    }}
+                  />
                   <CornerNotesForm
                     key={selected.id}
                     trackId={track.id}
@@ -608,6 +649,7 @@ function TrackView({ trackId }: { trackId: string }) {
                         picking={picking}
                         onPickStart={(p) => {
                           setPickError(null);
+                          setPlacing(false);
                           setPicking(p);
                         }}
                         onPickEnd={() => setPicking(null)}
@@ -636,6 +678,8 @@ function TrackView({ trackId }: { trackId: string }) {
               )
             }
           />
+        ) : editing ? (
+          <CornerListEditor layoutId={layout.id} corners={corners} onSelect={selectCorner} />
         ) : (
           <CornerList corners={corners} onSelect={selectCorner} />
         )}
@@ -696,10 +740,12 @@ function TrackView({ trackId }: { trackId: string }) {
               )
             }
             onPick={
-              editing && picking && cornerGuides
-                ? (f) =>
-                    void pick(f).catch((e: Error) => setPickError(`Could not save: ${e.message}`))
-                : undefined
+              editing && placing && selected
+                ? place
+                : editing && picking && cornerGuides
+                  ? (f) =>
+                      void pick(f).catch((e: Error) => setPickError(`Could not save: ${e.message}`))
+                  : undefined
             }
             label={`Map of ${track.name}, ${layout.name} layout`}
             overlay={(ctx) => (

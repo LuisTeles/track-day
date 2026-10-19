@@ -18,7 +18,7 @@ interface CornerDetailsProps {
   guide?: ReactNode;
   /** Buttons or links shown above the details, e.g. "Practice from here". */
   actions?: ReactNode;
-  /** Hide the read-only notes and mistakes (edit mode shows forms instead). */
+  /** Hide the read-only facts, notes and mistakes (edit mode shows forms instead). */
   hideNotes?: boolean;
 }
 
@@ -39,15 +39,17 @@ export function CornerDetails({
   return (
     <div className="space-y-5 text-sm">
       {actions}
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
-        <Fact term="Direction" value={label(corner.direction)} capitalize />
-        <Fact term="Type" value={label(corner.type)} capitalize />
-        <Fact term="Elevation" value={label(corner.elevation)} capitalize />
-        <Fact term="Camber" value={label(corner.camber)} capitalize />
-        {corner.distanceFromStartMeters != null && (
-          <Fact term="From start" value={`${corner.distanceFromStartMeters} m`} />
-        )}
-      </dl>
+      {!hideNotes && (
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+          <Fact term="Direction" value={label(corner.direction)} capitalize />
+          <Fact term="Type" value={label(corner.type)} capitalize />
+          <Fact term="Elevation" value={label(corner.elevation)} capitalize />
+          <Fact term="Camber" value={label(corner.camber)} capitalize />
+          {corner.distanceFromStartMeters != null && (
+            <Fact term="From start" value={`${corner.distanceFromStartMeters} m`} />
+          )}
+        </dl>
+      )}
 
       {guide}
 

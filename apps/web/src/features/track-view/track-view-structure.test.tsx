@@ -1,7 +1,7 @@
 import interlagos from "@examples/interlagos.track.json";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TrackImportPayload } from "@track-day/schema";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RepositoriesProvider } from "@/data/provider";
@@ -223,5 +223,100 @@ describe("Complexes & segments", () => {
       }),
     );
     await waitFor(async () => expect(await repos.segments.listByLayout(layoutId)).toEqual([]));
+  });
+});
+
+describe("Corners", () => {
+  it("edits a corner's facts, refusing a number that's taken", async () => {
+    const { t, user } = await open({ edit: "1" });
+    search.set("corner", t(1).id);
+    rerenderPage();
+    const form = await screen.findByRole("form", { name: "Corner details" });
+    const number = within(form).getByLabelText("Number");
+    await user.clear(number);
+    await user.type(number, "2");
+    await user.click(within(form).getByRole("button", { name: "Save corner details" }));
+    expect(within(form).getByText("T2 already exists on this layout.")).toBeInTheDocument();
+
+    await user.clear(number);
+    await user.type(number, "16");
+    await user.selectOptions(within(form).getByLabelText("Type"), "chicane");
+    await user.click(within(form).getByRole("button", { name: "Save corner details" }));
+    await waitFor(async () =>
+      expect(await repos.corners.get(t(1).id)).toMatchObject({ number: 16, type: "chicane" }),
+    );
+  });
+
+  it("places a corner's marker with a click on the track, and clears it", async () => {
+    const { t, user } = await open({ edit: "1" });
+    search.set("corner", t(3).id);
+    rerenderPage();
+    const form = await screen.findByRole("form", { name: "Corner details" });
+    await user.click(within(form).getByRole("button", { name: "Place on map" }));
+    expect(within(form).getByText(/Click or tap the track/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("img", { name: /^Map of / }).parentElement!);
+
+    await waitFor(async () =>
+      expect((await repos.corners.get(t(3).id))!.pathPosition).not.toBeNull(),
+    );
+    await waitFor(() =>
+      expect(within(form).getByRole("button", { name: "Place on map" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      ),
+    );
+    await user.click(await within(form).findByRole("button", { name: "Clear position" }));
+    await waitFor(async () => expect((await repos.corners.get(t(3).id))!.pathPosition).toBeNull());
+  });
+
+  it("cancels placing with Escape without closing the panel", async () => {
+    const { t, user } = await open({ edit: "1" });
+    search.set("corner", t(3).id);
+    rerenderPage();
+    const form = await screen.findByRole("form", { name: "Corner details" });
+    await user.click(within(form).getByRole("button", { name: "Place on map" }));
+    await user.keyboard("{Escape}");
+    expect(within(form).getByRole("button", { name: "Place on map" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    expect(panel()).toBeInTheDocument();
+  });
+
+  it("adds a corner after the last one and opens it", async () => {
+    const { layoutId, user } = await open({ edit: "1", panel: "corners" });
+    await user.click(await screen.findByRole("button", { name: "Add corner" }));
+    await waitFor(async () =>
+      expect((await repos.corners.listByLayout(layoutId)).at(-1)).toMatchObject({ number: 16 }),
+    );
+    expect(await within(panel()).findByRole("heading", { name: "Turn 16" })).toBeInTheDocument();
+  });
+
+  it("moves a corner in lap order, keeping its number", async () => {
+    const { layoutId, t, user } = await open({ edit: "1", panel: "corners" });
+    await user.click(await screen.findByRole("button", { name: "Move T2 S do Senna earlier" }));
+    await waitFor(async () =>
+      expect((await repos.corners.listByLayout(layoutId)).slice(0, 2).map((c) => c.id)).toEqual([
+        t(2).id,
+        t(1).id,
+      ]),
+    );
+    expect(await repos.corners.get(t(2).id)).toMatchObject({ number: 2 });
+  });
+
+  it("deletes a corner after asking, and goes back to the list", async () => {
+    const { layoutId, t, user } = await open({ edit: "1" });
+    search.set("corner", t(1).id);
+    rerenderPage();
+    const form = await screen.findByRole("form", { name: "Corner details" });
+    await user.click(within(form).getByRole("button", { name: "Delete corner" }));
+    await user.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Delete corner" }),
+    );
+    await waitFor(async () =>
+      expect((await repos.corners.listByLayout(layoutId)).map((c) => c.number)).not.toContain(1),
+    );
+    await waitFor(() => expect(search.get("panel")).toBe("corners"));
+    expect(search.get("corner")).toBeNull();
   });
 });
