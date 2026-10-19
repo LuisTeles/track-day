@@ -111,6 +111,18 @@ export interface TrackDeletionService {
   deleteTrack(trackId: string): Promise<void>;
 }
 
+export interface CarDeletionService {
+  /** How many live guides a car or a class has (for the delete confirm). */
+  countGuides(target: GuideTarget): Promise<number>;
+  /** Soft-deletes a car with its guides and their corner guides, in one transaction. */
+  deleteCar(carId: string): Promise<void>;
+  /**
+   * Soft-deletes a class with its class guides and their corner guides.
+   * Refuses while the class still has cars.
+   */
+  deleteCarClass(classId: string): Promise<void>;
+}
+
 export interface LayoutDeletionService {
   /**
    * Soft-deletes a layout with its corners, segments, complexes, guides and
@@ -183,5 +195,6 @@ export interface Repositories {
   trackDeletion: TrackDeletionService;
   layoutDeletion: LayoutDeletionService;
   cornerDeletion: CornerDeletionService;
+  carDeletion: CarDeletionService;
   layoutGeometry: LayoutGeometryService;
 }

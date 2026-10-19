@@ -14,6 +14,7 @@ type EntityRepositories = Omit<
   | "trackDeletion"
   | "layoutDeletion"
   | "cornerDeletion"
+  | "carDeletion"
   | "layoutGeometry"
 >;
 

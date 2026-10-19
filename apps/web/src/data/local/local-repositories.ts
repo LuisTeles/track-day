@@ -28,6 +28,7 @@ import { TrackDayDb } from "./db";
 import { LocalGuideImportService, LocalTrackImportService } from "./import-services";
 import { LocalLayoutGeometryService } from "./layout-geometry";
 import { LocalTrackDeletionService } from "./track-deletion";
+import { LocalCarDeletionService } from "./car-deletion";
 
 interface Schema<T> {
   parse(input: unknown): T;
@@ -328,6 +329,7 @@ export function createLocalRepositories(db = new TrackDayDb()): Repositories {
     trackDeletion: deletion,
     layoutDeletion: deletion,
     cornerDeletion: deletion,
+    carDeletion: new LocalCarDeletionService(db),
     layoutGeometry: new LocalLayoutGeometryService(db, repos),
   };
 }
