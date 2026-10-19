@@ -10,7 +10,7 @@ test.beforeEach(async ({ page }, testInfo) => {
 const pageScrollWidth = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth);
 
 test("no page scrolls sideways at 360px", async ({ page }) => {
-  for (const path of ["/", "/backup/", "/tracks/import/"]) {
+  for (const path of ["/", "/cars/", "/backup/", "/tracks/import/", "/tracks/new/"]) {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 }).first()).toBeVisible();
     expect(await pageScrollWidth(page), path).toBeLessThanOrEqual(360);

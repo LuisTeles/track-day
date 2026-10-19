@@ -19,7 +19,11 @@ export default function MainLayout({ children }: { children: ReactNode }) {
           aria-label="Main"
           className="mx-auto flex max-w-5xl items-center gap-1 px-4 py-2 text-sm pl-safe-4 pr-safe-4"
         >
-          <Link href="/" className="focus-ring mr-3 rounded-lg font-semibold tracking-tight">
+          {/* Below sm the wordmark gives its room to the nav; "Tracks" goes home too. */}
+          <Link
+            href="/"
+            className="focus-ring mr-3 rounded-lg font-semibold tracking-tight max-sm:hidden"
+          >
             Track Day
           </Link>
           <NavLink href="/">Tracks</NavLink>

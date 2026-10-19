@@ -9,6 +9,8 @@ type PageKey =
   | "backup"
   | "import"
   | "new-track"
+  | "cars"
+  | "compare"
   | "track"
   | "track-edit"
   | "track-panel"
@@ -26,6 +28,8 @@ const KNOWN_VIOLATIONS: Record<PageKey, string[]> = {
   backup: [],
   import: [],
   "new-track": [],
+  cars: [],
+  compare: [],
   track: [],
   "track-edit": [],
   "track-panel": [],
@@ -119,6 +123,37 @@ for (const scheme of ["light", "dark"] as const) {
       await expect(page.getByRole("complementary", { name: item })).toBeVisible();
       await scan(page, "track-edit", panelOnly);
     }
+  });
+}
+
+for (const scheme of ["light", "dark"] as const) {
+  test(`cars and compare are accessible (${scheme})`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    await page.goto("/cars/");
+    await expect(page.getByText("No cars yet")).toBeVisible();
+    await scan(page, "cars");
+    await page.getByRole("button", { name: "Add starter classes" }).click();
+    await page.getByRole("button", { name: "Add GT3 car" }).click();
+    await expect(page.getByRole("form", { name: "New car" })).toBeVisible();
+    await scan(page, "cars");
+    const carForm = page.getByRole("form", { name: "New car" });
+    await carForm.getByLabel("Car name").fill("BMW M4 GT3");
+    await carForm.getByRole("button", { name: "Add car", exact: true }).click();
+    await page.getByRole("button", { name: "Driving: No car" }).click();
+    await expect(page.getByLabel("Driving", { exact: true })).toBeVisible();
+    await scan(page, "cars");
+    await page.keyboard.press("Escape");
+
+    await loadSamples(page);
+    await page.getByRole("link", { name: /Interlagos/ }).click();
+    await page.getByLabel("Car", { exact: true }).selectOption("__add__");
+    await page.getByLabel("Which car").selectOption("__new__");
+    await page.getByLabel("Car name", { exact: true }).fill("Mazda MX-5");
+    await page.getByRole("button", { name: "Add car", exact: true }).click();
+    await page.getByRole("button", { name: "More map actions" }).click();
+    await page.getByRole("menuitem", { name: "Compare cars" }).click();
+    await expect(page.getByRole("table").first()).toBeVisible();
+    await scan(page, "compare");
   });
 }
 

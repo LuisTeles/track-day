@@ -27,7 +27,12 @@ export function DrivingWithPicker() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="max-w-48" aria-label={`Driving: ${summary}`}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="max-w-48 max-sm:px-2"
+          aria-label={`Driving: ${summary}`}
+        >
           <Gauge aria-hidden />
           <span className="truncate max-sm:sr-only">{summary}</span>
         </Button>
