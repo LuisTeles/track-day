@@ -6,5 +6,6 @@ export const queryKeys = {
   trackView: (trackId: string, layoutId: string | null) =>
     [...queryKeys.track(trackId), "view", layoutId] as const,
   cornerGuides: (guideId: string) => [...queryKeys.all, "corner-guides", guideId] as const,
+  garage: () => [...queryKeys.all, "garage"] as const,
   asset: (assetId: string) => [...queryKeys.all, "asset", assetId] as const,
 };

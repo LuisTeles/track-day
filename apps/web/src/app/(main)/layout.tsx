@@ -22,6 +22,7 @@ export default function MainLayout({ children }: { children: ReactNode }) {
             Track Day
           </Link>
           <NavLink href="/">Tracks</NavLink>
+          <NavLink href="/cars/">Cars</NavLink>
           <NavLink href="/backup/">Backup</NavLink>
           <div className="ml-auto">
             <ThemeToggle />
