@@ -137,7 +137,7 @@ The same format is the **backup and sharing** format.
 - Corner list in lap order + interactive map with numbered markers.
 - Corner detail page: static info + the guide for the currently selected car/sim.
 - Complex view with the complex-level note.
-- Map editor: upload image, click to place/move markers (normalized coordinates).
+- Structure editing: add/reorder/delete corners, click the outline to place a marker, complexes and segments, a reference map image per layout.
 
 ## 6. Feature 3 — Cars
 
@@ -220,13 +220,13 @@ One corner per screen for a phone/tablet/second monitor next to the rig.
 ### M2 — Tracks & corners
 
 - [x] shadcn/ui setup
-- [ ] Track/layout CRUD
+- [x] Track/layout CRUD (M2 spec, 2026-10-19)
 - [x] Corner notes and common mistakes editing (in-app editing spec, 2026-10-07)
-- [ ] Corner CRUD + ordering
-- [ ] Segments and complexes
-- [ ] Cascade soft-delete (track → layouts → corners…)
-- [ ] Map image upload
-- [ ] Corner marker placement
+- [x] Corner CRUD + ordering
+- [x] Segments and complexes
+- [x] Cascade soft-delete (track → layouts → corners…)
+- [x] Map image upload (a reference picture; geometry stays on the outline, ADR-005)
+- [x] Corner marker placement (click on the outline)
 
 ### M3 — AI import
 
