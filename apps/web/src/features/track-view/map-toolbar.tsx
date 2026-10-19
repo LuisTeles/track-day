@@ -2,6 +2,7 @@
 
 import {
   Clapperboard,
+  Columns2,
   Group,
   Info,
   Keyboard,
@@ -47,6 +48,9 @@ export interface MapToolbarProps {
   video: { available: boolean; open(): void };
   onTrackDetails(): void;
   onSections(): void;
+  /** Null when the layout has fewer than two guides. */
+  compareHref: string | null;
+  onCompareClick(e: React.MouseEvent<HTMLAnchorElement>): void; // the view's unsaved-edits guard
   cheatSheetHref: string;
   onCheatSheetClick(e: React.MouseEvent<HTMLAnchorElement>): void; // the view's unsaved-edits guard
   onShowShortcuts(): void;
@@ -170,6 +174,19 @@ export function MapToolbar(p: MapToolbarProps) {
             <Group aria-hidden />
             Complexes &amp; segments
           </DropdownMenuItem>
+          {p.compareHref ? (
+            <DropdownMenuItem asChild>
+              <Link href={p.compareHref} onClick={p.onCompareClick}>
+                <Columns2 aria-hidden />
+                Compare cars
+              </Link>
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem disabled title="Needs two cars on this layout">
+              <Columns2 aria-hidden />
+              Compare cars
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem asChild>
             <Link href={p.cheatSheetHref} onClick={p.onCheatSheetClick}>
               <Printer aria-hidden />

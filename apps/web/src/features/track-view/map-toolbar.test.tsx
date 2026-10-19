@@ -25,6 +25,8 @@ const props = () => ({
   video: { available: true, open: vi.fn() },
   onTrackDetails: vi.fn(),
   onSections: vi.fn(),
+  compareHref: "/tracks/compare/?track=t&layout=l&a=g" as string | null,
+  onCompareClick: vi.fn((e: { preventDefault(): void }) => e.preventDefault()),
   cheatSheetHref: "/tracks/print/?track=t&layout=l&guide=g",
   onCheatSheetClick: vi.fn((e: { preventDefault(): void }) => e.preventDefault()),
   onShowShortcuts: vi.fn(),
@@ -47,6 +49,21 @@ describe("MapToolbar", () => {
     await userEvent.click(screen.getByRole("button", { name: "More map actions" }));
     await userEvent.click(screen.getByRole("menuitem", { name: "Complexes & segments" }));
     expect(p.onSections).toHaveBeenCalled();
+  });
+
+  it("links to Compare cars, disabled with fewer than two cars", async () => {
+    const { unmount } = render(<MapToolbar {...props()} />);
+    await userEvent.click(screen.getByRole("button", { name: "More map actions" }));
+    expect(screen.getByRole("menuitem", { name: "Compare cars" }).getAttribute("href")).toMatch(
+      /^\/tracks\/compare\/?\?track=t&layout=l&a=g$/,
+    );
+    unmount();
+    render(<MapToolbar {...props()} compareHref={null} />);
+    await userEvent.click(screen.getByRole("button", { name: "More map actions" }));
+    expect(screen.getByRole("menuitem", { name: "Compare cars" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
   });
 
   it("puts the layer toggles in a Layers menu as checkboxes", async () => {

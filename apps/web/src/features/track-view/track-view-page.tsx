@@ -507,6 +507,15 @@ function TrackView({ trackId }: { trackId: string }) {
   );
 
   const cheatSheetHref = printHref(track.id, layout.id, guide?.id ?? null);
+  const compareHref =
+    guides.length >= 2
+      ? `/tracks/compare/?${new URLSearchParams({
+          track: track.id,
+          layout: layout.id,
+          ...(guide ? { a: guide.id } : {}),
+          ...(selected ? { corner: selected.id } : {}),
+        })}`
+      : null;
   const toolbar = (
     <MapToolbar
       hasMap={layout.outlinePath !== null}
@@ -536,6 +545,8 @@ function TrackView({ trackId }: { trackId: string }) {
       video={{ available: guide !== null, open: openVideo }}
       onTrackDetails={openTrackDetails}
       onSections={openSections}
+      compareHref={compareHref}
+      onCompareClick={(e) => compareHref && guardLink(e, compareHref)}
       cheatSheetHref={cheatSheetHref}
       onCheatSheetClick={(e) => guardLink(e, cheatSheetHref)}
       onShowShortcuts={() => setHelpOpen(true)}
