@@ -45,6 +45,7 @@ import { useCornerGuides, useTrackView } from "./use-track-view";
 import { resolveGuide } from "@track-day/schema";
 import { useDrivingWith } from "@/features/cars/driving-with";
 import { ClassGuideNote } from "./class-guide-note";
+import { ConfirmAllEstimates, ConfirmEstimateButton } from "./edit/confirm-estimates";
 
 const DISCARD = {
   title: "Discard unsaved changes?",
@@ -593,6 +594,13 @@ function TrackView({ trackId }: { trackId: string }) {
         ) : setupOpen && guide && currentGuideLabel ? (
           <>
             {classFallbackNote}
+            {editing && cornerGuides && (
+              <ConfirmAllEstimates
+                guideId={guide.id}
+                label={currentGuideLabel}
+                cornerGuides={cornerGuides}
+              />
+            )}
             <CarSetup
               guide={guide}
               label={currentGuideLabel}
@@ -660,36 +668,39 @@ function TrackView({ trackId }: { trackId: string }) {
                     // The form's draft starts from the stored values: wait for them.
                     <p className="text-sm text-muted">Loading…</p>
                   ) : guide && currentGuideLabel ? (
-                    <CornerGuideForm
-                      key={`${guide.id}:${selected.id}`}
-                      guideId={guide.id}
-                      cornerId={selected.id}
-                      label={`${currentGuideLabel} · T${selected.number}`}
-                      guide={selectedGuide}
-                      onDirtyChange={onGuideDirty}
-                    >
-                      <LinePoints
+                    <>
+                      <ConfirmEstimateButton cornerGuide={selectedGuide} />
+                      <CornerGuideForm
+                        key={`${guide.id}:${selected.id}`}
                         guideId={guide.id}
                         cornerId={selected.id}
+                        label={`${currentGuideLabel} · T${selected.number}`}
                         guide={selectedGuide}
-                        cornerFraction={selectedFraction}
-                        lengthMeters={layout.lengthMeters}
-                        hasOutline={layout.outlinePath !== null}
-                        picking={picking}
-                        onPickStart={(p) => {
-                          setPickError(null);
-                          setPlacing(false);
-                          setPicking(p);
-                        }}
-                        onPickEnd={() => setPicking(null)}
-                        onError={setPickError}
-                      />
-                      {pickError && (
-                        <p role="status" className="text-sm text-danger">
-                          {pickError}
-                        </p>
-                      )}
-                    </CornerGuideForm>
+                        onDirtyChange={onGuideDirty}
+                      >
+                        <LinePoints
+                          guideId={guide.id}
+                          cornerId={selected.id}
+                          guide={selectedGuide}
+                          cornerFraction={selectedFraction}
+                          lengthMeters={layout.lengthMeters}
+                          hasOutline={layout.outlinePath !== null}
+                          picking={picking}
+                          onPickStart={(p) => {
+                            setPickError(null);
+                            setPlacing(false);
+                            setPicking(p);
+                          }}
+                          onPickEnd={() => setPicking(null)}
+                          onError={setPickError}
+                        />
+                        {pickError && (
+                          <p role="status" className="text-sm text-danger">
+                            {pickError}
+                          </p>
+                        )}
+                      </CornerGuideForm>
+                    </>
                   ) : (
                     <section className="space-y-2 rounded-lg border border-dashed border-border p-3 text-muted">
                       <p>Add a car to record its values for this corner.</p>
@@ -704,7 +715,11 @@ function TrackView({ trackId }: { trackId: string }) {
                 currentGuideLabel && (
                   <div className="space-y-3">
                     {classFallbackNote}
-                    <CornerGuideSection guide={selectedGuide} label={currentGuideLabel} />
+                    <CornerGuideSection
+                      guide={selectedGuide}
+                      label={currentGuideLabel}
+                      confirm={<ConfirmEstimateButton cornerGuide={selectedGuide} />}
+                    />
                   </div>
                 )
               )

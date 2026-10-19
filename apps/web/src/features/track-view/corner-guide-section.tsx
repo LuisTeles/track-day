@@ -1,13 +1,17 @@
 import { isEstimate } from "@/features/guides/estimate";
 import type { CornerGuide } from "@track-day/schema";
+import type { ReactNode } from "react";
 
 /** Car-specific guidance for one corner, shown in the corner details. */
 export function CornerGuideSection({
   guide,
   label,
+  confirm,
 }: {
   guide: CornerGuide | undefined;
   label: string;
+  /** e.g. a "Mark as confirmed" button, shown under the values. */
+  confirm?: ReactNode;
 }) {
   if (!guide) {
     return (
@@ -54,6 +58,7 @@ export function CornerGuideSection({
       {guide.throttleNotes && <p>{guide.throttleNotes}</p>}
       {guide.trailBrakeNotes && <p>{guide.trailBrakeNotes}</p>}
       {guide.notes.trim() && <p className="whitespace-pre-line">{guide.notes}</p>}
+      {confirm}
     </section>
   );
 }

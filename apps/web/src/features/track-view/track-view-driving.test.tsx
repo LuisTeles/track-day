@@ -1,6 +1,6 @@
 import interlagos from "@examples/interlagos.track.json";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { TrackImportPayload, type Guide } from "@track-day/schema";
+import { GuideImportPayload, TrackImportPayload, type Guide } from "@track-day/schema";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -161,6 +161,56 @@ describe("TrackViewPage with a car you drive", () => {
     expect((await repos.cars.list()).length).toBe(1);
     await waitFor(() =>
       expect(screen.queryByRole("region", { name: "Class guide" })).not.toBeInTheDocument(),
+    );
+  });
+});
+
+describe("Confirming estimates", () => {
+  async function withAiGuide(params: Record<string, string>) {
+    let guideId = "";
+    const opened = await open(false, params, async (layoutId) => {
+      ({ guideId } = await repos.guideImport.importGuide(
+        GuideImportPayload.parse({
+          schemaVersion: 2,
+          kind: "guide",
+          guide: {},
+          corners: [
+            { cornerNumber: 1, gear: 2, minSpeedKmh: 70 },
+            { cornerNumber: 2, gear: 3 },
+          ],
+        }),
+        { layoutId, target: { carClassId: crypto.randomUUID() }, sim: null },
+      ));
+    });
+    search.set("guide", guideId);
+    rerenderPage();
+    return { ...opened, guideId };
+  }
+
+  it("marks one corner's AI values as confirmed, keeping the numbers", async () => {
+    const { guideId, user } = await withAiGuide({});
+    await user.click(await screen.findByRole("button", { name: "Mark as confirmed" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Mark as confirmed" })).not.toBeInTheDocument(),
+    );
+    expect(screen.queryByText("AI estimate")).not.toBeInTheDocument();
+    const [t1] = (await repos.cornerGuides.listByGuide(guideId)).filter((g) => g.gear === 2);
+    expect(t1).toMatchObject({ source: "manual", confidence: null, minSpeedKmh: 70 });
+  });
+
+  it("confirms every corner of a car from its setup panel, after asking", async () => {
+    const { guideId, user } = await withAiGuide({ edit: "1", panel: "setup" });
+    search.delete("corner");
+    rerenderPage();
+    await user.click(await screen.findByRole("button", { name: "Confirm all estimates" }));
+    await user.click(
+      within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Confirm all" }),
+    );
+    await waitFor(async () =>
+      expect((await repos.cornerGuides.listByGuide(guideId)).map((g) => g.source)).toEqual([
+        "manual",
+        "manual",
+      ]),
     );
   });
 });
