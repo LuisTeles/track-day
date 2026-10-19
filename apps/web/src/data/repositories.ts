@@ -111,6 +111,24 @@ export interface TrackDeletionService {
   deleteTrack(trackId: string): Promise<void>;
 }
 
+export interface LayoutDeletionService {
+  /**
+   * Soft-deletes a layout with its corners, segments, complexes, guides and
+   * corner guides in one transaction, and removes its map image. Refuses the
+   * track's last layout.
+   */
+  deleteLayout(layoutId: string): Promise<void>;
+}
+
+export interface CornerDeletionService {
+  /**
+   * Soft-deletes a corner and its corner guides in one transaction. Complexes
+   * drop it (and are deleted below two corners), segments clear it, and
+   * reference videos lose its mark.
+   */
+  deleteCorner(cornerId: string): Promise<void>;
+}
+
 export interface GuideImportOptions {
   layoutId: string;
   target: GuideTarget;
@@ -163,5 +181,7 @@ export interface Repositories {
   trackImport: TrackImportService;
   guideImport: GuideImportService;
   trackDeletion: TrackDeletionService;
+  layoutDeletion: LayoutDeletionService;
+  cornerDeletion: CornerDeletionService;
   layoutGeometry: LayoutGeometryService;
 }

@@ -320,11 +320,14 @@ export function createLocalRepositories(db = new TrackDayDb()): Repositories {
     assets: new LocalAssetRepository(db),
     backup: new LocalBackupService(db),
   };
+  const deletion = new LocalTrackDeletionService(db);
   return {
     ...repos,
     trackImport: new LocalTrackImportService(db, repos),
     guideImport: new LocalGuideImportService(db, repos),
-    trackDeletion: new LocalTrackDeletionService(db),
+    trackDeletion: deletion,
+    layoutDeletion: deletion,
+    cornerDeletion: deletion,
     layoutGeometry: new LocalLayoutGeometryService(db, repos),
   };
 }
