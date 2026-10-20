@@ -11,3 +11,4 @@ test-results/
 .vercel
 tmp-local/
 scripts/osm-outline/.cache/
+graphify-out/
